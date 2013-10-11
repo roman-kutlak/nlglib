@@ -1,9 +1,9 @@
 from copy import deepcopy
 import re
 
-from ip.nlg.structures import *
-from ip.nlg.aggregation import *
-from ip.nlg.lexicalisation import SentenceTemplates
+from nlg.structures import *
+from nlg.aggregation import *
+from nlg.lexicalisation import SentenceTemplates
 
 
 class LanguageGen:
