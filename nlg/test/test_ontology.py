@@ -13,7 +13,7 @@ import rdflib
 import rdflib.plugins.sparql as sparql
 
 
-path = '/Users/roman/Work/Sassy/data/Logistics1.sassy/domain.ttl'
+logistics_path = './data/ontology.ttl'
 format = 'n3'
 
 
@@ -49,6 +49,10 @@ class TestOntology(unittest.TestCase):
         type_ = ':drum'
         res = ontology.entities_of_type(type_)
         self.assertGreater(len(res), 0)
+
+    def test_lexicalisation_tree(self):
+        ontology = Ontology(path, format)
+        
 
 
 
