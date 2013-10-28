@@ -8,7 +8,7 @@ if folder not in sys.path:
     sys.path.append(folder)
 
 
-from ip.nlg.ontology import Ontology
+from nlg.ontology import Ontology
 import rdflib
 import rdflib.plugins.sparql as sparql
 

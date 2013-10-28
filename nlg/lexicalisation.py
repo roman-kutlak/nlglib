@@ -49,7 +49,7 @@ takePhotos = Clause(uav, VP(Word('is', 'VERB'), [Word('taking photos', 'VERB')])
 selectLandingSite = Clause(uav, VP(Word('is', 'VERB'), [Word('selecting landing site', 'VERB')]))
 flyToLandingSiteA = Clause(uav, VP(Word('is', 'VERB'), [Word('flying to site A', 'VERB')]))
 flyToLandingSiteB = Clause(uav, VP(Word('is', 'VERB'), [Word('flying to site B', 'VERB')]))
-land = Clause(uav, VP(Word('landed', 'VERB')))
+land = Clause(uav, VP(Word('is', 'VERB'), [Word('landing', 'VERB')]))
 
 
 class SentenceTemplates:

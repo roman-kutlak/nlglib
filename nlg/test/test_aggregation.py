@@ -9,8 +9,8 @@ if folder not in sys.path:
     sys.path.append(folder)
 
 
-from ip.nlg.structures import *
-from ip.nlg.aggregation import *
+from nlg.structures import *
+from nlg.aggregation import *
 
 class TestAggregation(unittest.TestCase):
     

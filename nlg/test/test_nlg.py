@@ -7,9 +7,9 @@ folder = '../src'
 if folder not in sys.path:
     sys.path.append(folder)
 
-from ip.nlg.nlg import *
-from ip.nlg.structures import *
-import ip.nlg.simplenlg as snlg
+from nlg.nlg import *
+from nlg.structures import *
+import nlg.simplenlg as snlg
 from planning.planner import Planner
 
 from utils.settings import get_user_settings
