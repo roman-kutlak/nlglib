@@ -1,5 +1,5 @@
 from copy import deepcopy
-from ip.nlg.structures import *
+from nlg.structures import *
 
 
 def s_aggr(sent1, sent2):

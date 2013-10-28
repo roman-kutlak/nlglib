@@ -1,8 +1,8 @@
 from copy import deepcopy
 import re
 
-from ip.nlg.structures import *
-from ip.nlg.aggregation import *
+from nlg.structures import *
+from nlg.aggregation import *
 
 # this should be read from a domain lexicalisation file
 fly = Word('fly', 'VERB')

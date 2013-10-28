@@ -1,4 +1,4 @@
-from common.dstruct import Plan
+from dstruct import Plan
 
 import copy
 import itertools
