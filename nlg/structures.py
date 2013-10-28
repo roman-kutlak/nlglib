@@ -1,5 +1,83 @@
 from copy import deepcopy
 
+""" Data structures used by other packages. """
+
+# macroplanning level structures
+#   for content determination and content structuring
+
+def enum(*sequential, **named):
+    """ This functions declares a new type 'enum' that acts as an enum. """
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.items())
+    enums['reverse_mapping'] = reverse
+    return type('Enum', (), enums)
+
+
+""" Rhetorical Structure Theory relations """
+RST = enum( 'Elaboration', 'Exemplification',
+            'Contrast', 'Exception',
+            'Sequence', 'Set',
+            'Leaf'
+          )
+
+
+class Document:
+    def __init__(self, title, sections=None):
+        self.title = title
+        self.sections = sections if sections is not None else list()
+
+
+class Section:
+    def __init__(self, title, paras=None):
+        self.title = title
+        self.paragraphs = paras if paras is not None else list()
+
+
+class Paragraph:
+    def __init__(self, messages=None):
+        self.messages = messages if messages is not None else list()
+
+
+class Message:
+    def __init__(self, rel='Leaf', sats=None):
+        self.rst = rel
+        self.nucleus
+        self.satelites if sats is not None else list()
+
+
+class MessageSpec:
+    """ MessageSpec specifies an interface for various message specifications.
+    Because the specifications are domain dependent, this is just a convenience 
+    interface that allows the rest of the library to operate on the messages.
+    
+    The name of the message is used during lexicalisation where the name is 
+    looked up in an ontology to find corresponding syntactic frame. To populate
+    the frame, the lexicaliser finds all variables and uses their names as a key
+    to look up the values in the corresponding message. For example, if 
+    the syntactic structure in the domain ontology specifies a variable named 
+    'foo', the lexicaliser will call msg.value_for('foo'), which in turns calls
+    self.foo(). This should return the value for the key 'foo'.
+    
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def value_for(self, data_member):
+        """ Return a value for an argument using introspection. """
+        if not hasattr(self, data_member):
+            raise ValueError('Error: cannot find value for key: %s' %
+                                data_member)
+        m = getattr(self, data_member)
+        if not hasattr(m, '__call__'):
+            raise ValueError('Error: cannot call the method "%s"' %
+                                data_member)
+        return m()
+
+
+
+
+
+# microplanning level structures
 
 class NLGElement:
     def __init__(self, vname=None):
