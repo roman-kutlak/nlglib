@@ -45,8 +45,8 @@ class Message:
         self.satelites if sats is not None else list()
 
 
-class MessageSpec:
-    """ MessageSpec specifies an interface for various message specifications.
+class MsgSpec:
+    """ MsgSpec specifies an interface for various message specifications.
     Because the specifications are domain dependent, this is just a convenience 
     interface that allows the rest of the library to operate on the messages.
     
@@ -73,7 +73,9 @@ class MessageSpec:
                                 data_member)
         return m()
 
-
+    @classmethod
+    def instantiate(Klass, data):
+        return None
 
 
 

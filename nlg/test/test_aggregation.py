@@ -1,13 +1,6 @@
 import unittest
 from copy import deepcopy
 
-import sys
-
-folder = '../src'
-
-if folder not in sys.path:
-    sys.path.append(folder)
-
 
 from nlg.structures import *
 from nlg.aggregation import *
