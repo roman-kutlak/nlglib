@@ -166,7 +166,7 @@ class Nlg:
         
         """
         tasks = list(map(lambda x: self.lexicalise_task(x, document),
-                            document.workflow.tasks))
+                            document.workflow.tasks()))
         return tasks
 
     def lexicalise_task(self, task, document):
