@@ -288,7 +288,7 @@ class Nlg:
         # simple sentence - no coordinated clause
         return True
 
-    def _can_skip(message, j):
+    def _can_skip(self, messages, j):
         """ Return true if this element can be skipped. """
         return (messages[j] is None)
 
