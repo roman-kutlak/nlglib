@@ -189,7 +189,8 @@ class Nlg:
         print('Before gre: %s' % msgs)
         msgs = self.gre(msgs, document, context)
         print('Before text: %s' % msgs)
-        text = self.messages_to_text(msgs)
+        if msgs == [None]: text = task.id
+        else: text = self.messages_to_text(msgs)
         return text + '.'
 
     def _replace_placeholders_with_params(self, template, params):
