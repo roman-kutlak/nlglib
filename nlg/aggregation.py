@@ -8,7 +8,7 @@ def s_aggr(sent1, sent2):
 
     """
     if sent1.subj == sent2.subj:
-        coord_pred = CoordinatedClause([deepcopy(sent1.vp), deepcopy(sent2.vp)])
+        coord_pred = CC([deepcopy(sent1.vp), deepcopy(sent2.vp)])
         clause = deepcopy(sent1)
         clause.vp = coord_pred
         return clause
@@ -42,7 +42,7 @@ def pdo_aggr(sent1, sent2):
         
     """
     if sent1.vp == sent2.vp:
-        coord_subject = CoordinatedClause([deepcopy(sent1.subj),
+        coord_subject = CC([deepcopy(sent1.subj),
                                            deepcopy(sent2.subj)])
         clause = deepcopy(sent1)
         clause.subj = coord_subject
@@ -78,7 +78,7 @@ def do_aggr(sent1, sent2):
                 # the vps are same (except for objects)
                 del o1.features['discourseFunction']
                 del o2.features['discourseFunction']
-                coord_obj = CoordinatedClause([o1, o2])
+                coord_obj = CC([o1, o2])
                 new_sent.vp.set_object(coord_obj)
         except Exception as e:
             print("Exception: %s" % e)
@@ -123,7 +123,7 @@ def sentence_iterator(sent):
             for x in sentence_iterator(o):
                 yield x
 
-    if isinstance(sent, CoordinatedClause):
+    if isinstance(sent, CC):
         for x in sent.coords:
             yield x
         yield sent
@@ -175,7 +175,7 @@ def replace_element(sent, elt, replacement=None):
             if replace_element(sent.vp, elt, replacement):
                 return True;
 
-    if isinstance(sent, CoordinatedClause):
+    if isinstance(sent, CC):
         for i, o in list(enumerate(sent.coords)):
             if (o == elt):
                 if replacement is None:
@@ -247,18 +247,18 @@ class ElementError(Exception):
 
 
 def add_elements(e1, e2):
-    if (not isinstance(e1, NLGElement) or not isinstance(e2, NLGElement)):
+    if (not isinstance(e1, Element) or not isinstance(e2, Element)):
         raise ElementError("To add elements they have to be NLGElements")
 
-    cc = CoordinatedClause()
+    cc = CC()
 
-    if (isinstance(e1, CoordinatedClause)):
+    if (isinstance(e1, CC)):
         cc = deepcopy(e1)
         cc.coords.append(deepcopy(e2))
         if 'discourseFunction' in e2.features:
             cc.features['discourseFunction'] = e2.features['discourseFunction']
 
-    elif (isinstance(e2, CoordinatedClause)):
+    elif (isinstance(e2, CC)):
         cc = deepcopy(e2)
         cc.coords.append(deepcopy(e1))
         if 'discourseFunction' in e1.features:
