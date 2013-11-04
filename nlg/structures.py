@@ -27,7 +27,9 @@ class Document:
         self.sections = [s for s in sections if s is not None]
 
     def __repr__(self):
-        return 'Document:\ntitle: %s' % str(self)
+        descr = (repr(self.title) + '\n'
+                + '\n\n'.join([repr(s) for s in self.sections if s is not None]))
+        return 'Document:\ntitle: %s' % descr.strip()
 
     def __str__(self):
         descr = (str(self.title) + '\n'
@@ -46,7 +48,9 @@ class Section:
         self.paragraphs = [p for p in paragraphs if p is not None]
 
     def __repr__(self):
-        return 'Section:\ntitle: %s' % str(self)
+        descr = (repr(self.title) + '\n'
+                + '\n'.join([repr(p) for p in self.paragraphs if p is not None]))
+        return 'Section:\ntitle: %s' % descr.strip()
 
     def __str__(self):
         descr = (str(self.title) + '\n'
@@ -64,7 +68,8 @@ class Paragraph:
         self.messages = [m for m in messages if m is not None]
 
     def __repr__(self):
-        return 'Paragraph (%d):\n%s' % (len(self.messages), str(self))
+        descr = '; '.join([repr(m) for m in self.messages if m is not None])
+        return 'Paragraph (%d):\n%s' % (len(self.messages), descr.strip())
 
     def __str__(self):
         descr = ('\t'
@@ -83,7 +88,9 @@ class Message:
         self.satelites = [s for s in satelites if s is not None]
 
     def __repr__(self):
-        return 'Message (%s): %s' % (self.rst, str(self))
+        descr = ' '.join( [repr(x) for x in
+            ([self.nucleus] + self.satelites) if x is not None ] )
+        return 'Message (%s): %s' % (self.rst, descr.strip())
 
     def __str__(self):
         descr = ' '.join( [str(x) for x in
@@ -360,7 +367,7 @@ class PlaceHolder(Element):
     def to_str(self):
         if (self.value):
             return str(self.value)
-        return self.id
+        return str(self.id)
 
     def __eq__(self, other):
         if (not isinstance(other, PlaceHolder)):
@@ -372,7 +379,7 @@ class PlaceHolder(Element):
 
     def __repr__(self):
         return ('PlaceHolder: id=%s value=%s %s' %
-                (str(self.id), str(self.value), str(self._features)))
+                (repr(self.id), repr(self.value), repr(self._features)))
 
     def __str__(self):
         return self.to_str()

@@ -18,15 +18,14 @@ to = Word('to', 'PREPOSITION')
 
 you = None # Word('you', 'PRONOUN')
 
-load_truck = Clause(you, VP(put, [PlaceHolder(0),
-                                  PP(into, PlaceHolder(1))]))
-drive_truck = Clause(you, VP(drive, [PlaceHolder(0),
+load_truck = Clause(you, VP(put, PlaceHolder(0), PP(into, PlaceHolder(1))))
+drive_truck = Clause(you, VP(drive, PlaceHolder(0),
                                      PP(from_, PlaceHolder(1)),
-                                     PP(to, PlaceHolder(2))]))
-unload_truck = Clause(you, VP(unload, [PlaceHolder(0),
-                                       PP(from_, PlaceHolder(1))]))
-load_airplane = Clause(you, VP(put, [PlaceHolder(0),
-                                      PP(into, PlaceHolder(1))]))
+                                     PP(to, PlaceHolder(2))))
+unload_truck = Clause(you, VP(unload, PlaceHolder(0),
+                                       PP(from_, PlaceHolder(1))))
+load_airplane = Clause(you, VP(put, PlaceHolder(0),
+                                      PP(into, PlaceHolder(1))))
 
 fly_airplane = deepcopy(drive_truck)
 fly_airplane.vp.head = fly
@@ -44,19 +43,19 @@ finish = Clause(you, VP(Word('finish', 'VERB')))
 # UAV domain
 
 uav = Word('UAV', 'NOUN')
-takeOff = Clause(uav, VP(Word('is', 'VERB'), [Word('taking off', 'VERB')]))
-flyToTargetArea = Clause(uav, VP(Word('is', 'VERB'), [Word('flying to the target area', 'VERB')]))
-takePhotos = Clause(uav, VP(Word('is', 'VERB'), [Word('taking photos', 'VERB')]))
-selectLandingSite = Clause(uav, VP(Word('is', 'VERB'), [Word('selecting landing site', 'VERB')]))
-flyToLandingSiteA = Clause(uav, VP(Word('is', 'VERB'), [Word('flying to site A', 'VERB')]))
-flyToLandingSiteB = Clause(uav, VP(Word('is', 'VERB'), [Word('flying to site B', 'VERB')]))
-land = Clause(uav, VP(Word('is', 'VERB'), [Word('landing', 'VERB')]))
+takeOff = Clause(uav, VP(Word('is', 'VERB'), Word('taking off', 'VERB')))
+flyToTargetArea = Clause(uav, VP(Word('is', 'VERB'), Word('flying to the target area', 'VERB')))
+takePhotos = Clause(uav, VP(Word('is', 'VERB'), Word('taking photos', 'VERB')))
+selectLandingSite = Clause(uav, VP(Word('is', 'VERB'), Word('selecting landing site', 'VERB')))
+flyToLandingSiteA = Clause(uav, VP(Word('is', 'VERB'), Word('flying to site A', 'VERB')))
+flyToLandingSiteB = Clause(uav, VP(Word('is', 'VERB'), Word('flying to site B', 'VERB')))
+land = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB')))
 
 
 # Workflow summary phrase specifications
 the_workflow = NP(spec='the', head='workflow')
-SummariseNumSteps = Clause(the_workflow,
-                        VP('has', PlaceHolder('arg_num_steps'), 'steps'))
+SummariseNumTasks = Clause(the_workflow,
+                        VP('has', PlaceHolder('arg_num_steps'), 'tasks'))
 SummariseNumChoices = Clause(the_workflow,
                         VP('has', PlaceHolder('arg_num_choices'), 'choices'))
 
@@ -106,7 +105,7 @@ class SentenceTemplates:
         self.templates['flyToLandingSiteB'] = flyToLandingSiteB
         self.templates['land'] = land
         # workflow summary
-        self.templates['SummariseNumSteps'] = SummariseNumSteps
+        self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices
         # kick detection
         self.templates['DrillAndMonitor'] = DrillAndMonitor
@@ -159,7 +158,7 @@ def lexicalise_message_spec(msg):
     and logs the error.
     
     """
-    template = templates.template(msg.name)
+    template = deepcopy(templates.template(msg.name))
     if template is None:
         print('no sentence template for "%s"' % msg.name)
         return None
@@ -169,8 +168,15 @@ def lexicalise_message_spec(msg):
     # if there are any arguments, replace them by values
     for arg in args:
         try:
-            val = msg.value_for(arg.id)
-            template.replace(arg, val)
+            if isinstance(arg, PlaceHolder):
+                val = msg.value_for(arg.id)
+                template.replace(arg, val)
+            elif isinstance(arg, int):
+                print('numeric parameter in "%s"' % repr(arg))
+                pass
+            else:
+                print('unknown parameter in "%s"' % repr(arg))
+                pass
         except Exception as e:
             print(e)
 
@@ -200,17 +206,37 @@ def lexicalise_section(msg):
     return Section(title, *paragraphs)
 
 
-def lexicalise_document(msg):
+def lexicalise_document(doc):
     """ Return a copy of a Document with MsgSpecs replaced by NLG Elements. """
-    if msg is None: return None
-    title = lexicalise(msg.title)
-    sections = [lexicalise(x) for x in msg.sections if x is not None]
+    if doc is None: return None
+    title = lexicalise(doc.title)
+    sections = [lexicalise(x) for x in doc.sections if x is not None]
     return Document(title, *sections)
 
 
+# TODO: hwo to lexicalise this given that NLG does know about tasks?
+def lexicalise_task(task, document):
+    """ Convert a task to a syntax tree with lexical items in it. """
+    print('Lexicalising task %s' % str(task))
+    params = task.input_params[:]
+    key = task.name if task.name != '' else task.id
+    sent = deepcopy(templates.template(key))
+    if None != sent:
+        _replace_placeholders_with_params(sent, params)
+    else:
+        print('Key "%s" or id "%s" not found' % (task.name, task.id))
+    return sent
 
 
-
+def _replace_placeholders_with_params(template, params):
+    print('Replacing params in template:\n%s' % str(template))
+    print('Params: \n\t %s' % str(params))
+    for c in sentence_iterator(template):
+        if (isinstance(c, PlaceHolder)):
+            id = c.id
+            var = params[id]
+            c.object = var
+#           print('Replacing parameter %d with %s' % (id, var))
 
 
 

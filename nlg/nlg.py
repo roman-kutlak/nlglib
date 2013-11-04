@@ -89,7 +89,7 @@ class REG:
                     number = tmp.group(2)
 
                 if (number is not None):
-                    result.add_complements(Word(number))
+                    result.add_complement(Word(number))
         except Exception as msg:
             # if we have no info, assume referent is not unique
             result = NP(Word(referent, 'NOUN'))
@@ -175,7 +175,7 @@ class Nlg:
 
     def lexicalise_task(self, task, document):
         """ Convert a task to a syntax tree with lexical items in it. """
-        print('Lexicalising task %s' % str(task))
+#        print('Lexicalising task %s' % str(task))
         params = task.input_params[:]
         key = task.name if task.name != '' else task.id
         sent = deepcopy(self.templates.template(key))
@@ -188,18 +188,18 @@ class Nlg:
     def task_to_text(self, task, document, context):
         """ Convert a task to text by lexicalising and performing REG. """
         msgs = [self.lexicalise_task(task, document)]
-        print('Before aggregation: %s' % msgs)
+#        print('Before aggregation: %s' % msgs)
         msgs = self.synt_aggregation(msgs)
-        print('Before gre: %s' % msgs)
+#        print('Before gre: %s' % msgs)
         msgs = self.gre(msgs, document, context)
-        print('Before text: %s' % msgs)
+#        print('Before text: %s' % msgs)
         if msgs == [None]: text = task.id
         else: text = self.messages_to_text(msgs)
         return text + '.'
 
     def _replace_placeholders_with_params(self, template, params):
-        print('Replacing params in template:\n%s' % str(template))
-        print('Params: \n\t %s' % str(params))
+#        print('Replacing params in template:\n%s' % str(template))
+#        print('Params: \n\t %s' % str(params))
         for c in sentence_iterator(template):
             if (isinstance(c, PlaceHolder)):
                 id = c.id
