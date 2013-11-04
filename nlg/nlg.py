@@ -4,6 +4,8 @@ import re
 from nlg.structures import *
 from nlg.aggregation import *
 from nlg.lexicalisation import SentenceTemplates, lexicalise
+import nlg.realisation as realisation
+import nlg.format as format
 
 
 class LanguageGen:
@@ -150,12 +152,12 @@ class Nlg:
         return text
 
     def document_to_text(self, doc):
-#        msgs = self.lexicalise(doc)
-#        msgs = self.synt_aggregation(msgs)
-#        msgs = self.gre(msgs, doc, Context(doc.ontology))
-#        return self.messages_to_text(msgs)
         summary = lexicalise(doc)
-        return str(summary)
+#        summary = aggregation.aggregate(summary)
+#        summary = reg.generate(msgs, doc, Context(doc.ontology))
+        summary = realisation.realise(summary)
+        summary = format.to_text(summary)
+        return summary
 
     def messages_to_text(self, messages):
         text = [str(x) for x in messages]
@@ -294,7 +296,6 @@ class Nlg:
     def _can_skip(self, messages, j):
         """ Return true if this element can be skipped. """
         return (messages[j] is None)
-
 
 
 

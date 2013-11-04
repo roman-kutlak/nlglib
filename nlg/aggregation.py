@@ -312,6 +312,112 @@ def try_to_aggregate(sent1, sent2):
     return None
 
 
+def synt_aggregation(messages, max=3):
+    """ Take a list of messages and combine messages that are sufficiently
+    similar.
+    
+    messages - a list of messages to combine
+    max      - a maximum number of messages to aggregate
+    
+    The algorithm relies on shared structure of the messages. If, for 
+    example, two messages share the subject, combine the VPs into 
+    a conjunction. Do not combine more than 'max' messages into each other.
+
+    """
+    if messages is None: return
+    if len(messages) < 2: return messages
+
+    aggregated = list()
+    i = 0
+    while i < len(messages) - 1:
+        msg, increment = _do_aggregate(messages, i, max)
+        aggregated.append(msg)
+        i += increment
+
+    return aggregated
+
+def _do_aggregate(messages, i, max):
+    lhs = messages[i]
+    j = i + 1
+    increment = 1
+    while j < len(messages) and _can_aggregate(lhs, max):
+        print('LHS = %s' % lhs)
+        rhs = messages[j]
+        if _can_aggregate(rhs, max):
+            tmp = try_to_aggregate(lhs, rhs)
+            if tmp is not None:
+                lhs = tmp
+                increment += 1
+                j += 1
+            else:
+                break
+        # cannot aggregate. can we skip it?
+        elif _can_skip(messages, j):
+            j += 1
+            increment += 1
+        else:
+            break
+    return (lhs, increment)
+
+def _can_aggregate(message, max):
+    """ Return true if this message can be aggregated.
+    max - maximum number of coordinates in a coordingated clause
+    If the message does not have a coordinated clause or if the number 
+    of coordinates is less then 'max', return True.
+
+    """
+    if message is None: return False
+    for part in sentence_iterator(message):
+        if not isinstance(part, CC):
+            continue
+        else:
+            return (len(part.coords) < max)
+    # simple sentence - no coordinated clause
+    return True
+
+def _can_skip(messages, j):
+    """ Return true if this element can be skipped. """
+    return (messages[j] is None)
+
+
+def aggregate(doc):
+    if doc is None: return None
+
+
+def aggregate_message(msg):
+    """ Perform syntactic aggregation on the constituents. """
+    # try to aggregate constituents before aggregating them with the nucleus
+    messages = []
+    if len(msg.satelites) > 1:
+        messages = synt_aggregation(msg.satelites, 3)
+
+
+
+def aggregate_paragraph(para):
+    """ Perform syntactic aggregation on the constituents. """
+
+
+def aggregate_document(doc):
+    """ Perform aggregation on a document - possibly before lexicalisation. """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

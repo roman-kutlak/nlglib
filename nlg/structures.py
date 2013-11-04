@@ -59,7 +59,6 @@ class Section:
         for x in self.paragraphs: yield from x.constituents()
 
 
-
 class Paragraph:
     def __init__(self, *messages):
         self.messages = [m for m in messages if m is not None]

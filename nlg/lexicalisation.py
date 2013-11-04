@@ -36,8 +36,9 @@ move = Clause(you, VP(move, [PlaceHolder(0),
                              PP(from_, PlaceHolder(1)),
                              PP(to, PlaceHolder(2)),
                              VP(using, PlaceHolder(3))]))
+
 start = Clause(you, VP(Word('start', 'VERB')))
-finish = Clause(you, VP(Word('finished', 'VERB')))
+finish = Clause(you, VP(Word('finish', 'VERB')))
 
 
 # UAV domain
@@ -59,6 +60,21 @@ SummariseNumSteps = Clause(the_workflow,
 SummariseNumChoices = Clause(the_workflow,
                         VP('has', PlaceHolder('arg_num_choices'), 'choices'))
 
+
+# KickDetection
+DrillAndMonitor = VP('drill', 'and', 'monitor')
+Tripping = VP('perform', 'tripping')
+Swabbing = VP('perform', 'swabbing')
+CheckSensors = VP('check', 'sensors')
+KickPrevention = VP('try', 'to prevent', 'possible kick')
+KickRecovery = VP('try', 'to recover', 'from an occuring kick')
+SealWell = VP('seal', 'the well')
+PlugWell = VP('plug', 'the well')
+
+EmergencyTask = NP('emergency taks')
+NormalTask = NP('task')
+
+
 class SentenceTemplates:
     """SentenceTemplates provides mapping from STRIPS operators to sentences.
         The keys are actionN where N is the number of parameters. These
@@ -67,6 +83,13 @@ class SentenceTemplates:
 
     def __init__(self):
         self.templates = dict()
+        self.templates['inputCondition'] = start
+        self.templates['outputCondition'] = finish
+        self.templates['Start'] = start
+        self.templates['Finish'] = finish
+        self.templates['OutputCondition'] = finish
+        self.templates['End'] = finish
+        # logistics
         self.templates['load-truck'] = load_truck
         self.templates['drive-truck'] = drive_truck
         self.templates['unload-truck'] = unload_truck
@@ -74,11 +97,7 @@ class SentenceTemplates:
         self.templates['fly-airplane'] = fly_airplane
         self.templates['unload-airplane'] = unload_airplane
         self.templates['move'] = move
-        self.templates['inputCondition'] = start
-        self.templates['outputCondition'] = finish
-        self.templates['OutputCondition'] = finish
-        self.templates['End'] = finish
-
+        # UAV
         self.templates['takeOff'] = takeOff
         self.templates['flyToTargetArea'] = flyToTargetArea
         self.templates['takePhotos'] = takePhotos
@@ -86,11 +105,21 @@ class SentenceTemplates:
         self.templates['flyToLandingSiteA'] = flyToLandingSiteA
         self.templates['flyToLandingSiteB'] = flyToLandingSiteB
         self.templates['land'] = land
-
         # workflow summary
         self.templates['SummariseNumSteps'] = SummariseNumSteps
         self.templates['SummariseNumChoices'] = SummariseNumChoices
-
+        # kick detection
+        self.templates['DrillAndMonitor'] = DrillAndMonitor
+        self.templates['Tripping'] = Tripping
+        self.templates['Swabbing'] = Swabbing
+        self.templates['CheckSensors'] = CheckSensors
+        self.templates['KickPrevention'] = KickPrevention
+        self.templates['KickRecovery'] = KickRecovery
+        self.templates['SealWell'] = SealWell
+        self.templates['PlugWell'] = PlugWell
+        self.templates['EmergencyTask'] = EmergencyTask
+        self.templates['NormalTask'] = NormalTask
+        
 
     def template(self, action):
         if action in self.templates:
@@ -122,6 +151,8 @@ def lexicalise(msg):
         raise TypeError('"%s" is neither a Message nor a MsgInstance')
 
 
+# TODO: lexicalisation should replace Messages by NLG Elements
+
 def lexicalise_message_spec(msg):
     """ Return Element corresponding to given message specification.
     If the lexicaliser can not find correct lexicalisation, it returns None
@@ -139,8 +170,6 @@ def lexicalise_message_spec(msg):
     for arg in args:
         try:
             val = msg.value_for(arg.id)
-# TODO: should we replace the argument or just add the value as the arg's value?
-#            arg.value = val
             template.replace(arg, val)
         except Exception as e:
             print(e)
