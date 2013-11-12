@@ -90,6 +90,7 @@ class Message:
     def __repr__(self):
         descr = ' '.join( [repr(x) for x in
             ([self.nucleus] + self.satelites) if x is not None ] )
+        if descr == '': descr = '_empty_'
         return 'Message (%s): %s' % (self.rst, descr.strip())
 
     def __str__(self):

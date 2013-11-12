@@ -390,7 +390,7 @@ def aggregate_message(msg):
     messages = []
     if len(msg.satelites) > 1:
         messages = synt_aggregation(msg.satelites, 3)
-
+    return messages
 
 
 def aggregate_paragraph(para):

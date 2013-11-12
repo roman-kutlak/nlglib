@@ -61,12 +61,30 @@ SummariseNumChoices = Clause(the_workflow,
 
 
 # KickDetection
-DrillAndMonitor = VP('drill', 'and', 'monitor')
-Tripping = VP('perform', 'tripping')
-Swabbing = VP('perform', 'swabbing')
-CheckSensors = VP('check', 'sensors')
-KickPrevention = VP('try', 'to prevent', 'possible kick')
-KickRecovery = VP('try', 'to recover', 'from an occuring kick')
+Drill = VP('drill')
+Trip = VP('perform', 'tripping')
+AdjustHSP = VP('adjust', 'HSP')
+Monitor = VP('check', 'sensors')
+SoftShutIn = VP('perform', 'soft', 'shut-in')
+HardShutIn = VP('perform', 'hard', 'shut-in')
+
+RecordData = Message('Elaboration',
+                     VP('record', 'data', 'using the kill sheet'),
+                     None)#PP('on', 'success', VP('assert', 'well_shut')))
+
+sat = None#PP('on', 'success', VP('assert', 'kick_killed'))
+
+WaitAndWeight = Message('Ellaboration',
+    VP('kill', 'the kick', 'using the Wait and Weight method'), sat)
+DrillersMethod = Message('Ellaboration',
+    VP('kill', 'the kick', 'using the Driller\'s method'), sat)
+ReverseCirculation = Message('Ellaboration',
+    VP('kill', 'the kick', 'using Reverse Circulation'), sat)
+Bullheading = Message('Ellaboration',
+    VP('kill', 'the kick', 'using Bullheading'), sat)
+
+ReopenWell = VP('reopen', 'the well')
+
 SealWell = VP('seal', 'the well')
 PlugWell = VP('plug', 'the well')
 
@@ -108,14 +126,21 @@ class SentenceTemplates:
         self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices
         # kick detection
-        self.templates['DrillAndMonitor'] = DrillAndMonitor
-        self.templates['Tripping'] = Tripping
-        self.templates['Swabbing'] = Swabbing
-        self.templates['CheckSensors'] = CheckSensors
-        self.templates['KickPrevention'] = KickPrevention
-        self.templates['KickRecovery'] = KickRecovery
+        self.templates['Drill'] = Drill
+        self.templates['Trip'] = Trip
+        self.templates['AdjustHSP'] = AdjustHSP
+        self.templates['Monitor'] = Monitor
+        self.templates['SoftShutIn'] = SoftShutIn
+        self.templates['HardShutIn'] = HardShutIn
+        self.templates['RecordData'] = RecordData
+        self.templates['WaitAndWeight'] = WaitAndWeight
+        self.templates['DrillersMethod'] = DrillersMethod
+        self.templates['ReverseCirculation'] = ReverseCirculation
+        self.templates['Bullheading'] = Bullheading
         self.templates['SealWell'] = SealWell
         self.templates['PlugWell'] = PlugWell
+        self.templates['ReopenWell'] = ReopenWell
+
         self.templates['EmergencyTask'] = EmergencyTask
         self.templates['NormalTask'] = NormalTask
         
@@ -158,6 +183,7 @@ def lexicalise_message_spec(msg):
     and logs the error.
     
     """
+    print('*** called lexicalise message spec!')
     template = deepcopy(templates.template(msg.name))
     if template is None:
         print('no sentence template for "%s"' % msg.name)
@@ -185,6 +211,7 @@ def lexicalise_message_spec(msg):
 
 def lexicalise_message(msg):
     """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
+    print('*** called lexicalise message!')
     if msg is None: return None
     nucleus = lexicalise(msg.nucleus)
     satelites = [lexicalise(x) for x in msg.satelites if x is not None]
@@ -193,6 +220,7 @@ def lexicalise_message(msg):
 
 def lexicalise_paragraph(msg):
     """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
+    print('*** called lexicalise paragraph!')
     if msg is None: return None
     messages = [lexicalise(x) for x in msg.messages if x is not None]
     return Paragraph(*messages)
@@ -200,6 +228,7 @@ def lexicalise_paragraph(msg):
 
 def lexicalise_section(msg):
     """ Return a copy of a Section with MsgSpecs replaced by NLG Elements. """
+    print('*** called lexicalise section!')
     if msg is None: return None
     title = lexicalise(msg.title)
     paragraphs = [lexicalise(x) for x in msg.paragraphs if x is not None]
@@ -208,6 +237,7 @@ def lexicalise_section(msg):
 
 def lexicalise_document(doc):
     """ Return a copy of a Document with MsgSpecs replaced by NLG Elements. """
+    print('*** called lexicalise document!')
     if doc is None: return None
     title = lexicalise(doc.title)
     sections = [lexicalise(x) for x in doc.sections if x is not None]

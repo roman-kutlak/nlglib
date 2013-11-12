@@ -29,26 +29,22 @@ def to_text_message(msg):
 
 
 def to_text_paragraph(para):
-    """ Take the realised sentences, capitalise first letter and add period. """
-    # capitalise first letter
-    text = list(map(lambda e: e[:1].upper() + e[1:],
-                [m for m in para.messages if m is not None]))
-    if len(text) == 0: return ''
-    elif len(text) == 1: return text[0] + '.'
-    else: text = '. '.join(text)
-    return text.strip()
+    """ Take the realised sentences and add tab at the beginning. """
+    print('messages to text: ' + repr(para.messages))
+    text = ' '.join([to_text(x) for x in para.messages])
+    return '    ' + text.strip()
 
 
 def to_text_section(sec):
     """ Convert a section to text. """
     text = (to_text(sec.title) + '\n'
-            + '\n'.join([to_text(p) for p in sec.paragraphs if p is not None]))
+            + '\n'.join([to_text(p) for p in sec.paragraphs]))
     return text
 
 
 def to_text_document(doc):
     """ Convert a document to text. """
     text = (to_text(doc.title) + '\n'
-            + '\n'.join([to_text(s) for s in doc.sections if s is not None]))
+            + '\n'.join([to_text(s) for s in doc.sections]))
     return text
 

@@ -1,3 +1,5 @@
+import itertools
+
 from nlg.structures import *
 
 """ This package provides functionality for surface realising NLG Elements.
@@ -29,7 +31,7 @@ def realise(msg):
 
 def realise_element(elt):
     """ Realise NLG element. """
-#    print('^^^ called realise message spec!')
+    print('^^^ called realise element!')
     return str(elt).strip()
 
 
@@ -41,35 +43,55 @@ def realise_message_spec(msg):
 
 def realise_message(msg):
     """ Return a copy of Message with strings. """
+    print('*** called realise message!')
     if msg is None: return None
-    data = [realise(x) for x in
-            ([msg.nucleus] + msg.satelites) if x is not None ]
-    return ' '.join(data).strip()
+    nucl = realise(msg.nucleus)
+    sats = [realise(x) for x in msg.satelites if x is not None]
+    sentences = _flatten([nucl] + sats)
+    sentences = list(map(lambda e: e[:1].upper() + e[1:] + '.', sentences))
+    return sentences
 
 
 def realise_paragraph(msg):
     """ Return a copy of Paragraph with strings. """
+    print('*** called realise paragraph!')
     if msg is None: return None
-    messages = [realise(x) for x in msg.messages if x is not None]
+    messages = [realise(x) for x in msg.messages]
+    messages = _flatten(messages)
     return Paragraph(*messages)
 
 
 def realise_section(msg):
     """ Return a copy of a Section with strings. """
+    print('*** called realise section!')
     if msg is None: return None
     title = realise(msg.title)
-    paragraphs = [Paragraph(realise(x)) for x in msg.paragraphs if x is not None]
+    paragraphs = [Paragraph(realise(x)) for x in msg.paragraphs]
     return Section(title, *paragraphs)
 
 
 def realise_document(msg):
     """ Return a copy of a Document with strings. """
+    print('*** called realise document!')
     if msg is None: return None
     title = realise(msg.title)
-    sections = [realise(x) for x in msg.sections if x is not None]
+    sections = [realise(x) for x in msg.sections]
     return Document(title, *sections)
 
 
+def _flatten(lst):
+    """ Return a list where all elemts are items. Any encountered list will be 
+    expanded.
+    
+    """
+    result = list()
+    for x in lst:
+        if isinstance(x, list):
+            for y in x:
+                result.append(y)
+        else:
+            if x is not None: result.append(x)
+    return result
 
 
 
