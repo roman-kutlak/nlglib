@@ -47,9 +47,10 @@ takeOff = Clause(uav, VP(Word('is', 'VERB'), Word('taking off', 'VERB')))
 flyToTargetArea = Clause(uav, VP(Word('is', 'VERB'), Word('flying to the target area', 'VERB')))
 takePhotos = Clause(uav, VP(Word('is', 'VERB'), Word('taking photos', 'VERB')))
 selectLandingSite = Clause(uav, VP(Word('is', 'VERB'), Word('selecting landing site', 'VERB')))
-flyToLandingSiteA = Clause(uav, VP(Word('is', 'VERB'), Word('flying to site A', 'VERB')))
-flyToLandingSiteB = Clause(uav, VP(Word('is', 'VERB'), Word('flying to site B', 'VERB')))
-land = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB')))
+flyToAirfieldA = Clause(uav, VP(Word('is', 'VERB'), Word('flying to airfield A', 'VERB')))
+flyToAirfieldB = Clause(uav, VP(Word('is', 'VERB'), Word('flying to airfield B', 'VERB')))
+flyToBase = Clause(uav, VP(Word('is', 'VERB'), Word('flying to the base', 'VERB')))
+Land = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB')))
 
 
 # Workflow summary phrase specifications
@@ -119,9 +120,9 @@ class SentenceTemplates:
         self.templates['flyToTargetArea'] = flyToTargetArea
         self.templates['takePhotos'] = takePhotos
         self.templates['selectLandingSite'] = selectLandingSite
-        self.templates['flyToLandingSiteA'] = flyToLandingSiteA
-        self.templates['flyToLandingSiteB'] = flyToLandingSiteB
-        self.templates['land'] = land
+        self.templates['flyToAirfieldA'] = flyToAirfieldA
+        self.templates['flyToAirfieldB'] = flyToAirfieldB
+        self.templates['Land'] = Land
         # workflow summary
         self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices
@@ -143,11 +144,17 @@ class SentenceTemplates:
 
         self.templates['EmergencyTask'] = EmergencyTask
         self.templates['NormalTask'] = NormalTask
-        
+        # Logistics
+        self.templates['Edinburgh'] = VP('go to', 'Edinburgh')
+        self.templates['Perth'] = VP('go to', 'Perth')
+        self.templates['Kincardine'] = VP('go to', 'Kincardine')
+        self.templates['Stirling'] = VP('go to', 'Stirling')
+        self.templates['Inverness'] = VP('go to', 'Inverness')
+        self.templates['Aberdeen'] = VP('go to', 'Aberdeen')
 
     def template(self, action):
         if action in self.templates:
-            return self.templates[action]
+            return deepcopy(self.templates[action])
         else:
             return None
 
@@ -249,8 +256,10 @@ def lexicalise_task(task, document):
     """ Convert a task to a syntax tree with lexical items in it. """
     print('Lexicalising task %s' % str(task))
     params = task.input_params[:]
-    key = task.name if task.name != '' else task.id
-    sent = deepcopy(templates.template(key))
+    key = task.name
+    sent = templates.template(key)
+    if None is sent:
+        sent = templates.template(task.id)
     if None != sent:
         _replace_placeholders_with_params(sent, params)
     else:

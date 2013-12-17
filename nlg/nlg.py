@@ -120,7 +120,135 @@ class REG:
 class Nlg:
     def __init__(self):
         self.templates = SentenceTemplates()
+        self.responses = dict()
+        self.literals = dict()
         self.reg = REG()
+        self._load_responses()
+        self._load_literals()
+
+    def _load_responses(self):
+        self.responses['justify'] = ''
+        self.responses['argument_against_label_IN'] = ''
+        self.responses['argument_against_label_OUT'] = ''
+        self.responses['argument_against_label_UNDEC'] = ''
+
+    def _load_literals(self):
+        self.literals['edinburgh_bridge_closed'] = \
+            'Forth Road Bridge outside Edinburgh is closed'
+        self.literals['kincardie_bridge_10'] = \
+            'the maximum allowed weight on Kincardine Bridge is 10 tons'
+        self.literals['vehicle_weight_15'] = \
+            'the weight of the vehicle is 15 tons'
+        self.literals['traffic_very_slow'] = \
+            'the traffic is very slow'
+        self.literals['traffic_slow'] = \
+            'the traffic is slow'
+        self.literals['forecast_old'] = \
+            'the forecast is recent'
+        self.literals['forecast_high_wind'] = \
+            'the weather forecast indicates high winds'
+        self.literals['forecast_high_snow'] = \
+            'the weather forecast indicates high snow fall'
+        self.literals['accident'] = \
+            'an accident'
+        self.literals['accident_on_bridge'] = \
+            'an accident on the bridge'
+        self.literals['stirling_shorter'] = \
+            'going through Stirling is faster'
+        self.literals['kincardine_shorter'] = \
+            'going through Kincardine is faster'
+        self.literals['kincardine_better'] = \
+            'going through Kincardine is better'
+
+        self.literals['can_Edinburgh_to_Stirling'] = \
+            'you can go from Edinburgh to Stirling'
+        self.literals['can_Edinburgh_to_Kincardine'] = \
+            'you can go from Edinburgh to Kincardine'
+        self.literals['can_Edinburgh_to_Perth'] = \
+            'you can go from Edinburgh to Perth'
+        self.literals['can_Stirling_to_Perth'] = \
+            'you can go from Stirling to Perth'
+        self.literals['can_Perth_to_Aberdeen'] = \
+            'you can go from Perth to Aberdeen'
+        self.literals['can_Perth_to_Inverness'] = \
+            'you can go from Perth to Inverness'
+        self.literals['can_Aberdeen_to_Inverness'] = \
+            'you can go from Aberdeen to Inverness'
+        self.literals['can_Aberdeen_to_Perth'] = \
+            'you can go from Aberdeen to Perth'
+        self.literals['can_Inverness_to_Aberdeen'] = \
+            'you can go from Inverness to Aberdeen'
+        self.literals['can_Inverness_to_Perth'] = \
+            'you can go from Inverness to Perth'
+        self.literals['can_Perth_to_Stirling'] = \
+            'you can go from Perth to Stirling'
+        self.literals['can_Perth_to_Kincardine'] = \
+            'you can go from Perth to Kincardine'
+        self.literals['can_Perth_to_Edinburgh'] = \
+            'you can go from Perth to Edinburgh'
+        self.literals['can_Kincardine_to_Edinburgh'] = \
+            'you can go from Kincardine to Edinburgh'
+        self.literals['can_Stirling_to_Edinburgh'] = \
+            'you can go from Stirling to Edinburgh'
+
+        self.literals['edinburgh_stirling_not_possible'] = \
+            'you cannot go from Edinburgh to Stirling'
+        self.literals['edinburgh_kincardine_not_possible'] = \
+            'you cannot go from Edinburgh to Kincardine'
+        self.literals['edinburgh_perth_not_possible'] = \
+            'you cannot go from Edinburgh to Perth'
+        self.literals['stirling_perth_not_possible'] = \
+            'you cannot go from Stirling to Perth'
+        self.literals['perth_aberdeen_not_possible'] = \
+            'you cannot go from Perth to Aberdeen'
+        self.literals['perth_inverness_not_possible'] = \
+            'you cannot go from Inverness to Inverness'
+        self.literals['aberdeen_inverness_not_possible'] = \
+            'you cannot go from Aberdeen to Inverness'
+        self.literals['aberdeen_perth_not_possible'] = \
+            'you cannot go from Aberdeen to Perth'
+        self.literals['inverness_aberdeen_not_possible'] = \
+            'you cannot go from Inverness to Aberdeen'
+        self.literals['inverness_perth_not_possible'] = \
+            'you cannot go from Inverness to Perth'
+        self.literals['perth_stirling_not_possible'] = \
+            'you cannot go from Perth to Stirling'
+        self.literals['perth_kincardine_not_possible'] = \
+            'you cannot go from Perth to Kincardine'
+        self.literals['perth_edinburgh_not_possible'] = \
+            'you cannot go from Perth to Edinburgh'
+        self.literals['kincardine_edinburgh_not_possible'] = \
+            'you cannot go from Kincardine to Edinburgh'
+        self.literals['stirling_edinburgh_not_possible'] = \
+            'you cannot go from Stirling to Edinburgh'
+
+        self.literals['Stirling1'] = 'go to Stirling'
+        self.literals['Stirling2'] = 'go to Stirling'
+        self.literals['Edinburgh1'] = 'go to Edinburgh'
+        self.literals['Edinburgh2'] = 'go to Edinburgh'
+        self.literals['Aberdeen1'] = 'go to Aberdeen'
+        self.literals['Aberdeen2'] = 'go to Aberdeen'
+        self.literals['Inverness1'] = 'go to Inverness'
+        self.literals['Inverness2'] = 'go to Inverness'
+        self.literals['Perth1'] = 'go to Perth'
+        self.literals['Perth2'] = 'go to Perth'
+        self.literals['Kincardine1'] = 'go to Kincardine'
+        self.literals['Kincardine2'] = 'go to Kincardine'
+
+        self.literals['system_malfunction'] = 'system malfunction'
+        self.literals['require_immediate_landing'] = \
+            'UAV requires immediate landing'
+        self.literals['-ilsA'] = \
+            'no Instrumental Landing System detected at airfield A'
+        self.literals['-ilsB'] = \
+            'no Instrumental Landing System detected at airfield B'
+        self.literals['-vlpA'] = \
+            'no visual landing at airfield A possible'
+        self.literals['lvA'] = \
+            'low visibility at airfield A'
+        self.literals['-alpA'] = \
+            'no automated landing possible at airfield A'
+
 
     def realise_plan(self, plan):
         plan_list = list()
@@ -177,8 +305,11 @@ class Nlg:
         """ Convert a task to a syntax tree with lexical items in it. """
 #        print('Lexicalising task %s' % str(task))
         params = task.input_params[:]
-        key = task.name if task.name != '' else task.id
-        sent = deepcopy(self.templates.template(key))
+        key = task.name
+        sent = self.templates.template(key)
+        if None is sent:
+            key = task.id
+            sent = self.templates.template(key)
         if None != sent:
             self._replace_placeholders_with_params(sent, params)
         else:
@@ -298,11 +429,61 @@ class Nlg:
         return (messages[j] is None)
 
 
+    def dialog_response_to_text(self, response):
+        result = None
+        try:
+            message, parameter = response
+            if 'justification' == message:
+                text = self.realise_rule(parameter)
+                text = text[0].upper() + text[1:]
+                result = 'SYSTEM: ' + text + '.\n'
+            else:
+                text = self.realise_literal(parameter.consequent)
+                text = text[0].upper() + text[1:]
+                result = 'SYSTEM: ' + text
+                reasoning = self.realise_antecedents(parameter.antecedent)
+                if reasoning != '':
+                    result += ' because ' + reasoning
+                result += '.\n'
+        except Exception as e:
+            print('Exception %s' % str(e))
+            print('response: %s' % str(response))
+            result = str(response)
 
+        return result
 
+    # TODO: add vulnerabilities to defeasible rules when they undercut the rule
+    def realise_rule(self, rule):
+        result = self.realise_literal(rule.consequent)
+        if len(rule.antecedent) > 0:
+            result += ' because '
+            result += self.realise_antecedents(rule.antecedent)
+        return result
 
+    def realise_literal(self, lit):
+        if str(lit) in self.literals:
+            return self.literals[str(lit)]
+        else:
+            print('%s not in literals' % lit)
+            return str(lit)
 
+    def realise_antecedents(self, antecedent):
+        result = ''
+        if antecedent == []: return result
+        reasons = [self.realise_literal(x) for x in antecedent]
+        print(reasons)
+        if len(reasons) >=2:
+            last_two = reasons[-2:]
+            result += ', '.join(reasons[2:])
+            result += last_two[0] + ' and ' + last_two[1]
+        else:
+            result += reasons[0]
+        return result
 
+#self.responses['justify'] = ''
+#self.responses['argument_against_label_IN'] = ''
+#self.responses['argument_against_label_OUT'] = ''
+#self.responses['argument_against_label_UNDEC'] = ''
 
 
 

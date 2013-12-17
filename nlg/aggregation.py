@@ -395,6 +395,7 @@ def aggregate_message(msg):
 
 def aggregate_paragraph(para):
     """ Perform syntactic aggregation on the constituents. """
+    
 
 
 def aggregate_document(doc):
