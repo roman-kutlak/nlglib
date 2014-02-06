@@ -92,6 +92,11 @@ PlugWell = VP('plug', 'the well')
 EmergencyTask = NP('emergency taks')
 NormalTask = NP('task')
 
+Need_speed = Clause(NP('the well'), VP('has to be shut quickly'))
+
+kick = Clause(NP('a kick'), VP('was detected'))
+
+shallow_depth = Clause(NP('the well'), VP('is in shallow depth'))
 
 class SentenceTemplates:
     """SentenceTemplates provides mapping from STRIPS operators to sentences.
@@ -142,6 +147,10 @@ class SentenceTemplates:
         self.templates['PlugWell'] = PlugWell
         self.templates['ReopenWell'] = ReopenWell
 
+        self.templates['kick'] = kick
+        self.templates['Need_speed'] = Need_speed
+        self.templates['shallow_depth'] = shallow_depth
+
         self.templates['EmergencyTask'] = EmergencyTask
         self.templates['NormalTask'] = NormalTask
         # Logistics
@@ -151,6 +160,7 @@ class SentenceTemplates:
         self.templates['Stirling'] = VP('go to', 'Stirling')
         self.templates['Inverness'] = VP('go to', 'Inverness')
         self.templates['Aberdeen'] = VP('go to', 'Aberdeen')
+
 
     def template(self, action):
         if action in self.templates:

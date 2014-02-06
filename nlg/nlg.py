@@ -249,6 +249,14 @@ class Nlg:
         self.literals['-alpA'] = \
             'no automated landing possible at airfield A'
 
+        self.literals['kick'] = 'a kick was detected'
+        self.literals['need_speed'] = 'the well has to be shut quickly'
+        self.literals['shallow_depth'] = 'the well is in a shallow depth'
+        self.literals['do_kill'] = 'kill the kick'
+        self.literals['HSP_very_low'] = 'HSP is very low'
+        
+
+
 
     def realise_plan(self, plan):
         plan_list = list()
