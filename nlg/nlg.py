@@ -255,37 +255,7 @@ class Nlg:
         self.literals['do_kill'] = 'kill the kick'
         self.literals['HSP_very_low'] = 'HSP is very low'
         
-
-
-
-    def realise_plan(self, plan):
-        plan_list = list()
-        for action_idx in plan.sequence:
-            action = plan.actions[action_idx]
-            num_params = len(action.signature)
-            params = list()
-            for p in action.signature:
-                params.append(p[0]) # get the name of the parameter
-
-            key = "{0}{1}".format(action.name, num_params)
-            sent = self.templates.template(key)
-            if None != sent:
-                print("sent: %s \n\tparams %s" % (sent, params))
-                plan_list.append(sent.format(*params))
-            else:
-                print("Key %s not found\n" % key)
-
-        sentences = list()
-        for s in plan_list:
-            words = s.split()
-            words[0] = words[0].capitalize()
-            sentences.append(" ".join(words))
-
-        text = ". ".join(sentences)
-        if text != "":
-            text += "."
-
-        return text
+# methods
 
     def document_to_text(self, doc):
         summary = lexicalise(doc)
