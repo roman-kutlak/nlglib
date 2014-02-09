@@ -14,6 +14,7 @@ def to_text(element):
     """ return formatted element. """
     if element is None: return ''
     elif isinstance(element, str): return element
+    elif isinstance(element, list): return to_text_list(element)
     elif isinstance(element, Message): return to_text_message(element)
     elif isinstance(element, Paragraph): return to_text_paragraph(element)
     elif isinstance(element, Section): return to_text_section(element)
@@ -21,6 +22,13 @@ def to_text(element):
     else:
         print('Unexpected type in format.to_text(): %s' % repr(element))
         return str(element)
+
+
+def to_text_list(messages):
+    """ Realise individual elements of the list. """
+    print('list to text: ' + repr(messages))
+    text = ' '.join([to_text(x) for x in messages])
+    return text.strip()
 
 
 def to_text_message(msg):

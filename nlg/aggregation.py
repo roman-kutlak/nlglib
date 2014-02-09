@@ -242,6 +242,8 @@ def replace_element(sent, elt, replacement=None):
     return False
 
 
+# the above should be all deprecated
+
 class ElementError(Exception):
     pass
 
@@ -255,27 +257,26 @@ def add_elements(e1, e2):
     if (isinstance(e1, CC)):
         cc = deepcopy(e1)
         cc.coords.append(deepcopy(e2))
-        if 'discourseFunction' in e2.features:
-            cc.features['discourseFunction'] = e2.features['discourseFunction']
+        if 'discourseFunction' in e2._features:
+            cc._features['discourseFunction'] = e2._features['discourseFunction']
 
     elif (isinstance(e2, CC)):
         cc = deepcopy(e2)
         cc.coords.append(deepcopy(e1))
-        if 'discourseFunction' in e1.features:
-            cc.features['discourseFunction'] = e1.features['discourseFunction']
+        if 'discourseFunction' in e1._features:
+            cc._features['discourseFunction'] = e1._features['discourseFunction']
     else:
         cc.coords.append(deepcopy(e1))
         cc.coords.append(deepcopy(e2))
-        if 'discourseFunction' in e2.features:
-            cc.features['discourseFunction'] = e2.features['discourseFunction']
-        elif 'discourseFunction' in e1.features:
-            cc.features['discourseFunction'] = e1.features['discourseFunction']
+        if 'discourseFunction' in e2._features:
+            cc._features['discourseFunction'] = e2._features['discourseFunction']
+        elif 'discourseFunction' in e1._features:
+            cc._features['discourseFunction'] = e1._features['discourseFunction']
 
     return cc
 
-
 def try_to_aggregate(sent1, sent2):
-    """ Attempt to combine two messages into one by replacing the differing 
+    """ Attempt to combine two elements into one by replacing the differing 
     elements by a conjunction.
     
     """
@@ -312,37 +313,36 @@ def try_to_aggregate(sent1, sent2):
     return None
 
 
-def synt_aggregation(messages, max=3):
-    """ Take a list of messages and combine messages that are sufficiently
-    similar.
+def synt_aggregation(elements, max=3):
+    """ Take a list of elements and combine elements that are synt. similar.
     
-    messages - a list of messages to combine
-    max      - a maximum number of messages to aggregate
+    elements - a list of elements to combine
+    max      - a maximum number of elements to aggregate
     
-    The algorithm relies on shared structure of the messages. If, for 
-    example, two messages share the subject, combine the VPs into 
-    a conjunction. Do not combine more than 'max' messages into each other.
+    The algorithm relies on shared structure of the elements. If, for 
+    example, two elements share the subject, combine the VPs into 
+    a conjunction. Do not combine more than 'max' elements into each other.
 
     """
-    if messages is None: return
-    if len(messages) < 2: return messages
+    if elements is None: return
+    if len(elements) < 2: return elements
 
     aggregated = list()
     i = 0
-    while i < len(messages) - 1:
-        msg, increment = _do_aggregate(messages, i, max)
+    while i < len(elements) - 1:
+        msg, increment = _do_aggregate(elements, i, max)
         aggregated.append(msg)
         i += increment
 
     return aggregated
 
-def _do_aggregate(messages, i, max):
-    lhs = messages[i]
+def _do_aggregate(elements, i, max):
+    lhs = elements[i]
     j = i + 1
     increment = 1
-    while j < len(messages) and _can_aggregate(lhs, max):
+    while j < len(elements) and _can_aggregate(lhs, max):
         print('LHS = %s' % lhs)
-        rhs = messages[j]
+        rhs = elements[j]
         if _can_aggregate(rhs, max):
             tmp = try_to_aggregate(lhs, rhs)
             if tmp is not None:
@@ -352,7 +352,7 @@ def _do_aggregate(messages, i, max):
             else:
                 break
         # cannot aggregate. can we skip it?
-        elif _can_skip(messages, j):
+        elif _can_skip(elements, j):
             j += 1
             increment += 1
         else:
@@ -375,32 +375,72 @@ def _can_aggregate(message, max):
     # simple sentence - no coordinated clause
     return True
 
-def _can_skip(messages, j):
+def _can_skip(elements, j):
     """ Return true if this element can be skipped. """
-    return (messages[j] is None)
+    return (elements[j] is None)
 
 
-def aggregate(doc):
-    if doc is None: return None
+def aggregate(msg, limit):
+    """ """
+    if msg is None:
+        return None
+    elif isinstance(msg, String):
+        return msg
+    elif isinstance(msg, MsgSpec):
+        return msg
+    elif isinstance(msg, Message):
+        return aggregate_message(msg, limit)
+    elif isinstance(msg, Paragraph):
+        return aggregate_paragraph(msg, limit)
+    elif isinstance(msg, Section):
+        return aggregate_section(msg, limit)
+    elif isinstance(msg, Document):
+        return aggregate_document(msg, limit)
+    else:
+        raise TypeError('"%s" is neither a Message nor a MsgInstance' %
+            str(type(msg)))
 
 
-def aggregate_message(msg):
-    """ Perform syntactic aggregation on the constituents. """
-    # try to aggregate constituents before aggregating them with the nucleus
-    messages = []
+def aggregate_message(msg, limit):
+    """ Perform syntactic aggregation on the constituents. 
+    The aggregation is triggered only if the RST relation is 
+    a sequence or a list.
+
+    """
+    print('*** called aggregate message!')
+    if not (msg.rst == 'Sequence' or msg.rst == 'List'): return msg
+    # TODO: Sequence and list are probably multi-nucleus and not multi-satelite
+    print('*** aggregating list or sequence')
+    elements = []
     if len(msg.satelites) > 1:
-        messages = synt_aggregation(msg.satelites, 3)
-    return messages
+        elements = synt_aggregation(msg.satelites, limit)
+    if msg.nucleus is not None:
+        elements.insert(0, self.nucleus)
+    return Message(msg.rst, None, *elements)
 
 
-def aggregate_paragraph(para):
+def aggregate_paragraph(para, limit):
     """ Perform syntactic aggregation on the constituents. """
-    
+    print('*** called aggregate paragraph!')
+    if para is None: return None
+    messages = [aggregate(x, limit) for x in para.messages if x is not None]
+    return Paragraph(*messages)
 
+def aggregate_section(sec, limit):
+    """ Perform syntactic aggregation on the constituents. """
+    print('*** called aggregate section!')
+    if sec is None: return None
+    title = aggregate(sec.title, limit)
+    paragraphs = [aggregate(x, limit) for x in sec.paragraphs if x is not None]
+    return Section(title, *paragraphs)
 
-def aggregate_document(doc):
+def aggregate_document(doc, limit):
     """ Perform aggregation on a document - possibly before lexicalisation. """
-
+    print('*** called aggregate document!')
+    if doc is None: return None
+    title = aggregate(doc.title, limit)
+    sections = [aggregate(x, limit) for x in doc.sections if x is not None]
+    return Document(title, *sections)
 
 
 

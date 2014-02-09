@@ -1,5 +1,7 @@
 from copy import deepcopy
 import re
+import sys
+import traceback
 
 from nlg.structures import *
 from nlg.aggregation import *
@@ -201,18 +203,19 @@ def lexicalise_message_spec(msg):
     
     """
     print('*** called lexicalise message spec!')
-    template = deepcopy(templates.template(msg.name))
+    template = templates.template(msg.name)
     if template is None:
         print('no sentence template for "%s"' % msg.name)
-        return None
+        return String(msg.name)
     # find arguments
-    args = list(template.arguments())
-    if len(args) == 0: return template
+    args = template.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
         try:
+            print('Replacing %s in %s. ' % (repr(arg), str(template)))
             if isinstance(arg, PlaceHolder):
                 val = msg.value_for(arg.id)
+                print(' val = %s' % repr(val))
                 template.replace(arg, val)
             elif isinstance(arg, int):
                 print('numeric parameter in "%s"' % repr(arg))
@@ -221,8 +224,9 @@ def lexicalise_message_spec(msg):
                 print('unknown parameter in "%s"' % repr(arg))
                 pass
         except Exception as e:
-            print(e)
-
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print('Lexicalisation - replacing argument failed:\n\t%s' % str(e))
+            traceback.print_tb(exc_traceback)
     return template
 
 

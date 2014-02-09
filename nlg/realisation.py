@@ -32,7 +32,10 @@ def realise(msg):
 def realise_element(elt):
     """ Realise NLG element. """
     print('^^^ called realise element!')
-    return str(elt).strip()
+#    return str(elt).strip()
+    v = StrVisitor()
+    elt.accept(v)
+    return v.to_str()
 
 
 def realise_message_spec(msg):
@@ -48,7 +51,8 @@ def realise_message(msg):
     nucl = realise(msg.nucleus)
     sats = [realise(x) for x in msg.satelites if x is not None]
     sentences = _flatten([nucl] + sats)
-    sentences = list(map(lambda e: e[:1].upper() + e[1:] + '.', sentences))
+    sentences = list(map(lambda e: e[:1].upper() + e[1:] + '.',
+                         [s for s in sentences if s != '']))
     return sentences
 
 

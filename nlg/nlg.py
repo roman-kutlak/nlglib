@@ -2,8 +2,8 @@ from copy import deepcopy
 import re
 
 from nlg.structures import *
-from nlg.aggregation import *
-from nlg.lexicalisation import SentenceTemplates, lexicalise
+import nlg.aggregation as aggregation
+import nlg.lexicalisation as lexicalisation
 import nlg.realisation as realisation
 import nlg.format as format
 
@@ -119,7 +119,6 @@ class REG:
 
 class Nlg:
     def __init__(self):
-        self.templates = SentenceTemplates()
         self.responses = dict()
         self.literals = dict()
         self.reg = REG()
@@ -257,8 +256,49 @@ class Nlg:
         
 # methods
 
+
+    def process_nlg_doc(self, doc):
+        summary = self.lexicalise(doc)
+        print('--> After lex: %s' % repr(summary))
+        summary = self.aggregate(summary, 3)
+        print('--> After aggr: %s' % repr(summary))
+#        summary = self.generate_re(summary, doc, Context(doc.ontology))
+        summary = self.realise(summary)
+        print('--> After realisation: %s' % repr(summary))
+        summary = self.format(summary)
+        print('--> After formatting: %s' % repr(summary))
+        return summary
+
+    def lexicalise(self, msgs):
+        """ Lexicalise the given high-level structure using lexicalise
+        from the lexicalisation package.
+        
+        """
+        res = lexicalisation.lexicalise(msgs)
+        return res
+
+    def aggregate(self, msgs, limit):
+        """ Run the messages through aggregation. """
+        res = aggregation.aggregate(msgs, limit)
+        return res
+
+    def generate_re(self, msgs, context):
+        """ Generate referring expressions. """
+        # TODO: implement REG
+        return msgs
+
+    def realise(self, msgs):
+        """ Perform linguistic realisation. """
+        res = realisation.realise(msgs)
+        return res
+
+    def format(self, msgs, fmt='txt'):
+        """ Convert the realised messages to given format. Text by default. """
+        text = format.to_text(msgs)
+        return text
+
     def document_to_text(self, doc):
-        summary = lexicalise(doc)
+        summary = self.lexicalise_doc(doc)
 #        summary = aggregation.aggregate(summary)
 #        summary = reg.generate(msgs, doc, Context(doc.ontology))
         summary = realisation.realise(summary)
@@ -269,8 +309,8 @@ class Nlg:
         text = [str(x) for x in messages]
         text = map(lambda e: e[:1].upper() + e[1:], text)
         return ('.\n'.join(text))
-    
-    def lexicalise(self, document):
+
+    def lexicalise_doc(self, document):
         """ Create a list of syntax trees representing the sequence of actions
         in a given plan.
         

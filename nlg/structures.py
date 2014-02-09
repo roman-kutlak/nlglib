@@ -16,7 +16,7 @@ def enum(*sequential, **named):
 """ Rhetorical Structure Theory relations """
 RST = enum( 'Elaboration', 'Exemplification',
             'Contrast', 'Exception',
-            'Sequence', 'Set',
+            'Sequence', 'List',
             'Leaf'
           )
 
@@ -234,7 +234,8 @@ class Element:
         """ Return any arguments (placeholders) from the elemen as a generator.
         
         """
-        return filter(lambda x: isinstance(x, PlaceHolder), self.constituents())
+        return list(filter(lambda x: isinstance(x, PlaceHolder),
+                           self.constituents()))
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.
@@ -257,6 +258,7 @@ class Element:
         (e.g., arg1=x, arg2=y, ...)
         
         """
+        # FIXME: this does not look correct...
         if len(args) > 0 and len(args) > 1:
             raise ValueError('too many parameters')
         elif len(args) > 0:
@@ -331,7 +333,7 @@ class Word(Element):
         return text
     
     def to_str(self):
-        return self.word if word is not None else ''
+        return self.word if self.word is not None else ''
     
     def __eq__(self, other):
         if (not isinstance(other, Word)):
