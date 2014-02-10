@@ -12,7 +12,6 @@ The input is a document where NLG Elements were already realised to strings.
 """
 
 
-
 def realise(msg):
     """ Perform lexicalisation on the message depending on the type. """
     if msg is None:                  return None
@@ -26,8 +25,6 @@ def realise(msg):
     else:
         raise TypeError('"%s" is neither a Message nor a MsgInstance')
 
-
-# TODO: lexicalisation should replace Messages by NLG Elements
 
 def realise_element(elt):
     """ Realise NLG element. """

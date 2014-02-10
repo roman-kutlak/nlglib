@@ -1020,6 +1020,158 @@ class StrVisitor(IVisitor):
         return ('[ StrVisitor:\n%s]' % (self.text))
 
 
+def sentence_iterator(sent):
+    if isinstance(sent, Clause):
+        for x in sentence_iterator(sent.vp):
+            yield x
+        yield sent.vp
+        yield sent.subj
+    
+        return
+    
+    if isinstance(sent, Phrase):
+        for o in reversed(sent.post_modifier):
+            for x in sentence_iterator(o):
+                yield x
+
+        for o in reversed(sent.complement):
+            for x in sentence_iterator(o):
+                yield x
+
+        if sent.head is not None:
+            for x in sentence_iterator(sent.head):
+                yield x
+
+        for o in reversed(sent.pre_modifier):
+            for x in sentence_iterator(o):
+                yield x
+
+        if isinstance(sent, NP):
+            for x in sentence_iterator(sent.spec):
+                yield x
+
+        for o in reversed(sent.front_modifier):
+            for x in sentence_iterator(o):
+                yield x
+
+    if isinstance(sent, CC):
+        for x in sent.coords:
+            yield x
+        yield sent
+
+    else:
+        yield (sent)
+
+
+def aggregation_sentence_iterator(sent):
+    if isinstance(sent, Clause):
+        for x in sentence_iterator(sent.vp):
+            yield x
+        return
+
+    if isinstance(sent, Phrase):
+        for o in reversed(sent.post_modifier):
+            for x in sentence_iterator(o):
+                yield x
+
+    for o in reversed(sent.complement):
+        for x in sentence_iterator(o):
+            yield x
+
+    for o in reversed(sent.pre_modifier):
+        for x in sentence_iterator(o):
+            yield x
+
+    else:
+        yield (sent)
+
+
+def replace_element(sent, elt, replacement=None):
+    if sent == elt:
+        return True
+    
+    if isinstance(sent, Clause):
+        if sent.subj == elt:
+            sent.subj = replacement
+            return True
+        else:
+            if replace_element(sent.subj, elt, replacement):
+                return True;
+
+        if sent.vp == elt:
+            sent.vp = replacement
+            return True
+
+        else:
+            if replace_element(sent.vp, elt, replacement):
+                return True;
+
+    if isinstance(sent, CC):
+        for i, o in list(enumerate(sent.coords)):
+            if (o == elt):
+                if replacement is None:
+                    del sent.coords[i]
+                else:
+                    sent.coords[i] = replacement
+                return True
+
+    if isinstance(sent, Phrase):
+        res = False
+        for i, o in reversed(list(enumerate(sent.post_modifier))):
+            if (o == elt):
+                if replacement is None:
+                    del sent.post_modifier[i]
+                else:
+                    sent.post_modifier[i] = replacement
+                return True
+            else:
+                if replace_element(o, elt, replacement):
+                    return True
+
+        for i, o in reversed(list(enumerate(sent.complement))):
+            if (o == elt):
+                if replacement is None:
+                    del sent.complement[i]
+                else:
+                    sent.complement[i] = replacement
+                return True
+            else:
+                if replace_element(o, elt, replacement):
+                    return True
+
+        if sent.head == elt:
+            sent.head = replacement
+            return True
+
+        for i, o in reversed(list(enumerate(sent.pre_modifier))):
+            if (o == elt):
+                if replacement is None:
+                    del sent.pre_modifier[i]
+                else:
+                    sent.pre_modifier[i] = replacement
+                return True
+            else:
+                if replace_element(o, elt, replacement):
+                    return True
+
+        if isinstance(sent, NP):
+            if sent.spec == elt:
+                sent.spec = replacement
+                return True
+
+        for i, o in reversed(list(enumerate(sent.front_modifier))):
+            if (o == elt):
+                if replacement is None:
+                    del sent.front_modifier[i]
+                else:
+                    sent.front_modifier[i] = replacement
+                return True
+            else:
+                if replace_element(o, elt, replacement):
+                    return True
+
+    return False
+
 
 
 

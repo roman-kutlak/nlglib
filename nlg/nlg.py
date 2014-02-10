@@ -4,124 +4,15 @@ import re
 from nlg.structures import *
 import nlg.aggregation as aggregation
 import nlg.lexicalisation as lexicalisation
+import nlg.reg as reg
 import nlg.realisation as realisation
 import nlg.format as format
-
-
-class LanguageGen:
-    """LanguageGen class represents the NLG module used for realising plans."""
-    
-    def __init__(self):
-        self.nlg = Nlg()
-
-    def realise_plan(self, plan):
-        return self.nlg.realise_plan(plan)
-
-    def realise_world(self, world, state):
-        faulty = 0
-        for sensor, reading in world.items():
-            if reading > 5:
-                faulty += 1
-
-        if 0 < faulty:
-            text = '{} of the sensors report high vibrations in section a.\n'.format(faulty)
-        else:
-            text = 'All sensors report nominal values.\n'
-
-        return text
-
-
-class Context:
-    def __init__(self, ontology=None):
-        self.ontology = ontology
-        self.referents = dict()
-        self.last_referent = None
-
-
-class REG:
-    def __init__(self):
-        pass
-
-    def gre(self, referent, context):
-        # can we use a pronoun?
-        # actually, using a pronoun for the last ref can still be ambiguous :-)
-#        if referent == context.last_referent:
-#            return NP(Word('it', 'PRONOUN'))
-
-        result = None
-
-        if referent in context.referents:
-            result = self._do_repeated_reference(referent, context)
-        else:
-            result = self._do_initial_reference(referent, context)
-        return result
-
-    def _do_initial_reference(self, referent, context):
-        result = None
-
-        # do we have information about the referent?
-        try:
-            onto = context.ontology
-            if onto is None: print('GRE does not have ontology!')
-
-            entity_type = onto.best_entity_type(':' + referent)
-            result = NP(Word(entity_type, 'NOUN'))
-            print('\t%s: type "%s"' % (referent, entity_type))
-            # if the object is the only one in the domain, add 'the'
-            distractors = onto.entities_of_type(':' + entity_type)
-            print('\tdistractors: %s' % str(distractors))
-            count = len(distractors)
-
-            if count == 1:
-                # save the RE without the determiner
-                context.referents[referent] = (True, deepcopy(result))
-                # this should really be done by simpleNLG...
-                if entity_type[0] in "aeiouy":
-                    result.spec = Word('an', 'DETERMINER')
-                else:
-                    result.spec = Word('a', 'DETERMINER')
-            else:
-                context.referents[referent] = (False, result)
-                # else add the number to distinguish from others
-                number = None
-                tmp = re.search(r"([^0-9]+)([0-9]+)$", referent)
-                if (tmp is not None):
-                    number = tmp.group(2)
-
-                if (number is not None):
-                    result.add_complement(Word(number))
-        except Exception as msg:
-            # if we have no info, assume referent is not unique
-            result = NP(Word(referent, 'NOUN'))
-            context.referents[referent] = (False, result)
-            print('GRE for "%s" failed : "%s"' % (referent, str(msg)))
-
-        context.last_referent = referent
-        return result
-
-    def _do_repeated_reference(self, referent, context):
-        result = None
-
-        is_unique, re = context.referents[referent]
-        if is_unique:
-            result = deepcopy(re)
-            result.spec = Word('the', 'DETERMINER')
-        else:
-            result = re
-        return result
-
-    def _count_type_instances(self, entity_type, object_map):
-        count = 0
-        for k, v in object_map.items():
-            if v == entity_type: count += 1
-        return count
 
 
 class Nlg:
     def __init__(self):
         self.responses = dict()
         self.literals = dict()
-        self.reg = REG()
         self._load_responses()
         self._load_literals()
 
@@ -257,12 +148,13 @@ class Nlg:
 # methods
 
 
-    def process_nlg_doc(self, doc):
+    def process_nlg_doc(self, doc, ontology):
         summary = self.lexicalise(doc)
         print('--> After lex: %s' % repr(summary))
         summary = self.aggregate(summary, 3)
         print('--> After aggr: %s' % repr(summary))
-#        summary = self.generate_re(summary, doc, Context(doc.ontology))
+        summary = self.generate_re(summary, reg.Context(ontology))
+        print('--> After REG: %s' % repr(summary))
         summary = self.realise(summary)
         print('--> After realisation: %s' % repr(summary))
         summary = self.format(summary)
@@ -284,8 +176,8 @@ class Nlg:
 
     def generate_re(self, msgs, context):
         """ Generate referring expressions. """
-        # TODO: implement REG
-        return msgs
+        res = reg.generate_re(msgs, context)
+        return res
 
     def realise(self, msgs):
         """ Perform linguistic realisation. """
@@ -296,6 +188,9 @@ class Nlg:
         """ Convert the realised messages to given format. Text by default. """
         text = format.to_text(msgs)
         return text
+
+
+################################################################################
 
     def document_to_text(self, doc):
         summary = self.lexicalise_doc(doc)
