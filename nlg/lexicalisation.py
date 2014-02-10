@@ -6,6 +6,8 @@ import traceback
 from nlg.structures import *
 from nlg.aggregation import *
 
+DEBUG = False
+
 # this should be read from a domain lexicalisation file
 fly = Word('fly', 'VERB')
 put = Word('load', 'VERB')
@@ -202,7 +204,7 @@ def lexicalise_message_spec(msg):
     and logs the error.
     
     """
-    print('*** called lexicalise message spec!')
+    if DEBUG: print('*** called lexicalise message spec!')
     template = templates.template(msg.name)
     if template is None:
         print('no sentence template for "%s"' % msg.name)
@@ -212,10 +214,10 @@ def lexicalise_message_spec(msg):
     # if there are any arguments, replace them by values
     for arg in args:
         try:
-            print('Replacing %s in %s. ' % (repr(arg), str(template)))
+            if DEBUG: print('Replacing %s in %s. ' % (repr(arg), str(template)))
             if isinstance(arg, PlaceHolder):
                 val = msg.value_for(arg.id)
-                print(' val = %s' % repr(val))
+                if DEBUG: print(' val = %s' % repr(val))
                 template.replace(arg, val)
             elif isinstance(arg, int):
                 print('numeric parameter in "%s"' % repr(arg))
@@ -232,7 +234,7 @@ def lexicalise_message_spec(msg):
 
 def lexicalise_message(msg):
     """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
-    print('*** called lexicalise message!')
+    if DEBUG: print('*** called lexicalise message!')
     if msg is None: return None
     nucleus = lexicalise(msg.nucleus)
     satelites = [lexicalise(x) for x in msg.satelites if x is not None]
@@ -241,7 +243,7 @@ def lexicalise_message(msg):
 
 def lexicalise_paragraph(msg):
     """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
-    print('*** called lexicalise paragraph!')
+    if DEBUG: print('*** called lexicalise paragraph!')
     if msg is None: return None
     messages = [lexicalise(x) for x in msg.messages if x is not None]
     return Paragraph(*messages)
@@ -249,7 +251,7 @@ def lexicalise_paragraph(msg):
 
 def lexicalise_section(msg):
     """ Return a copy of a Section with MsgSpecs replaced by NLG Elements. """
-    print('*** called lexicalise section!')
+    if DEBUG: print('*** called lexicalise section!')
     if msg is None: return None
     title = lexicalise(msg.title)
     paragraphs = [lexicalise(x) for x in msg.paragraphs if x is not None]
@@ -258,7 +260,7 @@ def lexicalise_section(msg):
 
 def lexicalise_document(doc):
     """ Return a copy of a Document with MsgSpecs replaced by NLG Elements. """
-    print('*** called lexicalise document!')
+    if DEBUG: print('*** called lexicalise document!')
     if doc is None: return None
     title = lexicalise(doc.title)
     sections = [lexicalise(x) for x in doc.sections if x is not None]
@@ -268,7 +270,7 @@ def lexicalise_document(doc):
 # TODO: hwo to lexicalise this given that NLG does know about tasks?
 def lexicalise_task(task, document):
     """ Convert a task to a syntax tree with lexical items in it. """
-    print('Lexicalising task %s' % str(task))
+    if DEBUG: print('Lexicalising task %s' % str(task))
     params = task.input_params[:]
     key = task.name
     sent = templates.template(key)
@@ -282,8 +284,8 @@ def lexicalise_task(task, document):
 
 
 def _replace_placeholders_with_params(template, params):
-    print('Replacing params in template:\n%s' % str(template))
-    print('Params: \n\t %s' % str(params))
+    if DEBUG: print('Replacing params in template:\n%s' % str(template))
+    if DEBUG: print('Params: \n\t %s' % str(params))
     for c in sentence_iterator(template):
         if (isinstance(c, PlaceHolder)):
             id = c.id

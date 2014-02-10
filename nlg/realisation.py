@@ -11,6 +11,7 @@ The input is a document where NLG Elements were already realised to strings.
 
 """
 
+DEBUG = False
 
 def realise(msg):
     """ Perform lexicalisation on the message depending on the type. """
@@ -28,7 +29,7 @@ def realise(msg):
 
 def realise_element(elt):
     """ Realise NLG element. """
-    print('^^^ called realise element!')
+    if DEBUG: print('^^^ called realise element!')
 #    return str(elt).strip()
     v = StrVisitor()
     elt.accept(v)
@@ -37,13 +38,13 @@ def realise_element(elt):
 
 def realise_message_spec(msg):
     """ Realise message specification - this should not happen """
-    print('*** called realise message spec!')
+    if DEBUG: print('*** called realise message spec!')
     return str(msg).strip()
 
 
 def realise_message(msg):
     """ Return a copy of Message with strings. """
-    print('*** called realise message!')
+    if DEBUG: print('*** called realise message!')
     if msg is None: return None
     nucl = realise(msg.nucleus)
     sats = [realise(x) for x in msg.satelites if x is not None]
@@ -55,7 +56,7 @@ def realise_message(msg):
 
 def realise_paragraph(msg):
     """ Return a copy of Paragraph with strings. """
-    print('*** called realise paragraph!')
+    if DEBUG: print('*** called realise paragraph!')
     if msg is None: return None
     messages = [realise(x) for x in msg.messages]
     messages = _flatten(messages)
@@ -64,7 +65,7 @@ def realise_paragraph(msg):
 
 def realise_section(msg):
     """ Return a copy of a Section with strings. """
-    print('*** called realise section!')
+    if DEBUG: print('*** called realise section!')
     if msg is None: return None
     title = realise(msg.title)
     paragraphs = [Paragraph(realise(x)) for x in msg.paragraphs]
@@ -73,7 +74,7 @@ def realise_section(msg):
 
 def realise_document(msg):
     """ Return a copy of a Document with strings. """
-    print('*** called realise document!')
+    if DEBUG: print('*** called realise document!')
     if msg is None: return None
     title = realise(msg.title)
     sections = [realise(x) for x in msg.sections]

@@ -9,6 +9,7 @@ The input is a document where NLG Elements were already realised to strings.
 
 """
 
+DEBUG = False
 
 def to_text(element):
     """ return formatted element. """
@@ -26,19 +27,19 @@ def to_text(element):
 
 def to_text_list(messages):
     """ Realise individual elements of the list. """
-    print('list to text: ' + repr(messages))
+    if DEBUG: print('list to text: ' + repr(messages))
     text = ' '.join([to_text(x) for x in messages])
     return text.strip()
 
 
 def to_text_message(msg):
-    print('___ called to_text_message(%s)' % repr(msg))
+    if DEBUG: print('___ called to_text_message(%s)' % repr(msg))
     return str(msg)
 
 
 def to_text_paragraph(para):
     """ Take the realised sentences and add tab at the beginning. """
-    print('messages to text: ' + repr(para.messages))
+    if DEBUG: print('messages to text: ' + repr(para.messages))
     text = ' '.join([to_text(x) for x in para.messages])
     return '    ' + text.strip()
 

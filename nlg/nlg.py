@@ -8,6 +8,7 @@ import nlg.reg as reg
 import nlg.realisation as realisation
 import nlg.format as format
 
+DEBUG = False
 
 class Nlg:
     def __init__(self):
@@ -148,17 +149,18 @@ class Nlg:
 # methods
 
 
-    def process_nlg_doc(self, doc, ontology):
+    def process_nlg_doc(self, doc, ontology, context=None):
+        if context is None: context = reg.Context(ontology)
         summary = self.lexicalise(doc)
-        print('--> After lex: %s' % repr(summary))
+        if DEBUG: print('--> After lex: %s' % repr(summary))
         summary = self.aggregate(summary, 3)
-        print('--> After aggr: %s' % repr(summary))
-        summary = self.generate_re(summary, reg.Context(ontology))
-        print('--> After REG: %s' % repr(summary))
+        if DEBUG: print('--> After aggr: %s' % repr(summary))
+        summary = self.generate_re(summary, context)
+        if DEBUG: print('--> After REG: %s' % repr(summary))
         summary = self.realise(summary)
-        print('--> After realisation: %s' % repr(summary))
+        if DEBUG: print('--> After realisation: %s' % repr(summary))
         summary = self.format(summary)
-        print('--> After formatting: %s' % repr(summary))
+        if DEBUG: print('--> After formatting: %s' % repr(summary))
         return summary
 
     def lexicalise(self, msgs):

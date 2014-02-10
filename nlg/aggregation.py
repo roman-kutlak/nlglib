@@ -1,6 +1,7 @@
 from copy import deepcopy
 from nlg.structures import *
 
+DEBUG= False
 
 def s_aggr(sent1, sent2):
     """ Subject aggregation
@@ -149,10 +150,10 @@ def try_to_aggregate(sent1, sent2):
             
             # if sentences are equal (eg s1: load x; s2: load x) aggregate
             if (s1 == s2):
-                print ('Aggregating:\n\t%s\n\t%s' % (repr(s1), repr(s2)))
+                if DEBUG: print ('Aggregating:\n\t%s\n\t%s' % (repr(s1), repr(s2)))
                 cc = add_elements(e1, e2)
                 replace_element(s1, replacement, cc)
-                print('Result: %s' % repr(s1))
+                if DEBUG: print('Result: %s' % repr(s1))
                 return s1
 #            else:
 #                print('Did not aggregate:\n\t%s\n\t%s' % (str(s1), str(s2)))
@@ -189,7 +190,7 @@ def _do_aggregate(elements, i, max):
     j = i + 1
     increment = 1
     while j < len(elements) and _can_aggregate(lhs, max):
-        print('LHS = %s' % lhs)
+        if DEBUG: print('LHS = %s' % lhs)
         rhs = elements[j]
         if _can_aggregate(rhs, max):
             tmp = try_to_aggregate(lhs, rhs)
@@ -255,10 +256,10 @@ def aggregate_message(msg, limit):
     a sequence or a list.
 
     """
-    print('*** called aggregate message!')
+    if DEBUG: print('*** called aggregate message!')
     if not (msg.rst == 'Sequence' or msg.rst == 'List'): return msg
     # TODO: Sequence and list are probably multi-nucleus and not multi-satelite
-    print('*** aggregating list or sequence')
+    if DEBUG: print('*** aggregating list or sequence')
     elements = []
     if len(msg.satelites) > 1:
         elements = synt_aggregation(msg.satelites, limit)
@@ -269,14 +270,14 @@ def aggregate_message(msg, limit):
 
 def aggregate_paragraph(para, limit):
     """ Perform syntactic aggregation on the constituents. """
-    print('*** called aggregate paragraph!')
+    if DEBUG: print('*** called aggregate paragraph!')
     if para is None: return None
     messages = [aggregate(x, limit) for x in para.messages if x is not None]
     return Paragraph(*messages)
 
 def aggregate_section(sec, limit):
     """ Perform syntactic aggregation on the constituents. """
-    print('*** called aggregate section!')
+    if DEBUG: print('*** called aggregate section!')
     if sec is None: return None
     title = aggregate(sec.title, limit)
     paragraphs = [aggregate(x, limit) for x in sec.paragraphs if x is not None]
@@ -284,7 +285,7 @@ def aggregate_section(sec, limit):
 
 def aggregate_document(doc, limit):
     """ Perform aggregation on a document - possibly before lexicalisation. """
-    print('*** called aggregate document!')
+    if DEBUG: print('*** called aggregate document!')
     if doc is None: return None
     title = aggregate(doc.title, limit)
     sections = [aggregate(x, limit) for x in doc.sections if x is not None]

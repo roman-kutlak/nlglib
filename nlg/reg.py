@@ -3,6 +3,8 @@ from copy import deepcopy
 
 from nlg.structures import *
 
+DEBUG = False
+
 class Context:
     def __init__(self, ontology=None):
         self.ontology = ontology
@@ -35,14 +37,14 @@ def generate_re(msg, context):
 
 
 def generate_re_element(element, context):
-    print('^^^ called generate_re_element')
+    if DEBUG: print('^^^ called generate_re_element')
     element = deepcopy(element)
     _replace_placeholders_with_nps(element, context)
     return element
 
 
 def generate_re_message(msg, context):
-    print('^^^ called generate_re_message')
+    if DEBUG: print('^^^ called generate_re_message')
     if msg is None: return None
     nucleus = generate_re(msg.nucleus, context)
     satelites = [generate_re(x, context) \
@@ -51,7 +53,7 @@ def generate_re_message(msg, context):
 
 
 def generate_re_paragraph(para, context):
-    print('^^^ called generate_re_paragraph')
+    if DEBUG: print('^^^ called generate_re_paragraph')
     if para is None: return None
     messages = [generate_re(x, context) \
                    for x in para.messages if x is not None]
@@ -59,7 +61,7 @@ def generate_re_paragraph(para, context):
 
 
 def generate_re_section(sec, context):
-    print('^^^ called generate_re_section')
+    if DEBUG: print('^^^ called generate_re_section')
     if sec is None: return None
     title = generate_re(sec.title, context)
     paragraphs = [generate_re(x, context) \
@@ -72,26 +74,13 @@ def generate_re_document(doc, context):
     referring expressions. 
     
     """
-    print('^^^ called generate_re_document')
+    if DEBUG: print('^^^ called generate_re_document')
     if doc is None: return None
     title = generate_re(doc.title, context)
     sections = [generate_re(x, context) \
                    for x in doc.sections if x is not None]
     return Document(title, *sections)
 
-
-#def gre(msgs, context):
-#    """ Replace placeholders with NPs
-#    The placeholders should already have names in them, so just replace
-#    each of them by an NP.
-#    
-#    """
-#    if context is None: context = Context(document.ontology)
-#
-#    messages = deepcopy(msgs)
-#    for m in messages:
-#        _replace_placeholders_with_nps(m, context)
-#    return messages
 
 def _replace_placeholders_with_nps(message, context):
     for arg in message.arguments():
@@ -109,6 +98,8 @@ def generate_ref_exp(referent, context):
 
     result = None
 
+    if DEBUG: print('GRE for %s:' % str(referent))
+    if DEBUG: print('\treferents: %s' % str(context.referents))
     if referent in context.referents:
         result = _do_repeated_reference(referent, context)
     else:
