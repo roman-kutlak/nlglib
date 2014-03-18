@@ -33,7 +33,7 @@ def generate_re(msg, context):
     elif isinstance(msg, Document):
         return generate_re_document(msg, context)
     else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance')
+        raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
 
 def generate_re_element(element, context):

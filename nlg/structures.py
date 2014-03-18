@@ -22,18 +22,26 @@ RST = enum( 'Elaboration', 'Exemplification',
 
 
 class Document:
+    """ The class Document represents a container holding information about
+        a document - title and a list of sections.
+
+    """
     def __init__(self, title, *sections):
+        """ Create a new Document instance with given title and with
+            zero or more sections.
+
+        """
         self.title = title
         self.sections = [s for s in sections if s is not None]
 
     def __repr__(self):
-        descr = (repr(self.title) + '\n'
-                + '\n\n'.join([repr(s) for s in self.sections if s is not None]))
+        descr = (repr(self.title) + '\n' +
+                '\n\n'.join([repr(s) for s in self.sections if s is not None]))
         return 'Document:\ntitle: %s' % descr.strip()
 
     def __str__(self):
-        descr = (str(self.title) + '\n'
-                + '\n\n'.join([str(s) for s in self.sections if s is not None]))
+        descr = (str(self.title) + '\n' +
+                '\n\n'.join([str(s) for s in self.sections if s is not None]))
         return descr
 
     def constituents(self):
@@ -43,18 +51,25 @@ class Document:
 
 
 class Section:
+    """ The class Section represents a container holding information about
+        a section of a document - a title and a list of paragraphs.
+
+    """
     def __init__(self, title, *paragraphs):
+        """ Create a new section with given title and zero or more paragraphs.
+
+        """
         self.title = title
         self.paragraphs = [p for p in paragraphs if p is not None]
 
     def __repr__(self):
-        descr = (repr(self.title) + '\n'
-                + '\n'.join([repr(p) for p in self.paragraphs if p is not None]))
+        descr = (repr(self.title) + '\n' +
+                '\n'.join([repr(p) for p in self.paragraphs if p is not None]))
         return 'Section:\ntitle: %s' % descr.strip()
 
     def __str__(self):
-        descr = (str(self.title) + '\n'
-                + '\n'.join([str(p) for p in self.paragraphs if p is not None]))
+        descr = (str(self.title) + '\n' +
+                '\n'.join([str(p) for p in self.paragraphs if p is not None]))
         return descr
 
     def constituents(self):
@@ -64,7 +79,12 @@ class Section:
 
 
 class Paragraph:
+    """ The class Paragraph represents a container holding information about
+        a paragraph of a document - a list of messages.
+
+    """
     def __init__(self, *messages):
+        """ Create a new Paragraph with zero or more messages. """
         self.messages = [m for m in messages if m is not None]
 
     def __repr__(self):
@@ -72,8 +92,8 @@ class Paragraph:
         return 'Paragraph (%d):\n%s' % (len(self.messages), descr.strip())
 
     def __str__(self):
-        descr = ('\t'
-                 + '; '.join([str(m) for m in self.messages if m is not None]))
+        descr = ('\t' +
+                 '; '.join([str(m) for m in self.messages if m is not None]))
         return descr
 
     def constituents(self):
@@ -82,7 +102,16 @@ class Paragraph:
 
 
 class Message:
+    """ A representation of a message (usually a sentence).
+        A message has a nucleus and zero or more satelites joined 
+        by an RST (Rhetorical Structure Theory) relation.
+
+    """
     def __init__(self, rel, nucleus, *satelites):
+        """ Create a new Message with given relation between the nucleus
+            and zero or more satelites. 
+
+        """
         self.rst = rel
         self.nucleus = nucleus
         self.satelites = [s for s in satelites if s is not None]
@@ -147,6 +176,11 @@ class MsgSpec:
 # microplanning level structures
 
 class Element:
+    """ A base class representing an NLG element.
+        Aside for providing a base class for othe kinds of NLG elements,
+        the class also implements basic functionality for elements.
+
+    """
     def __init__(self, vname='visit_element'):
         self.id = 0 # this is useful for replacing elements
         self._visitor_name = vname
@@ -291,6 +325,7 @@ class Element:
 
 
 class String(Element):
+    """ String is a basic element representing canned text. """
     def __init__(self, val=""):
         super().__init__('visit_string')
         self.val = val
@@ -321,6 +356,7 @@ class String(Element):
 
 
 class Word(Element):
+    """ Word represents word and its corresponding POS (Part-of-Speech) tag. """
     def __init__(self, word=None, pos=None):
         super().__init__('visit_word')
         self.word = word
@@ -356,6 +392,15 @@ class Word(Element):
 
 
 class PlaceHolder(Element):
+    """ An element used as a place-holder in a sentence. The purpose of this
+        element is to make replacing arguments easier. For example, in a plan
+        one might want to replace arguments of an action with the instantiated
+        objects
+        E.g.,   move (x, a, b) -->
+                move PlaceHolder(x) from PlaceHolder(a) to PlaceHolder(b) -->
+                move (the block) from (the table) to (the green block)
+        
+    """
     def __init__(self, id=None, obj=None):
         super().__init__('visit_placeholder')
         self.id = id
@@ -395,6 +440,13 @@ class PlaceHolder(Element):
 
 
 class Phrase(Element):
+    """ A base class for all kinds of phrases - elements containing other
+        elements in specific places of the construct (front-, pre-, post-
+        modifiers as well as the head of the phrase and any complements.
+        
+        Not every phrase has need for all of the kinds of modiffications.
+
+    """
     def __init__(self, type=None, discourse_fn=None, vname='visit_phrase'):
         super().__init__(vname)
         self.type = type
@@ -664,10 +716,10 @@ class Clause(Phrase):
 class NP(Phrase):
     """
      * <UL>
-     * <li>Specifier    (eg, "the")
-     * <LI>PreModifier  (eg, "green")
-     * <LI>Noun         (eg, "apple")
-     * <LI>PostModifier (eg, "in the shop")
+     * <li>Specifier    (eg, "the")</LI>
+     * <LI>PreModifier  (eg, "green")</LI>
+     * <LI>Noun         (eg, "apple")</LI>
+     * <LI>PostModifier (eg, "in the shop")</LI>
      * </UL>
      """
     def __init__(self, head=None, spec=None):
@@ -726,11 +778,11 @@ class NP(Phrase):
 class VP(Phrase):
     """
     * <UL>
-     * <LI>PreModifier      (eg, "reluctantly")
-     * <LI>Verb             (eg, "gave")
-     * <LI>IndirectObject   (eg, "Mary")
-     * <LI>Object           (eg, "an apple")
-     * <LI>PostModifier     (eg, "before school")
+     * <LI>PreModifier      (eg, "reluctantly")</LI>
+     * <LI>Verb             (eg, "gave")</LI>
+     * <LI>IndirectObject   (eg, "Mary")</LI>
+     * <LI>Object           (eg, "an apple")</LI>
+     * <LI>PostModifier     (eg, "before school")</LI>
      * </UL>
      """
     def __init__(self, head=None, *compl):
@@ -877,7 +929,6 @@ class IVisitor:
                 c.accept(self, 'postMod')
 
 
-
 class XmlVisitor(IVisitor):
     def __init__(self):
         self.header = '''
@@ -953,7 +1004,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def __repr__(self):
         return ('[ XmlVisitor:\n%s]' % (self.header + self.xml + self.footer))
-
 
 
 class StrVisitor(IVisitor):
@@ -1127,7 +1177,6 @@ def replace_element(sent, elt, replacement=None):
             else:
                 if replace_element(o, elt, replacement):
                     return True
-
         for i, o in reversed(list(enumerate(sent.complement))):
             if (o == elt):
                 if replacement is None:
@@ -1138,11 +1187,9 @@ def replace_element(sent, elt, replacement=None):
             else:
                 if replace_element(o, elt, replacement):
                     return True
-
         if sent.head == elt:
             sent.head = replacement
             return True
-
         for i, o in reversed(list(enumerate(sent.pre_modifier))):
             if (o == elt):
                 if replacement is None:
@@ -1173,10 +1220,7 @@ def replace_element(sent, elt, replacement=None):
     return False
 
 
-
-
-
-
-
+class Tree:
+    """ A class representing a syntax tree. """
 
 

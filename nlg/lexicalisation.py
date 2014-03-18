@@ -55,7 +55,9 @@ flyToAirfieldA = Clause(uav, VP(Word('is', 'VERB'), Word('flying to airfield A',
 flyToAirfieldB = Clause(uav, VP(Word('is', 'VERB'), Word('flying to airfield B', 'VERB')))
 flyToBase = Clause(uav, VP(Word('is', 'VERB'), Word('flying to the base', 'VERB')))
 Land = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB')))
-
+SelectRunway = Clause(uav, VP(Word('is', 'VERB'), 'selecting a runway'))
+LandOnLongRunway = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB'), PP('on', 'a long runway')))
+LandOnShortRunway = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB'), PP('on', 'a short runway')))
 
 # Workflow summary phrase specifications
 the_workflow = NP(spec='the', head='workflow')
@@ -131,7 +133,11 @@ class SentenceTemplates:
         self.templates['selectLandingSite'] = selectLandingSite
         self.templates['flyToAirfieldA'] = flyToAirfieldA
         self.templates['flyToAirfieldB'] = flyToAirfieldB
+        self.templates['flyToBase'] = flyToBase
         self.templates['Land'] = Land
+        self.templates['selectRunway'] = SelectRunway
+        self.templates['landOnLongRunway'] = LandOnLongRunway
+        self.templates['landOnShortRunway'] = LandOnShortRunway
         # workflow summary
         self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices
@@ -158,12 +164,12 @@ class SentenceTemplates:
         self.templates['EmergencyTask'] = EmergencyTask
         self.templates['NormalTask'] = NormalTask
         # Logistics
-        self.templates['Edinburgh'] = VP('go to', 'Edinburgh')
-        self.templates['Perth'] = VP('go to', 'Perth')
-        self.templates['Kincardine'] = VP('go to', 'Kincardine')
-        self.templates['Stirling'] = VP('go to', 'Stirling')
-        self.templates['Inverness'] = VP('go to', 'Inverness')
-        self.templates['Aberdeen'] = VP('go to', 'Aberdeen')
+        self.templates['Edinburgh'] = Clause(you, VP('drive to', 'Edinburgh'))
+        self.templates['Perth'] = Clause(you, VP('drive to', 'Perth'))
+        self.templates['Kincardine'] = Clause(you, VP('drive to', 'Kincardine'))
+        self.templates['Stirling'] = Clause(you, VP('drive to', 'Stirling'))
+        self.templates['Inverness'] = Clause(you, VP('drive to', 'Inverness'))
+        self.templates['Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
 
 
     def template(self, action):
@@ -193,7 +199,7 @@ def lexicalise(msg):
     elif isinstance(msg, Document):
         return lexicalise_document(msg)
     else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance')
+        raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
 
 # TODO: lexicalisation should replace Messages by NLG Elements

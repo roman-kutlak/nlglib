@@ -24,7 +24,7 @@ def realise(msg):
     elif isinstance(msg, Section):   return realise_section(msg)
     elif isinstance(msg, Document):  return realise_document(msg)
     else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance')
+        raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
 
 def realise_element(elt):

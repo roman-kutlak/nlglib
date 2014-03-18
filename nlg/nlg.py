@@ -195,9 +195,11 @@ class Nlg:
 ################################################################################
 
     def document_to_text(self, doc):
-        summary = self.lexicalise_doc(doc)
-#        summary = aggregation.aggregate(summary)
-#        summary = reg.generate(msgs, doc, Context(doc.ontology))
+        messages = self.lexicalise_doc(doc)
+        messages = [Message('Sequence', x) for x in messages if x is not None]
+        summary = Paragraph(*messages)
+        summary = aggregation.aggregate(summary, 3)
+        summary = reg.generate_re(summary, reg.Context(doc.ontology))
         summary = realisation.realise(summary)
         summary = format.to_text(summary)
         return summary
@@ -221,7 +223,7 @@ class Nlg:
 #        print('Lexicalising task %s' % str(task))
         params = task.input_params[:]
         key = task.name
-        sent = self.templates.template(key)
+        sent = lexicalisation.templates.template(key)
         if None is sent:
             key = task.id
             sent = self.templates.template(key)

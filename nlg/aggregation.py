@@ -3,95 +3,6 @@ from nlg.structures import *
 
 DEBUG= False
 
-def s_aggr(sent1, sent2):
-    """ Subject aggregation
-        E.g. John is a boy + John is tall => John is a boy and is tall.
-
-    """
-    if sent1.subj == sent2.subj:
-        coord_pred = CC([deepcopy(sent1.vp), deepcopy(sent2.vp)])
-        clause = deepcopy(sent1)
-        clause.vp = coord_pred
-        return clause
-    else:
-        return None
-
-
-def sp_aggr(sent1, sent2):
-    """ Subject and Predicate aggregation
-
-        E.g. John is a boy + John is tall => John is a boy and tall.
-
-    """
-    return None
-
-
-def p_aggr(sent1, sent2):
-    """ Predicate aggregation
-        E.g. John has a pen + Mary has a book => 
-            John and Mary have a book and a pen.
-        "have" is a predicate aggregation
-        
-    """
-    return None
-
-
-def pdo_aggr(sent1, sent2):
-    """ Predicate and Direct Object aggregation
-        E.g. John wrote an article + Mary wrote an article =>
-            John and Mary wrote an article
-        
-    """
-    if sent1.vp == sent2.vp:
-        coord_subject = CC([deepcopy(sent1.subj),
-                                           deepcopy(sent2.subj)])
-        clause = deepcopy(sent1)
-        clause.subj = coord_subject
-        clause.vp.features["number"] = "PLURAL";
-        return clause
-    else:
-        return None
-
-
-def do_aggr(sent1, sent2):
-    """ Direct Object aggregation
-        E.g. Put the apple in the basket + Put the pear in the basket =>
-             Put the apple and the pear in the basket.
-        
-    """
-    if sent1 == sent2:
-        return sent1
-    
-    if (sent1.subj != sent2.subj or
-        sent1.vp.head != sent2.vp.head):
-        return None
-
-    s1 = deepcopy(sent1)
-    s2 = deepcopy(sent2)
-    o1 = s1.vp.get_object()
-    o2 = s2.vp.get_object()
-    if (o1 is not None and o2 is not None):
-        s1.vp.set_object(None)
-        s2.vp.set_object(None)
-        new_sent = s1
-        try:
-            if (s1.vp == s2.vp):
-                # the vps are same (except for objects)
-                del o1.features['discourseFunction']
-                del o2.features['discourseFunction']
-                coord_obj = CC([o1, o2])
-                new_sent.vp.set_object(coord_obj)
-        except Exception as e:
-            print("Exception: %s" % e)
-            return None
-
-        return new_sent
-
-    return None
-
-
-
-# the above should be all deprecated
 
 class ElementError(Exception):
     pass
@@ -130,6 +41,8 @@ def try_to_aggregate(sent1, sent2):
     
     """
     if sent1 is None or sent2 is None: return None
+    if not isinstance(sent1, Clause) or not isinstance(sent2, Clause):
+        return None
 
     replacement = Word("REPLACEMENT", "REPLACEMENT")
     for e1 in sentence_iterator(sent1):
@@ -264,7 +177,7 @@ def aggregate_message(msg, limit):
     if len(msg.satelites) > 1:
         elements = synt_aggregation(msg.satelites, limit)
     if msg.nucleus is not None:
-        elements.insert(0, self.nucleus)
+        elements.insert(0, msg.nucleus)
     return Message(msg.rst, None, *elements)
 
 
