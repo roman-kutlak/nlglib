@@ -1,7 +1,7 @@
 from copy import deepcopy
 from nlg.structures import *
 
-DEBUG= False
+DEBUG = False
 
 
 class ElementError(Exception):

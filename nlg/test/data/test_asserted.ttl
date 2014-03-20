@@ -1,0 +1,133 @@
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+@prefix :	<http://www.scrutable-systems.org/ontology/Logistics#> .
+
+
+:object a owl:Class .
+
+
+:city a owl:Class ;
+    rdfs:subClassOf :object .
+
+:location a owl:Class ;
+    rdfs:subClassOf :object .
+
+:place a owl:Class ;
+    rdfs:subClassOf :object .
+
+:physobj a owl:Class ;
+    rdfs:subClassOf :object .
+
+
+:package a owl:Class ;
+    rdfs:subClassOf :physobj .
+
+:vehicle a owl:Class ;
+    rdfs:subClassOf :physobj .
+
+
+:truck a owl:Class ;
+    rdfs:subClassOf :vehicle .
+
+:airplane a owl:Class ;
+    rdfs:subClassOf :vehicle .
+
+
+:sofa a owl:Class ;
+    rdfs:subClassOf :package .
+
+:table a owl:Class ;
+    rdfs:subClassOf :package .
+
+:chair a owl:Class ;
+    rdfs:subClassOf :package .
+
+:piano a owl:Class ;
+    rdfs:subClassOf :package .
+
+:drum a owl:Class ;
+    rdfs:subClassOf :package .
+
+:guitar a owl:Class ;
+    rdfs:subClassOf :package .
+
+
+:airport a owl:Class ;
+    rdfs:subClassOf :location .
+
+:harbour a owl:Class ;
+    rdfs:subClassOf :location .
+
+:depot a owl:Class ;
+    rdfs:subClassOf :location .
+
+
+
+
+
+:obj11 a owl:Class ;
+    rdf:type :drum .
+
+:obj12 a owl:Class ;
+    rdf:type :guitar .
+
+:obj13 a owl:Class ;
+    rdf:type :piano .
+
+:obj21 a owl:Class ;
+    rdf:type :table .
+
+:obj22 a owl:Class ;
+    rdf:type :chair .
+
+:obj23 a owl:Class ;
+    rdf:type :sofa .
+
+:tru1 a owl:Class ;
+    rdf:type :truck .
+
+:tru2 a owl:Class ;
+    rdf:type :truck .
+    
+:truck1 a owl:Class ;
+    rdf:type :truck .
+
+:truck2 a owl:Class ;
+    rdf:type :truck .
+
+:apn1 a owl:Class ;
+    rdf:type :airplane .
+
+:airplane1 a owl:Class ;
+    rdf:type :airplane .
+
+:apt1 a owl:Class ;
+    rdf:type :airport .
+
+:apt2 a owl:Class ;
+    rdf:type :airport .
+
+:airport1 a owl:Class ;
+    rdf:type :airport .
+
+:airport2 a owl:Class ;
+    rdf:type :airport .
+
+:pos2 a owl:Class ;
+    rdf:type :harbour .
+
+:pos1 a owl:Class ;
+    rdf:type :depot .
+    
+    
+    
+    
+
+
+
+
+
+

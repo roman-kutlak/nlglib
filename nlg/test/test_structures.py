@@ -47,12 +47,12 @@ class TestMessage(unittest.TestCase):
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = 'Message (Elaboration): foo bar baz'
+        expected = "Message (Elaboration): 'foo' 'bar' 'baz'"
         m = Message('Elaboration', 'foo', 'bar', 'baz')
         descr = repr(m)
         self.assertEqual(expected, descr)
 
-        expected = ('Message (Contrast): foo bar baz bar baz')
+        expected = ("Message (Contrast): Message (Elaboration): 'foo' 'bar' 'baz' 'bar' 'baz'")
         m2 = Message('Contrast', m, 'bar', 'baz')
         descr = repr(m2)
         self.assertEqual(expected, descr)
@@ -80,19 +80,23 @@ class TestParagraph(unittest.TestCase):
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = 'Paragraph (1):\n\tfoo bar'
+        expected = """Paragraph (1):
+Message (Elaboration): 'foo' 'bar'"""
         m = Message('Elaboration', 'foo', 'bar')
         p = Paragraph(m)
         descr = repr(p)
         self.assertEqual(expected, descr)
 
-        expected = 'Paragraph (1):\n\tfoo bar bar baz'
+        expected = """Paragraph (1):
+Message (Contrast): Message (Elaboration): 'foo' 'bar' 'bar' 'baz'"""
         m2 = Message('Contrast', m, 'bar', 'baz')
         p = Paragraph(m2)
         descr = repr(p)
         self.assertEqual(expected, descr)
 
-        expected = 'Paragraph (2):\n\tfoo bar bar baz; foobar'
+        expected ="""Paragraph (2):
+Message (Contrast): Message (Elaboration): 'foo' 'bar' \
+'bar' 'baz'; Message (Leaf): 'foobar'"""
         m3 = Message('Leaf', 'foobar')
         p = Paragraph(m2, m3)
         descr = repr(p)
@@ -115,13 +119,21 @@ class TestSection(unittest.TestCase):
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = 'Section:\ntitle: One\n\tfoo bar'
+        expected = """Section:
+title: 'One'
+Paragraph (1):
+Message (Elaboration): 'foo' 'bar'"""
         m = Message('Elaboration', 'foo', 'bar')
         s = Section('One', Paragraph(m))
         descr = repr(s)
         self.assertEqual(expected, descr)
 
-        expected = 'Section:\ntitle: One\n\tfoo bar\n\tbaz bar'
+        expected = """Section:
+title: 'One'
+Paragraph (1):
+Message (Elaboration): 'foo' 'bar'
+Paragraph (1):
+Message (Contrast): 'baz' 'bar'"""
         m2 = Message('Contrast', 'baz', 'bar')
         s = Section('One', Paragraph(m), Paragraph(m2))
         descr = repr(s)
@@ -146,14 +158,29 @@ class TestDocument(unittest.TestCase):
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = 'Document:\ntitle: MyDoc\nOne\n\tfoo bar'
+        expected = """Document:
+title: 'MyDoc'
+Section:
+title: 'One'
+Paragraph (1):
+Message (Elaboration): 'foo' 'bar'"""
         m = Message('Elaboration', 'foo', 'bar')
         one = Section('One', Paragraph(m))
         d = Document('MyDoc', one)
         descr = repr(d)
         self.assertEqual(expected, descr)
 
-        expected = 'Document:\ntitle: MyDoc\nOne\n\tfoo bar\n\nTwo\n\tbaz bar'
+        expected = """Document:
+title: 'MyDoc'
+Section:
+title: 'One'
+Paragraph (1):
+Message (Elaboration): 'foo' 'bar'
+
+Section:
+title: 'Two'
+Paragraph (1):
+Message (Contrast): 'baz' 'bar'"""
         m2 = Message('Contrast', 'baz', 'bar')
         two = Section('Two', Paragraph(m2))
         d = Document('MyDoc', one, two)
@@ -386,11 +413,11 @@ class TestPlaceHolder(unittest.TestCase):
 
     def test_repr(self):
         """ Test debug printing. """
-        expected = 'PlaceHolder: id=obj1 value=None {}'
+        expected = "PlaceHolder: id='obj1' value=None {}"
         p = PlaceHolder('obj1')
         self.assertEqual(expected, repr(p))
 
-        expected = "PlaceHolder: id=obj1 value=None {'countable': 'yes'}"
+        expected = "PlaceHolder: id='obj1' value=None {'countable': 'yes'}"
         p.add_feature('countable', 'yes')
         self.assertEqual(expected, repr(p))
 

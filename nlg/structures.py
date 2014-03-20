@@ -833,7 +833,7 @@ class PP(Phrase):
 
 
 class AdvP(Phrase):
-    def __init__(self, head=None, compl=None):
+    def __init__(self, head=None, *compl):
         super().__init__(type='ADVERB_PHRASE', vname='visit_pp')
         self.set_head(head)
         self.add_complement(*compl)
@@ -845,7 +845,7 @@ class AdvP(Phrase):
 
 
 class AdjP(Phrase):
-    def __init__(self, head=None, compl=None):
+    def __init__(self, head=None, *compl):
         super().__init__(type='ADJECTIVE_PHRASE', vname='visit_pp')
         self.set_head(head)
         self.add_complement(*compl)
@@ -874,8 +874,14 @@ class CC(Element):
 
     def __str__(self):
         if self.coords is None: return ''
-        return ' '.join(map(lambda x: str(x), self.coords))
-
+        result = ''
+        for i, x in enumerate(self.coords):
+            if i < len(self.coords) - 2:
+                result += ', '
+            elif i == len(self.coords) - 1:
+                result += ' and '
+            result += str(x)
+        return result
 
     def to_xml(self, element):
         features = self.features_to_xml_attributes()

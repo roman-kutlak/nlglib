@@ -1,0 +1,346 @@
+@prefix : <http://www.scrutable-systems.org/ontology/Logistics#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://www.scrutable-systems.org/ontology/Logistics> .
+
+<http://www.scrutable-systems.org/ontology/Logistics> rdf:type owl:Ontology .
+
+
+#################################################################
+#
+#    Classes
+#
+#################################################################
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#airplane
+
+:airplane rdf:type owl:Class ;
+          
+          rdfs:subClassOf :vehicle .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#airport
+
+:airport rdf:type owl:Class ;
+         
+         rdfs:subClassOf :location .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#chair
+
+:chair rdf:type owl:Class ;
+       
+       rdfs:subClassOf :package .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#city
+
+:city rdf:type owl:Class ;
+      
+      rdfs:subClassOf :object .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#depot
+
+:depot rdf:type owl:Class ;
+       
+       rdfs:subClassOf :location .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#drum
+
+:drum rdf:type owl:Class ;
+      
+      rdfs:subClassOf :package .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#guitar
+
+:guitar rdf:type owl:Class ;
+        
+        rdfs:subClassOf :package .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#harbour
+
+:harbour rdf:type owl:Class ;
+         
+         rdfs:subClassOf :location .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#location
+
+:location rdf:type owl:Class ;
+          
+          rdfs:subClassOf :object .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#object
+
+:object rdf:type owl:Class .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#package
+
+:package rdf:type owl:Class ;
+         
+         rdfs:subClassOf :physobj .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#physobj
+
+:physobj rdf:type owl:Class ;
+         
+         rdfs:subClassOf :object .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#piano
+
+:piano rdf:type owl:Class ;
+       
+       rdfs:subClassOf :package .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#place
+
+:place rdf:type owl:Class ;
+       
+       rdfs:subClassOf :object .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#sofa
+
+:sofa rdf:type owl:Class ;
+      
+      rdfs:subClassOf :package .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#table
+
+:table rdf:type owl:Class ;
+       
+       rdfs:subClassOf :package .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#truck
+
+:truck rdf:type owl:Class ;
+       
+       rdfs:subClassOf :vehicle .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#vehicle
+
+:vehicle rdf:type owl:Class ;
+         
+         rdfs:subClassOf :physobj .
+
+
+
+
+
+#################################################################
+#
+#    Individuals
+#
+#################################################################
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#airplane1
+
+:airplane1 rdf:type :airplane ,
+                    :object ,
+                    :physobj ,
+                    :vehicle ,
+                    owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#airport1
+
+:airport1 rdf:type :airport ,
+                   :location ,
+                   :object ,
+                   owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#airport2
+
+:airport2 rdf:type :airport ,
+                   :location ,
+                   :object ,
+                   owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#apn1
+
+:apn1 rdf:type :airplane ,
+               :object ,
+               :physobj ,
+               :vehicle ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#apt1
+
+:apt1 rdf:type :airport ,
+               :location ,
+               :object ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#apt2
+
+:apt2 rdf:type :airport ,
+               :location ,
+               :object ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#obj11
+
+:obj11 rdf:type :drum ,
+                :object ,
+                :package ,
+                :physobj ,
+                owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#obj12
+
+:obj12 rdf:type :guitar ,
+                :object ,
+                :package ,
+                :physobj ,
+                owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#obj13
+
+:obj13 rdf:type :object ,
+                :package ,
+                :physobj ,
+                :piano ,
+                owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#obj21
+
+:obj21 rdf:type :object ,
+                :package ,
+                :physobj ,
+                :table ,
+                owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#obj22
+
+:obj22 rdf:type :chair ,
+                :object ,
+                :package ,
+                :physobj ,
+                owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#obj23
+
+:obj23 rdf:type :object ,
+                :package ,
+                :physobj ,
+                :sofa ,
+                owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#pos1
+
+:pos1 rdf:type :depot ,
+               :location ,
+               :object ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#pos2
+
+:pos2 rdf:type :harbour ,
+               :location ,
+               :object ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#tru1
+
+:tru1 rdf:type :object ,
+               :physobj ,
+               :truck ,
+               :vehicle ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#tru2
+
+:tru2 rdf:type :object ,
+               :physobj ,
+               :truck ,
+               :vehicle ,
+               owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#truck1
+
+:truck1 rdf:type :object ,
+                 :physobj ,
+                 :truck ,
+                 :vehicle ,
+                 owl:NamedIndividual .
+
+
+
+###  http://www.scrutable-systems.org/ontology/Logistics#truck2
+
+:truck2 rdf:type :object ,
+                 :physobj ,
+                 :truck ,
+                 :vehicle ,
+                 owl:NamedIndividual .
+
+
+
+
+###  Generated by the OWL API (version 3.4.2) http://owlapi.sourceforge.net
+

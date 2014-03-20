@@ -1,18 +1,12 @@
 import unittest
+import time
 import sys
-
-
-folder = '../src'
-
-if folder not in sys.path:
-    sys.path.append(folder)
 
 from nlg.nlg import *
 from nlg.structures import *
 import nlg.simplenlg as snlg
-from planning.planner import Planner
-
-from utils.settings import get_user_settings
+#from planning.planner import Planner
+from nlg.utils import get_user_settings
 
 action_sequence = """Logistics-0,0.01,20,(load-truck obj13 tru1 pos1),(load-truck obj11 tru1 pos1),(load-truck obj21 tru2 pos2),(load-truck obj23 tru2 pos2),(drive-truck tru2 pos2 apt2 cit2),(unload-truck obj23 tru2 apt2),(unload-truck obj21 tru2 apt2),(load-airplane obj23 apn1 apt2),(load-airplane obj21 apn1 apt2),(drive-truck tru1 pos1 apt1 cit1),(unload-truck obj13 tru1 apt1),(unload-truck obj11 tru1 apt1),(fly-airplane apn1 apt2 apt1),(unload-airplane obj23 apn1 apt1),(unload-airplane obj21 apn1 apt1),(load-truck obj21 tru1 apt1),(load-truck obj23 tru1 apt1),(drive-truck tru1 apt1 pos1 cit1),(unload-truck obj23 tru1 pos1),(unload-truck obj21 tru1 pos1)
 """
@@ -34,19 +28,19 @@ drum = Word("drum", "NOUN")
 vp.complement.append(pp)
 
 obj1 = NP(piano, the)
-obj1.features["discourseFunction"] = 'OBJECT'
+obj1._features["discourseFunction"] = 'OBJECT'
 obj2 = NP(drum, the)
-obj2.features["discourseFunction"] = 'OBJECT'
+obj2._features["discourseFunction"] = 'OBJECT'
 
 vp2 = deepcopy(vp)
 vp.complement.insert(0, obj1)
 vp2.complement.insert(0, obj2)
 
 c1 = Clause(vp=vp)
-c1.features['FORM'] = "IMPERATIVE"
+c1._features['FORM'] = "IMPERATIVE"
 
 c2 = Clause(vp=vp2)
-c2.features['FORM'] = "IMPERATIVE"
+c2._features['FORM'] = "IMPERATIVE"
 
 john = NP(Word('John'))
 a = Word('a', 'DETERNIMER')
@@ -158,6 +152,9 @@ class TestSimplenlgClient(unittest.TestCase):
         obj.simplenlg_thread.do_shutdown()
 #        obj.simplenlg_thread.join()
 
+#    def setUp(self):
+#        time.sleep(2)
+
     def test_socket(self):
         #print('calling test_socket()')
         mysocket = snlg.Socket('', 50007)
@@ -181,43 +178,45 @@ class TestSimplenlgClient(unittest.TestCase):
         """
         #print('calling test_snlg()')
         s = get_user_settings()
-        client = snlg.SimplenlgClient(s.get_setting('SimplenlgHost'),
-                                      s.get_setting('SimplenlgPort'))
+        host = s.get_setting('SimplenlgHost')
+        port = s.get_setting('SimplenlgPort')
+        print((host, port))
+        client = snlg.SimplenlgClient(host, port)
         realisation = client.xml_request(test_data)
         self.assertEqual(self.test_result, realisation)
 
 
-class TestGre(unittest.TestCase):
-    def setUp(self):
-        self.p = Planner()
-        self.dom = self.p.get_domain('logistics')
-        self.prob = self.p.get_problem('logistics', 'logistics-1.pddl')
-        self.context = Context(self.dom, self.prob)
-        self.reg = REG()
-
-    def test_reg(self):
-        res = self.reg.gre('tru1', self.context)
-        self.assertEqual('truck 1', str(res))
-        res = self.reg.gre('obj12', self.context)
-        self.assertEqual('a drum', str(res))
-
-
-class TestNlg(unittest.TestCase):
-    
-    def setUp(self):
-        self.p = Planner()
-        self.plan = self.p.plan_for_goal('Logistics-1')
-        self.nlg = Nlg()
-    
-    def tearDown(self):
-        pass
-    
-    def test_setup(self):
-        self.assertNotEqual(None, self.plan)
-        self.assertNotEqual(None, self.nlg)
-    
-    def test_lexicalise(self):
-        pass
+#class TestGre(unittest.TestCase):
+#    def setUp(self):
+##        self.p = Planner()
+#        self.dom = self.p.get_domain('logistics')
+#        self.prob = self.p.get_problem('logistics', 'logistics-1.pddl')
+#        self.context = Context(self.dom, self.prob)
+#        self.reg = REG()
+#
+#    def test_reg(self):
+#        res = self.reg.gre('tru1', self.context)
+#        self.assertEqual('truck 1', str(res))
+#        res = self.reg.gre('obj12', self.context)
+#        self.assertEqual('a drum', str(res))
+#
+#
+#class TestNlg(unittest.TestCase):
+#    
+#    def setUp(self):
+#        self.p = Planner()
+#        self.plan = self.p.plan_for_goal('Logistics-1')
+#        self.nlg = Nlg()
+#    
+#    def tearDown(self):
+#        pass
+#    
+#    def test_setup(self):
+#        self.assertNotEqual(None, self.plan)
+#        self.assertNotEqual(None, self.nlg)
+#    
+#    def test_lexicalise(self):
+#        pass
 
 
 # if the module is loaded on its own, run the test

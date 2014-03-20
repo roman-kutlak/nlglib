@@ -5,7 +5,7 @@ import time
 import threading
 
 
-simplenlg_path = '/Users/roman/Work/Sassy/resources/simplenlg.jar'
+simplenlg_path = 'nlg/resources/simplenlg.jar'
 
 
 def hton(num):

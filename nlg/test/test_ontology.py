@@ -13,7 +13,7 @@ import rdflib
 import rdflib.plugins.sparql as sparql
 
 
-logistics_path = './data/ontology.ttl'
+path = 'nlg/test/data/test.ttl'
 format = 'n3'
 
 
@@ -27,10 +27,10 @@ class TestOntology(unittest.TestCase):
         ontology = Ontology(path, format)
         entity = 'http://www.scrutable-systems.org/ontology/Logistics#obj11'
         res = ontology.entity_types(entity)
-        self.assertEqual(len(res), 2)
+        self.assertGreater(len(res), 2)
         entity = ':obj11'
         res = ontology.entity_types(entity)
-        self.assertEqual(len(res), 2)
+        self.assertGreater(len(res), 2)
 
     def test_entity_type_fail(self):
         ontology = Ontology(path, format)
@@ -46,13 +46,38 @@ class TestOntology(unittest.TestCase):
 
     def test_entities_of_type(self):
         ontology = Ontology(path, format)
-        type_ = ':drum'
+        type_ = ':vehicle'
         res = ontology.entities_of_type(type_)
+        print(res)
         self.assertGreater(len(res), 0)
 
     def test_lexicalisation_tree(self):
         ontology = Ontology(path, format)
-        
+
+    def test_subclasses(self):
+        ontology = Ontology(path, format)
+        type_ = ':vehicle'
+        res = ontology.subclasses(type_)
+        print(res)
+        self.assertGreater(len(res), 0)
+        self.assertEqual(True, ':airplane' in res)
+        self.assertEqual(True, ':truck' in res)
+
+    def test_superclasses(self):
+        ontology = Ontology(path, format)
+        type_ = ':vehicle'
+        res = ontology.superclasses(type_)
+        print(res)
+        self.assertGreater(len(res), 0)
+        self.assertEqual(True, ':physobj' in res)
+        self.assertEqual(True, ':object' in res)
+
+    def test_subsumption(self):
+        ontology = Ontology(path)
+        self.assertEqual(True, ontology.subsumes(':vehicle', ':truck'))
+        self.assertEqual(True, ontology.subsumes(':vehicle', ':vehicle'))
+        self.assertEqual(False, ontology.subsumes(':vehicle', ':physobj'))
+
 
 
 

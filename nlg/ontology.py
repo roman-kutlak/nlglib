@@ -41,7 +41,12 @@ class Ontology:
         qres = self._entities_of_type(entity_type)
         result = [str(x.entity) for x in qres]
         result = [self._remove_prefix(x) for x in result]
+        return result
 
+    def entities_of_type2(self, entity_type):
+        qres = self._entities_of_type2(entity_type)
+        result = [str(x.entity) for x in qres]
+        result = [self._remove_prefix(x) for x in result]
         return result
 
     def _entity_types(self, entity_name):
@@ -51,25 +56,24 @@ SELECT DISTINCT ?type
 WHERE {
     ?entity rdf:type ?type.
 }"""
-        query = sparql.prepareQuery(query_text)
-
         entity_name = self._apply_prefix(entity_name)
         entity = rdflib.URIRef(entity_name)
 
+        query = sparql.prepareQuery(query_text)
         qres = self.graph.query(query, initBindings={'entity': entity})
         return qres
 
     def _entities_of_type(self, entity_type):
         query_text = """
-SELECT ?entity
+SELECT DISTINCT ?entity
 WHERE {
-  ?entity rdf:type ?cls.
+  ?entity rdf:type ?type.
+  ?type rdfs:subClassOf* ?cls.
 }"""
-        query = sparql.prepareQuery(query_text)
-
         entity_type = self._apply_prefix(entity_type)
         cls = rdflib.URIRef(entity_type)
 
+        query = sparql.prepareQuery(query_text)
         qres = self.graph.query(query, initBindings={'cls': cls})
         return qres
 
@@ -90,10 +94,62 @@ WHERE {
                 return result.replace(v, k + ':')
         return result
 
+    def subsumes(self, a, b):
+        """ Return true if a subsumes b. """
+        subclasses = self.subclasses(a)
+        return (b in subclasses)
 
+    def subclasses(self, a):
+        """ Return the set of subclasses of a. """
+        query_text = """
+SELECT DISTINCT ?x
+WHERE {
+  ?x rdfs:subClassOf* ?a.
+}"""
+        a = self._apply_prefix(a)
+        cls = rdflib.URIRef(a)
 
+        query = sparql.prepareQuery(query_text)
+        qres = self.graph.query(query, initBindings={'a': cls})
+        result = [str(r.x) for r in qres]
+        result = [self._remove_prefix(x) for x in result]
+        return set(result)
 
+    def superclasses(self, a):
+        """ Return the set of superclasses of a. """
+        query_text = """
+SELECT ?x
+WHERE {
+  ?a rdfs:subClassOf* ?x.
+}"""
+        a = self._apply_prefix(a)
+        cls = rdflib.URIRef(a)
 
+        query = sparql.prepareQuery(query_text)
+        qres = self.graph.query(query, initBindings={'a': cls})
+        result = [str(r.x) for r in qres]
+        result = [self._remove_prefix(x) for x in result]
+        return set(result)
+
+    def individuals(self, cls):
+        """ Return a set of individuals of a given class. """
+        pass
+
+    def _exec_query(self, query_text, params):
+        """ Take a sparql query and a parameter and run the query.
+        The function only supports query with one varaible in the result
+        and this variable has to be called x.
+        Params is a dict of parameters to bind in the query.
+        """
+        bindings = dict()
+        for k, p in params.items():
+            bindings[k] = rdflib.URIRef(self._apply_prefix(p))
+
+        query = sparql.prepareQuery(query_text)
+        qres = self.graph.query(query, initBindings=bindings)
+        result = [str(r.x) for r in qres]
+        result = [self._remove_prefix(x) for x in result]
+        return set(result)
 
 
 
