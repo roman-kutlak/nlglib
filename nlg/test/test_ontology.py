@@ -42,13 +42,12 @@ class TestOntology(unittest.TestCase):
         ontology = Ontology(path, format)
         entity = ':obj11'
         res = ontology.best_entity_type(entity)
-        self.assertEqual('drum', res)
+        self.assertEqual(':drum', res)
 
     def test_entities_of_type(self):
         ontology = Ontology(path, format)
         type_ = ':vehicle'
         res = ontology.entities_of_type(type_)
-        print(res)
         self.assertGreater(len(res), 0)
 
     def test_lexicalisation_tree(self):
@@ -58,7 +57,6 @@ class TestOntology(unittest.TestCase):
         ontology = Ontology(path, format)
         type_ = ':vehicle'
         res = ontology.subclasses(type_)
-        print(res)
         self.assertGreater(len(res), 0)
         self.assertEqual(True, ':airplane' in res)
         self.assertEqual(True, ':truck' in res)
@@ -67,7 +65,6 @@ class TestOntology(unittest.TestCase):
         ontology = Ontology(path, format)
         type_ = ':vehicle'
         res = ontology.superclasses(type_)
-        print(res)
         self.assertGreater(len(res), 0)
         self.assertEqual(True, ':physobj' in res)
         self.assertEqual(True, ':object' in res)
@@ -78,8 +75,20 @@ class TestOntology(unittest.TestCase):
         self.assertEqual(True, ontology.subsumes(':vehicle', ':vehicle'))
         self.assertEqual(False, ontology.subsumes(':vehicle', ':physobj'))
 
+    def test_subsume_sort(self):
+        ontology = Ontology(path)
+        classes = [':vehicle', ':truck', ':object']
+        result = ontology.sort(classes)
+        self.assertEqual([':truck', ':vehicle', ':object'], result)
 
-
+    def test_subsume_partition(self):
+        ontology = Ontology(path)
+        classes = [':vehicle', ':truck', ':object',
+                   ':physobj', ':package', 'owl:NamedIndividual']
+        result = ontology.partition(classes)
+        self.assertEqual(3, len(result))
+        expected = {':truck', ':vehicle', ':object', ':physobj'}
+        self.assertEqual(expected, set(result[0]))
 
 
 #ns = rdflib.namespace.Namespace('http://www.scrutable-systems.org/ontology/Logistics#')

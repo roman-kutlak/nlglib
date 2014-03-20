@@ -12,7 +12,7 @@ class Ontology:
     def __init__(self, path, format='n3', nsMappings=None):
         """ Parse an rdf graph and construct the ontology. No inference done.
         path - string indicating the path of the file
-        format - string indicationg the format of the file; default 'n3'
+        format - string indicating the format of the file; default 'n3'
         nsMappings - dictionary with namespace mappings. If set, all queries
         make use of the currently set mapping. The expected format is a string
         to string mapping (e.g., {'foaf': 'http://xmlns.com/foaf/0.1/'})
@@ -24,58 +24,109 @@ class Ontology:
             dict(self.graph.namespace_manager.namespaces()))
 
     def entity_types(self, entity_name):
-        qres = self._entity_types(entity_name)
-        result = [str(x.type) for x in qres]
-        result = [self._remove_prefix(x) for x in result]
+        result = self.types(entity_name)
         return result
 
     def best_entity_type(self, entity_name):
-        types = self.entity_types(entity_name)
+        """ Return the most specific type of the entity. 
+        An object can belong to multiple hierarchies (multiple inheritance).
+        The function assumes that the longest hierarchy path is the best one
+        and it returns the most specific type from the longest hierarchy.
+        If two or more hierarchies have the same length, the function takes 
+        the first one (i.e. undefined order between the two).
+
+        """
+        types = list(self.entity_types(entity_name))
         print('ontology types for "%s": %s' % (entity_name, str(types)))
-        for t in types:
-            if t.startswith(':'):
-                return t.replace(':', '')
-        return entity_name
+        if types == []: return None
+        elif len(types) == 1: return types[0]
+        part = self.partition(types)
+        # since the list was non-empty, there is at least one partition
+        partition = part[0]
+        partition = subsume_sort(partition, self)
+        print(partition)
+        return partition[0]
 
     def entities_of_type(self, entity_type):
-        qres = self._entities_of_type(entity_type)
-        result = [str(x.entity) for x in qres]
-        result = [self._remove_prefix(x) for x in result]
+        result = self.individuals(entity_type)
         return result
 
-    def entities_of_type2(self, entity_type):
-        qres = self._entities_of_type2(entity_type)
-        result = [str(x.entity) for x in qres]
-        result = [self._remove_prefix(x) for x in result]
-        return result
+    def subsumes(self, a, b):
+        """ Return true if a subsumes b. """
+        subclasses = self.subclasses(a)
+        return (b in subclasses)
 
-    def _entity_types(self, entity_name):
-        """ Return the entity types as URIRef instances """
+    def subclasses(self, a):
+        """ Return the set of subclasses of a. """
         query_text = """
-SELECT DISTINCT ?type
+SELECT DISTINCT ?x
 WHERE {
-    ?entity rdf:type ?type.
+  ?x rdfs:subClassOf* ?a.
 }"""
-        entity_name = self._apply_prefix(entity_name)
-        entity = rdflib.URIRef(entity_name)
+        result = self._exec_query(query_text, {'a': a})
+        return result
 
-        query = sparql.prepareQuery(query_text)
-        qres = self.graph.query(query, initBindings={'entity': entity})
-        return qres
-
-    def _entities_of_type(self, entity_type):
+    def superclasses(self, a):
+        """ Return the set of superclasses of a. """
         query_text = """
-SELECT DISTINCT ?entity
+SELECT ?x
 WHERE {
-  ?entity rdf:type ?type.
+  ?a rdfs:subClassOf* ?x.
+}"""
+        result = self._exec_query(query_text, {'a': a})
+        return result
+
+    def individuals(self, cls):
+        """ Return a set of individuals of a given class (incl subclasses). """
+        query_text = """
+SELECT DISTINCT ?x
+WHERE {
+  ?x rdf:type ?type.
   ?type rdfs:subClassOf* ?cls.
 }"""
-        entity_type = self._apply_prefix(entity_type)
-        cls = rdflib.URIRef(entity_type)
+        result = self._exec_query(query_text, {'cls': cls})
+        return result
+
+    def types(self, object):
+        """ Return the types which apply to the object. """
+        query_text = """
+SELECT DISTINCT ?x
+WHERE {
+    ?object rdf:type ?x.
+}"""
+        result = self._exec_query(query_text, {'object': object})
+        return result
+
+    def sort(self, classes):
+        """ Sort the classes according to a hierarchy. """
+        return subsume_sort(classes, self)
+
+    def partition(self, classes):
+        """ Partition classes according to subsumption hierarchy and return
+        the partitions in a list sorted by size of partition from largest down.
+        
+        """
+        partitions = subsume_partition(classes, self)
+        partitions = sorted(partitions, key=lambda x: len(x), reverse=True)
+        return partitions
+
+##############################   Private methods   #############################
+
+    def _exec_query(self, query_text, params):
+        """ Take a sparql query and a parameter and run the query.
+        The function only supports query with one varaible in the result
+        and this variable has to be called x.
+        Params is a dict of parameters to bind in the query.
+        """
+        bindings = dict()
+        for k, p in params.items():
+            bindings[k] = rdflib.URIRef(self._apply_prefix(p))
 
         query = sparql.prepareQuery(query_text)
-        qres = self.graph.query(query, initBindings={'cls': cls})
-        return qres
+        qres = self.graph.query(query, initBindings=bindings)
+        result = [str(r.x) for r in qres]
+        result = [self._remove_prefix(x) for x in result]
+        return set(result)
 
     def _apply_prefix(self, entity_name):
         if self.ns is None: return entity_name
@@ -94,63 +145,47 @@ WHERE {
                 return result.replace(v, k + ':')
         return result
 
-    def subsumes(self, a, b):
-        """ Return true if a subsumes b. """
-        subclasses = self.subclasses(a)
-        return (b in subclasses)
 
-    def subclasses(self, a):
-        """ Return the set of subclasses of a. """
-        query_text = """
-SELECT DISTINCT ?x
-WHERE {
-  ?x rdfs:subClassOf* ?a.
-}"""
-        a = self._apply_prefix(a)
-        cls = rdflib.URIRef(a)
+def subsume_sort(list, ontology):
+    """Quicksort list of classes. Assume classes are on the same hierarchy. """
+    if list == []: 
+        return []
+    else:
+        pivot = list[0]
+        lower_part = [x for x in list[1:] if not ontology.subsumes(x, pivot)]
+        upper_part = [x for x in list[1:] if ontology.subsumes(x, pivot)]
+        lesser = subsume_sort(lower_part, ontology)
+        greater = subsume_sort(upper_part, ontology)
+        return lesser + [pivot] + greater
 
-        query = sparql.prepareQuery(query_text)
-        qres = self.graph.query(query, initBindings={'a': cls})
-        result = [str(r.x) for r in qres]
-        result = [self._remove_prefix(x) for x in result]
-        return set(result)
+def subsume_partition(classes, ontology):
+    """ Partition the list of classes according to ontology hierarchy. """
+    partitions = []
+    tmp = list(classes)
+    current_len = -1
+    while (len([x for p in partitions for x in p]) != current_len or
+           len(tmp) > 0):
+        current_len = len([x for p in partitions for x in p])
+        if len(tmp) == 0: break
+        elt = tmp.pop()
+        consumed = False
+        for partition in partitions:
+            all_in = True
+            if elt in partition:
+                consumed = True
+                continue
+            for element in partition:
+                if not (ontology.subsumes(elt, element) or
+                        ontology.subsumes(element, elt)):
+                    all_in = False
+                    break
+            if all_in: # all elements are from the same hierarchy
+                partition.add(elt)
+                consumed = True
+                tmp = list(classes)
+        if not consumed: partitions.append({elt})
 
-    def superclasses(self, a):
-        """ Return the set of superclasses of a. """
-        query_text = """
-SELECT ?x
-WHERE {
-  ?a rdfs:subClassOf* ?x.
-}"""
-        a = self._apply_prefix(a)
-        cls = rdflib.URIRef(a)
-
-        query = sparql.prepareQuery(query_text)
-        qres = self.graph.query(query, initBindings={'a': cls})
-        result = [str(r.x) for r in qres]
-        result = [self._remove_prefix(x) for x in result]
-        return set(result)
-
-    def individuals(self, cls):
-        """ Return a set of individuals of a given class. """
-        pass
-
-    def _exec_query(self, query_text, params):
-        """ Take a sparql query and a parameter and run the query.
-        The function only supports query with one varaible in the result
-        and this variable has to be called x.
-        Params is a dict of parameters to bind in the query.
-        """
-        bindings = dict()
-        for k, p in params.items():
-            bindings[k] = rdflib.URIRef(self._apply_prefix(p))
-
-        query = sparql.prepareQuery(query_text)
-        qres = self.graph.query(query, initBindings=bindings)
-        result = [str(r.x) for r in qres]
-        result = [self._remove_prefix(x) for x in result]
-        return set(result)
-
+    return [list(x) for x in partitions]
 
 
 

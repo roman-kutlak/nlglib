@@ -115,6 +115,7 @@ def _do_initial_reference(referent, context):
         if onto is None: print('GRE does not have ontology!')
 
         entity_type = onto.best_entity_type(':' + referent)
+        entity_type = entity_type[1:] # strip the ':' at the beginning
         result = NP(Word(entity_type, 'NOUN'))
         print('\t%s: type "%s"' % (referent, entity_type))
         # if the object is the only one in the domain, add 'the'
@@ -126,10 +127,12 @@ def _do_initial_reference(referent, context):
             # save the RE without the determiner
             context.referents[referent] = (True, deepcopy(result))
             # this should really be done by simpleNLG...
-            if entity_type[0] in "aeiouy":
-                result.spec = Word('an', 'DETERMINER')
-            else:
-                result.spec = Word('a', 'DETERMINER')
+#            if entity_type[0] in "aeiouy":
+#                result.spec = Word('an', 'DETERMINER')
+#            else:
+#                result.spec = Word('a', 'DETERMINER')
+            # use definite reference even when the object appears 1st time
+            result.spec = Word('the', 'DETERMINER')
         else:
             context.referents[referent] = (False, result)
             # else add the number to distinguish from others
