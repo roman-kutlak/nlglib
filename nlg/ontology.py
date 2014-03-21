@@ -199,3 +199,28 @@ def subsume_partition(classes, ontology):
 #  ?type rdfs:subClassOf* :C.
 #}
 
+
+# works if we assume single inheritance
+#def subsume_partition(classes, ontology):
+#    """ Partition the list of classes according to ontology hierarchy.
+#    Assume that the classes are either from one hierarchy or disjoint.
+#    This means that owl:thing is not part of the class list.
+#
+#    """
+#    partitions = []
+#    tmp = list(classes)
+#    while len(tmp) > 0:
+#        elt = tmp.pop()
+#        consumed = False
+#        for partition in partitions:
+#            all_in = True
+#            for element in partition:
+#                if (ontology.subsumes(elt, element) or
+#                    ontology.subsumes(element, elt)):
+#                    partition.append(elt)
+#                    consumed = True
+#                    break
+#            if consumed: break
+#        if not consumed: partitions.append([elt])
+#    return partitions
+#
