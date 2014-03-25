@@ -22,6 +22,7 @@ class Ontology:
         self.graph.parse(path, format=format)
         self.ns = nsMappings if nsMappings is not None else (
             dict(self.graph.namespace_manager.namespaces()))
+        self.cache = dict()
 
     def entity_types(self, entity_name):
         result = self.types(entity_name)
@@ -118,6 +119,8 @@ WHERE {
         and this variable has to be called x.
         Params is a dict of parameters to bind in the query.
         """
+        key = (query_text, tuple(params.items()))
+        if key in self.cache: return self.cache[key]
         bindings = dict()
         for k, p in params.items():
             bindings[k] = rdflib.URIRef(self._apply_prefix(p))
@@ -126,6 +129,7 @@ WHERE {
         qres = self.graph.query(query, initBindings=bindings)
         result = [str(r.x) for r in qres]
         result = [self._remove_prefix(x) for x in result]
+        self.cache[key] = result
         return set(result)
 
     def _apply_prefix(self, entity_name):
