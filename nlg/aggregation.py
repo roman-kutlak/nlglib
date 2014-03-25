@@ -1,7 +1,7 @@
 from copy import deepcopy
 from nlg.structures import *
 
-DEBUG = False
+DEBUG = True
 
 
 class ElementError(Exception):
@@ -91,7 +91,7 @@ def synt_aggregation(elements, max=3):
 
     aggregated = list()
     i = 0
-    while i < len(elements) - 1:
+    while i < len(elements):
         msg, increment = _do_aggregate(elements, i, max)
         aggregated.append(msg)
         i += increment
@@ -188,6 +188,7 @@ def aggregate_paragraph(para, limit):
     messages = [aggregate(x, limit) for x in para.messages if x is not None]
     return Paragraph(*messages)
 
+
 def aggregate_section(sec, limit):
     """ Perform syntactic aggregation on the constituents. """
     if DEBUG: print('*** called aggregate section!')
@@ -195,6 +196,7 @@ def aggregate_section(sec, limit):
     title = aggregate(sec.title, limit)
     paragraphs = [aggregate(x, limit) for x in sec.paragraphs if x is not None]
     return Section(title, *paragraphs)
+
 
 def aggregate_document(doc, limit):
     """ Perform aggregation on a document - possibly before lexicalisation. """
