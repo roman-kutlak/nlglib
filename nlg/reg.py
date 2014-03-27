@@ -1,9 +1,53 @@
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################
+
+
 import re
 from copy import deepcopy
+import logging
 
 from nlg.structures import *
 
-DEBUG = False
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+def get_log():
+    return logging.getLogger(__name__)
+
 
 class Context:
     def __init__(self, ontology=None):
@@ -17,10 +61,10 @@ def generate_re(msg, context):
     if msg is None:
         return None
     elif isinstance(msg, str):
-        print('_attempted to gre for a string. ')
+        get_log().warning('_attempted to gre for a string. ')
         return msg
     elif isinstance(msg, MsgSpec):
-        print('_attempted to gre for a MsgSpec. ')
+        get_log().warning('_attempted to gre for a MsgSpec. ')
         return msg
     elif isinstance(msg, Element):
         return generate_re_element(msg, context)
@@ -37,14 +81,14 @@ def generate_re(msg, context):
 
 
 def generate_re_element(element, context):
-    if DEBUG: print('^^^ called generate_re_element')
+    get_log().debug('Generating RE for element.')
     element = deepcopy(element)
     _replace_placeholders_with_nps(element, context)
     return element
 
 
 def generate_re_message(msg, context):
-    if DEBUG: print('^^^ called generate_re_message')
+    get_log().debug('Generating RE for message.')
     if msg is None: return None
     nucleus = generate_re(msg.nucleus, context)
     satelites = [generate_re(x, context) \
@@ -53,7 +97,7 @@ def generate_re_message(msg, context):
 
 
 def generate_re_paragraph(para, context):
-    if DEBUG: print('^^^ called generate_re_paragraph')
+    get_log().debug('Generating RE for paragraph.')
     if para is None: return None
     messages = [generate_re(x, context) \
                    for x in para.messages if x is not None]
@@ -61,7 +105,7 @@ def generate_re_paragraph(para, context):
 
 
 def generate_re_section(sec, context):
-    if DEBUG: print('^^^ called generate_re_section')
+    get_log().debug('Generating RE for section.')
     if sec is None: return None
     title = generate_re(sec.title, context)
     paragraphs = [generate_re(x, context) \
@@ -74,7 +118,7 @@ def generate_re_document(doc, context):
     referring expressions. 
     
     """
-    if DEBUG: print('^^^ called generate_re_document')
+    get_log().debug('Generating RE for document.')
     if doc is None: return None
     title = generate_re(doc.title, context)
     sections = [generate_re(x, context) \
@@ -83,6 +127,7 @@ def generate_re_document(doc, context):
 
 
 def _replace_placeholders_with_nps(message, context):
+    get_log().debug('Replacing placeholders.')
     for arg in message.arguments():
         refexp = generate_ref_exp(str(arg.value), context)
         replace_element(message, arg, refexp)
@@ -98,8 +143,8 @@ def generate_ref_exp(referent, context):
 
     result = None
 
-    if DEBUG: print('GRE for %s:' % str(referent))
-    if DEBUG: print('\treferents: %s' % str(context.referents))
+    get_log().debug('GRE for %s:' % str(referent))
+    get_log().debug('\treferents: %s' % str(context.referents))
     if referent in context.referents:
         result = _do_repeated_reference(referent, context)
     else:
@@ -112,15 +157,16 @@ def _do_initial_reference(referent, context):
     # do we have information about the referent?
     try:
         onto = context.ontology
-        if onto is None: print('GRE does not have ontology!')
+        if onto is None:
+            get_log().warning('GRE does not have ontology!')
 
         entity_type = onto.best_entity_type(':' + referent)
         entity_type = entity_type[1:] # strip the ':' at the beginning
         result = NP(Word(entity_type, 'NOUN'))
-        print('\t%s: type "%s"' % (referent, entity_type))
+        get_log().debug('\t%s: type "%s"' % (referent, entity_type))
         # if the object is the only one in the domain, add 'the'
         distractors = onto.entities_of_type(':' + entity_type)
-        print('\tdistractors: %s' % str(distractors))
+        get_log().debug('\tdistractors: %s' % str(distractors))
         count = len(distractors)
 
         if count == 1:
@@ -147,7 +193,7 @@ def _do_initial_reference(referent, context):
         # if we have no info, assume referent is not unique
         result = NP(Word(referent, 'NOUN'))
         context.referents[referent] = (False, result)
-        print('GRE for "%s" failed : "%s"' % (referent, str(msg)))
+        get_log().debug('GRE for "%s" failed : "%s"' % (referent, str(msg)))
 
     context.last_referent = referent
     return result

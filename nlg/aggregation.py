@@ -1,8 +1,52 @@
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################
+
+
+import logging
+
 from copy import deepcopy
 from nlg.structures import *
 
-DEBUG = True
 
+# add default logger
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+def get_log():
+    return logging.getLogger(__name__)
 
 class ElementError(Exception):
     pass
@@ -63,10 +107,10 @@ def try_to_aggregate(sent1, sent2):
             
             # if sentences are equal (eg s1: load x; s2: load x) aggregate
             if (s1 == s2):
-                if DEBUG: print ('Aggregating:\n\t%s\n\t%s' % (repr(s1), repr(s2)))
+                get_log().debug('Aggregating:\n\t%s\n\t%s' % (repr(s1), repr(s2)))
                 cc = add_elements(e1, e2)
                 replace_element(s1, replacement, cc)
-                if DEBUG: print('Result: %s' % repr(s1))
+                get_log().debug('Result: %s' % repr(s1))
                 return s1
 #            else:
 #                print('Did not aggregate:\n\t%s\n\t%s' % (str(s1), str(s2)))
@@ -103,7 +147,7 @@ def _do_aggregate(elements, i, max):
     j = i + 1
     increment = 1
     while j < len(elements) and _can_aggregate(lhs, max):
-        if DEBUG: print('LHS = %s' % lhs)
+        get_log().debug('LHS = %s' % lhs)
         rhs = elements[j]
         if _can_aggregate(rhs, max):
             tmp = try_to_aggregate(lhs, rhs)
@@ -169,10 +213,10 @@ def aggregate_message(msg, limit):
     a sequence or a list.
 
     """
-    if DEBUG: print('*** called aggregate message!')
+    get_log().debug('Aggregating message.')
     if not (msg.rst == 'Sequence' or msg.rst == 'List'): return msg
     # TODO: Sequence and list are probably multi-nucleus and not multi-satelite
-    if DEBUG: print('*** aggregating list or sequence')
+    get_log().debug('Aggregating list or sequence.')
     elements = []
     if len(msg.satelites) > 1:
         elements = synt_aggregation(msg.satelites, limit)
@@ -183,7 +227,7 @@ def aggregate_message(msg, limit):
 
 def aggregate_paragraph(para, limit):
     """ Perform syntactic aggregation on the constituents. """
-    if DEBUG: print('*** called aggregate paragraph!')
+    get_log().debug('Aggregating paragraph.')
     if para is None: return None
     messages = [aggregate(x, limit) for x in para.messages if x is not None]
     return Paragraph(*messages)
@@ -191,7 +235,7 @@ def aggregate_paragraph(para, limit):
 
 def aggregate_section(sec, limit):
     """ Perform syntactic aggregation on the constituents. """
-    if DEBUG: print('*** called aggregate section!')
+    get_log().debug('Aggregating section.')
     if sec is None: return None
     title = aggregate(sec.title, limit)
     paragraphs = [aggregate(x, limit) for x in sec.paragraphs if x is not None]
@@ -200,7 +244,7 @@ def aggregate_section(sec, limit):
 
 def aggregate_document(doc, limit):
     """ Perform aggregation on a document - possibly before lexicalisation. """
-    if DEBUG: print('*** called aggregate document!')
+    get_log().debug('Aggregating document.')
     if doc is None: return None
     title = aggregate(doc.title, limit)
     sections = [aggregate(x, limit) for x in doc.sections if x is not None]

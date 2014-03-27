@@ -1,12 +1,179 @@
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################
+
+
 from copy import deepcopy
 import re
 import sys
 import traceback
+import logging
 
 from nlg.structures import *
 from nlg.aggregation import *
 
-DEBUG = False
+# add default logger
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+def get_log():
+    return logging.getLogger(__name__)
+
+
+def lexicalise(msg):
+    """ Perform lexicalisation on the message depending on the type. """
+    if msg is None:
+        return None
+    elif isinstance(msg, str):
+        return String(msg)
+    elif isinstance(msg, MsgSpec):
+        return lexicalise_message_spec(msg)
+    elif isinstance(msg, Message):
+        return lexicalise_message(msg)
+    elif isinstance(msg, Paragraph):
+        return lexicalise_paragraph(msg)
+    elif isinstance(msg, Section):
+        return lexicalise_section(msg)
+    elif isinstance(msg, Document):
+        return lexicalise_document(msg)
+    else:
+        raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
+
+
+# each message should correspond to a clause
+def lexicalise_message_spec(msg):
+    """ Return Element corresponding to given message specification.
+    If the lexicaliser can not find correct lexicalisation, it returns None
+    and logs the error.
+    
+    """
+    get_log().debug('Lexicalising message specs')
+    template = templates.template(msg.name)
+    if template is None:
+        get_log().warning('No sentence template for "%s"' % msg.name)
+        return String(msg.name)
+    # find arguments
+    args = template.arguments()
+    # if there are any arguments, replace them by values
+    for arg in args:
+        try:
+            get_log().debug('Replacing %s in %s. ' % (repr(arg), str(template)))
+            if isinstance(arg, PlaceHolder):
+                val = msg.value_for(arg.id)
+                get_log().debug(' val = %s' % repr(val))
+                template.replace(arg, val)
+            elif isinstance(arg, int):
+                print('numeric parameter in "%s"' % repr(arg))
+                pass
+            else:
+                print('unknown parameter in "%s"' % repr(arg))
+                pass
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print('Lexicalisation - replacing argument failed:\n\t%s' % str(e))
+            traceback.print_tb(exc_traceback)
+    return template
+
+
+# TODO: lexicalisation should replace Messages by NLG Elements and use
+# RST relations to connect the clauses when applicable.
+def lexicalise_message(msg):
+    """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
+    get_log().debug('Lexicalising message.')
+    if msg is None: return None
+    nucleus = lexicalise(msg.nucleus)
+    satelites = [lexicalise(x) for x in msg.satelites if x is not None]
+    return Message(msg.rst, nucleus, *satelites)
+
+
+def lexicalise_paragraph(msg):
+    """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
+    get_log().debug('Lexicalising paragraph.')
+    if msg is None: return None
+    messages = [lexicalise(x) for x in msg.messages if x is not None]
+    return Paragraph(*messages)
+
+
+def lexicalise_section(msg):
+    """ Return a copy of a Section with MsgSpecs replaced by NLG Elements. """
+    get_log().debug('Lexicalising section.')
+    if msg is None: return None
+    title = lexicalise(msg.title)
+    paragraphs = [lexicalise(x) for x in msg.paragraphs if x is not None]
+    return Section(title, *paragraphs)
+
+
+def lexicalise_document(doc):
+    """ Return a copy of a Document with MsgSpecs replaced by NLG Elements. """
+    get_log().debug('Lexicalising document.')
+    if doc is None: return None
+    title = lexicalise(doc.title)
+    sections = [lexicalise(x) for x in doc.sections if x is not None]
+    return Document(title, *sections)
+
+
+# TODO: hwo to lexicalise this given that NLG does know about tasks?
+def lexicalise_task(task, document):
+    """ Convert a task to a syntax tree with lexical items in it. """
+    get_log().debug('Lexicalising task %s' % str(task))
+    params = task.input_params[:]
+    key = task.name
+    sent = templates.template(key)
+    if None is sent:
+        sent = templates.template(task.id)
+    if None != sent:
+        _replace_placeholders_with_params(sent, params)
+    else:
+        print('Key "%s" or id "%s" not found' % (task.name, task.id))
+    return sent
+
+
+def _replace_placeholders_with_params(template, params):
+    get_log().debug('Replacing params in template:\n%s' % str(template))
+    get_log().debug('Params: \n\t %s' % str(params))
+    for c in sentence_iterator(template):
+        if (isinstance(c, PlaceHolder)):
+            id = c.id
+            var = params[id]
+            c.object = var
+#           print('Replacing parameter %d with %s' % (id, var))
+
+
+
+
+
 
 # this should be read from a domain lexicalisation file
 fly = Word('fly', 'VERB')
@@ -179,128 +346,5 @@ class SentenceTemplates:
             return None
 
 
+
 templates = SentenceTemplates()
-
-
-def lexicalise(msg):
-    """ Perform lexicalisation on the message depending on the type. """
-    if msg is None:
-        return None
-    elif isinstance(msg, str):
-        return String(msg)
-    elif isinstance(msg, MsgSpec):
-        return lexicalise_message_spec(msg)
-    elif isinstance(msg, Message):
-        return lexicalise_message(msg)
-    elif isinstance(msg, Paragraph):
-        return lexicalise_paragraph(msg)
-    elif isinstance(msg, Section):
-        return lexicalise_section(msg)
-    elif isinstance(msg, Document):
-        return lexicalise_document(msg)
-    else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
-
-
-# TODO: lexicalisation should replace Messages by NLG Elements
-
-def lexicalise_message_spec(msg):
-    """ Return Element corresponding to given message specification.
-    If the lexicaliser can not find correct lexicalisation, it returns None
-    and logs the error.
-    
-    """
-    if DEBUG: print('*** called lexicalise message spec!')
-    template = templates.template(msg.name)
-    if template is None:
-        print('no sentence template for "%s"' % msg.name)
-        return String(msg.name)
-    # find arguments
-    args = template.arguments()
-    # if there are any arguments, replace them by values
-    for arg in args:
-        try:
-            if DEBUG: print('Replacing %s in %s. ' % (repr(arg), str(template)))
-            if isinstance(arg, PlaceHolder):
-                val = msg.value_for(arg.id)
-                if DEBUG: print(' val = %s' % repr(val))
-                template.replace(arg, val)
-            elif isinstance(arg, int):
-                print('numeric parameter in "%s"' % repr(arg))
-                pass
-            else:
-                print('unknown parameter in "%s"' % repr(arg))
-                pass
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            print('Lexicalisation - replacing argument failed:\n\t%s' % str(e))
-            traceback.print_tb(exc_traceback)
-    return template
-
-
-def lexicalise_message(msg):
-    """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
-    if DEBUG: print('*** called lexicalise message!')
-    if msg is None: return None
-    nucleus = lexicalise(msg.nucleus)
-    satelites = [lexicalise(x) for x in msg.satelites if x is not None]
-    return Message(msg.rst, nucleus, *satelites)
-
-
-def lexicalise_paragraph(msg):
-    """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
-    if DEBUG: print('*** called lexicalise paragraph!')
-    if msg is None: return None
-    messages = [lexicalise(x) for x in msg.messages if x is not None]
-    return Paragraph(*messages)
-
-
-def lexicalise_section(msg):
-    """ Return a copy of a Section with MsgSpecs replaced by NLG Elements. """
-    if DEBUG: print('*** called lexicalise section!')
-    if msg is None: return None
-    title = lexicalise(msg.title)
-    paragraphs = [lexicalise(x) for x in msg.paragraphs if x is not None]
-    return Section(title, *paragraphs)
-
-
-def lexicalise_document(doc):
-    """ Return a copy of a Document with MsgSpecs replaced by NLG Elements. """
-    if DEBUG: print('*** called lexicalise document!')
-    if doc is None: return None
-    title = lexicalise(doc.title)
-    sections = [lexicalise(x) for x in doc.sections if x is not None]
-    return Document(title, *sections)
-
-
-# TODO: hwo to lexicalise this given that NLG does know about tasks?
-def lexicalise_task(task, document):
-    """ Convert a task to a syntax tree with lexical items in it. """
-    if DEBUG: print('Lexicalising task %s' % str(task))
-    params = task.input_params[:]
-    key = task.name
-    sent = templates.template(key)
-    if None is sent:
-        sent = templates.template(task.id)
-    if None != sent:
-        _replace_placeholders_with_params(sent, params)
-    else:
-        print('Key "%s" or id "%s" not found' % (task.name, task.id))
-    return sent
-
-
-def _replace_placeholders_with_params(template, params):
-    if DEBUG: print('Replacing params in template:\n%s' % str(template))
-    if DEBUG: print('Params: \n\t %s' % str(params))
-    for c in sentence_iterator(template):
-        if (isinstance(c, PlaceHolder)):
-            id = c.id
-            var = params[id]
-            c.object = var
-#           print('Replacing parameter %d with %s' % (id, var))
-
-
-
-
-
-
