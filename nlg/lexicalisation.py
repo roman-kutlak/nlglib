@@ -84,6 +84,7 @@ def lexicalise_message_spec(msg):
     if template is None:
         get_log().warning('No sentence template for "%s"' % msg.name)
         return String(msg.name)
+    if isinstance(template, str): return String(template)
     # find arguments
     args = template.arguments()
     # if there are any arguments, replace them by values
@@ -144,31 +145,31 @@ def lexicalise_document(doc):
     return Document(title, *sections)
 
 
-# TODO: hwo to lexicalise this given that NLG does know about tasks?
-def lexicalise_task(task, document):
-    """ Convert a task to a syntax tree with lexical items in it. """
-    get_log().debug('Lexicalising task %s' % str(task))
-    params = task.input_params[:]
-    key = task.name
-    sent = templates.template(key)
-    if None is sent:
-        sent = templates.template(task.id)
-    if None != sent:
-        _replace_placeholders_with_params(sent, params)
-    else:
-        print('Key "%s" or id "%s" not found' % (task.name, task.id))
-    return sent
-
-
-def _replace_placeholders_with_params(template, params):
-    get_log().debug('Replacing params in template:\n%s' % str(template))
-    get_log().debug('Params: \n\t %s' % str(params))
-    for c in sentence_iterator(template):
-        if (isinstance(c, PlaceHolder)):
-            id = c.id
-            var = params[id]
-            c.object = var
-#           print('Replacing parameter %d with %s' % (id, var))
+## TODO: hwo to lexicalise this given that NLG does know about tasks?
+#def lexicalise_task(task, document):
+#    """ Convert a task to a syntax tree with lexical items in it. """
+#    get_log().debug('Lexicalising task %s' % str(task))
+#    params = task.input_params[:]
+#    key = task.name
+#    sent = templates.template(key)
+#    if None is sent:
+#        sent = templates.template(task.id)
+#    if None != sent:
+#        _replace_placeholders_with_params(sent, params)
+#    else:
+#        print('Key "%s" or id "%s" not found' % (task.name, task.id))
+#    return sent
+#
+#
+#def _replace_placeholders_with_params(template, params):
+#    get_log().debug('Replacing params in template:\n%s' % str(template))
+#    get_log().debug('Params: \n\t %s' % str(params))
+#    for c in sentence_iterator(template):
+#        if (isinstance(c, PlaceHolder)):
+#            id = c.id
+#            var = params[id]
+#            c.object = var
+##           print('Replacing parameter %d with %s' % (id, var))
 
 
 
@@ -279,6 +280,7 @@ class SentenceTemplates:
 
     def __init__(self):
         self.templates = dict()
+        self.templates['string'] = Clause(None, VP(PlaceHolder('val')))
         self.templates['inputCondition'] = start
         self.templates['outputCondition'] = finish
         self.templates['Start'] = start
@@ -338,6 +340,127 @@ class SentenceTemplates:
         self.templates['Inverness'] = Clause(you, VP('drive to', 'Inverness'))
         self.templates['Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
 
+        self.templates['edinburgh_bridge_closed'] = \
+            'Forth Road Bridge outside Edinburgh is closed'
+        self.templates['kincardie_bridge_10'] = \
+            'the maximum allowed weight on Kincardine Bridge is 10 tons'
+        self.templates['vehicle_weight_15'] = \
+            'the weight of the vehicle is 15 tons'
+        self.templates['traffic_very_slow'] = \
+            'the traffic is very slow'
+        self.templates['traffic_slow'] = \
+            'the traffic is slow'
+        self.templates['forecast_old'] = \
+            'the forecast is recent'
+        self.templates['forecast_high_wind'] = \
+            'the weather forecast indicates high winds'
+        self.templates['forecast_high_snow'] = \
+            'the weather forecast indicates high snow fall'
+        self.templates['accident'] = \
+            'an accident'
+        self.templates['accident_on_bridge'] = \
+            'an accident on the bridge'
+        self.templates['stirling_shorter'] = \
+            'going through Stirling is faster'
+        self.templates['kincardine_shorter'] = \
+            'going through Kincardine is faster'
+        self.templates['kincardine_better'] = \
+            'going through Kincardine is better'
+
+        self.templates['can_Edinburgh_to_Stirling'] = \
+            'you can go from Edinburgh to Stirling'
+        self.templates['can_Edinburgh_to_Kincardine'] = \
+            'you can go from Edinburgh to Kincardine'
+        self.templates['can_Edinburgh_to_Perth'] = \
+            'you can go from Edinburgh to Perth'
+        self.templates['can_Stirling_to_Perth'] = \
+            'you can go from Stirling to Perth'
+        self.templates['can_Perth_to_Aberdeen'] = \
+            'you can go from Perth to Aberdeen'
+        self.templates['can_Perth_to_Inverness'] = \
+            'you can go from Perth to Inverness'
+        self.templates['can_Aberdeen_to_Inverness'] = \
+            'you can go from Aberdeen to Inverness'
+        self.templates['can_Aberdeen_to_Perth'] = \
+            'you can go from Aberdeen to Perth'
+        self.templates['can_Inverness_to_Aberdeen'] = \
+            'you can go from Inverness to Aberdeen'
+        self.templates['can_Inverness_to_Perth'] = \
+            'you can go from Inverness to Perth'
+        self.templates['can_Perth_to_Stirling'] = \
+            'you can go from Perth to Stirling'
+        self.templates['can_Perth_to_Kincardine'] = \
+            'you can go from Perth to Kincardine'
+        self.templates['can_Perth_to_Edinburgh'] = \
+            'you can go from Perth to Edinburgh'
+        self.templates['can_Kincardine_to_Edinburgh'] = \
+            'you can go from Kincardine to Edinburgh'
+        self.templates['can_Stirling_to_Edinburgh'] = \
+            'you can go from Stirling to Edinburgh'
+
+        self.templates['edinburgh_stirling_not_possible'] = \
+            'you cannot go from Edinburgh to Stirling'
+        self.templates['edinburgh_kincardine_not_possible'] = \
+            'you cannot go from Edinburgh to Kincardine'
+        self.templates['edinburgh_perth_not_possible'] = \
+            'you cannot go from Edinburgh to Perth'
+        self.templates['stirling_perth_not_possible'] = \
+            'you cannot go from Stirling to Perth'
+        self.templates['perth_aberdeen_not_possible'] = \
+            'you cannot go from Perth to Aberdeen'
+        self.templates['perth_inverness_not_possible'] = \
+            'you cannot go from Inverness to Inverness'
+        self.templates['aberdeen_inverness_not_possible'] = \
+            'you cannot go from Aberdeen to Inverness'
+        self.templates['aberdeen_perth_not_possible'] = \
+            'you cannot go from Aberdeen to Perth'
+        self.templates['inverness_aberdeen_not_possible'] = \
+            'you cannot go from Inverness to Aberdeen'
+        self.templates['inverness_perth_not_possible'] = \
+            'you cannot go from Inverness to Perth'
+        self.templates['perth_stirling_not_possible'] = \
+            'you cannot go from Perth to Stirling'
+        self.templates['perth_kincardine_not_possible'] = \
+            'you cannot go from Perth to Kincardine'
+        self.templates['perth_edinburgh_not_possible'] = \
+            'you cannot go from Perth to Edinburgh'
+        self.templates['kincardine_edinburgh_not_possible'] = \
+            'you cannot go from Kincardine to Edinburgh'
+        self.templates['stirling_edinburgh_not_possible'] = \
+            'you cannot go from Stirling to Edinburgh'
+
+        self.templates['Stirling1'] = 'go to Stirling'
+        self.templates['Stirling2'] = 'go to Stirling'
+        self.templates['Edinburgh1'] = 'go to Edinburgh'
+        self.templates['Edinburgh2'] = 'go to Edinburgh'
+        self.templates['Aberdeen1'] = 'go to Aberdeen'
+        self.templates['Aberdeen2'] = 'go to Aberdeen'
+        self.templates['Inverness1'] = 'go to Inverness'
+        self.templates['Inverness2'] = 'go to Inverness'
+        self.templates['Perth1'] = 'go to Perth'
+        self.templates['Perth2'] = 'go to Perth'
+        self.templates['Kincardine1'] = 'go to Kincardine'
+        self.templates['Kincardine2'] = 'go to Kincardine'
+
+        self.templates['system_malfunction'] = 'system malfunction'
+        self.templates['require_immediate_landing'] = \
+            'UAV requires immediate landing'
+        self.templates['-ilsA'] = \
+            'no Instrumental Landing System detected at airfield A'
+        self.templates['-ilsB'] = \
+            'no Instrumental Landing System detected at airfield B'
+        self.templates['-vlpA'] = \
+            'no visual landing at airfield A possible'
+        self.templates['lvA'] = \
+            'low visibility at airfield A'
+        self.templates['-alpA'] = \
+            'no automated landing possible at airfield A'
+
+        self.templates['kick'] = 'a kick was detected'
+        self.templates['need_speed'] = 'the well has to be shut quickly'
+        self.templates['shallow_depth'] = 'the well is in a shallow depth'
+        self.templates['do_kill'] = 'kill the kick'
+        self.templates['HSP_very_low'] = 'HSP is very low'
 
     def template(self, action):
         if action in self.templates:

@@ -375,7 +375,7 @@ class String(Element):
         return text
     
     def to_str(self):
-        return self.val
+        return str(self.val)
     
     def __eq__(self, other):
         if (not isinstance(other, String)):
@@ -384,7 +384,7 @@ class String(Element):
                 super().__eq__(other))
 
     def __str__(self):
-        return self.val if self.val is not None else ''
+        return str(self.val) if self.val is not None else ''
 
     def __repr__(self):
         return ('String(%s)' % self.val)

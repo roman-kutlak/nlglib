@@ -203,8 +203,9 @@ def aggregate(msg, limit):
     elif isinstance(msg, Document):
         return aggregate_document(msg, limit)
     else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance' %
+        get_log().warning('"%s" is neither a Message nor a MsgInstance' %
             str(type(msg)))
+        return msg
 
 
 def aggregate_message(msg, limit):

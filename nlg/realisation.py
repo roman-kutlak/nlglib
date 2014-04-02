@@ -74,7 +74,7 @@ def realise(msg):
 
 def realise_element(elt):
     """ Realise NLG element. """
-    get_log().debug('Realising element.')
+    get_log().debug('Realising element %s' % repr(elt))
 #    return str(elt).strip()
     v = StrVisitor()
     elt.accept(v)
@@ -94,7 +94,11 @@ def realise_message(msg):
     nucl = realise(msg.nucleus)
     sats = [realise(x) for x in msg.satelites if x is not None]
     sentences = _flatten([nucl] + sats)
-    sentences = list(map(lambda e: e[:1].upper() + e[1:] + '.',
+    get_log().debug('flattened sentences: %s' % sentences)
+    # TODO: this si wrong because the recursive call can apply capitalisation
+    # and punctuation multiple times...
+    sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
+                                    ('.' if e[-1] != '.' else ''),
                          [s for s in sentences if s != '']))
     return sentences
 
