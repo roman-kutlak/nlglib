@@ -36,12 +36,14 @@
 #############################################################################
 
 
+import sys
 import socket
 import struct
 import subprocess
 import time
 import threading
 import logging
+import traceback
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
@@ -51,6 +53,9 @@ def get_log():
 
 
 simplenlg_path = 'nlg/resources/simplenlg.jar'
+
+
+class ServerError(Exception): pass
 
 
 def hton(num):
@@ -78,6 +83,7 @@ class Socket:
             self.socket.close()
             self.socket = None
             get_log().exception('Socket.connect() caught an exception: %s' % msg)
+            raise
 
     def _send(self, msg, length):
         """ Send a sequence of bytes of the specified length. """
@@ -88,7 +94,6 @@ class Socket:
             if sent == 0:
                 raise RuntimeError('Connection lost.')
             total_sent += sent
-
         return total_sent
     
     def _recv(self, length = 0):
@@ -126,9 +131,11 @@ class Socket:
         try:
         # the following line causes socket.close() to throw an exception
             #self.socket.shutdown(socket.SHUT_RDWR)
-            self.socket.close()
+            if self.socket is not None:
+                self.socket.close()
         except OSError as e:
             get_log().exception('Socket.close() caught an exception: %s' % str(e))
+            raise
 
     # allow the use in 'with' statement
     def __enter__(self):
@@ -137,7 +144,6 @@ class Socket:
 
     def __exit__(self, type, value, traceback):
         self.close()
-        self.socket = None
 
 
 class SimplenlgClient:
@@ -168,14 +174,15 @@ class SimpleNLGServer(threading.Thread):
     after creating the object and wait for the startup to finish.
     
     """
-
+    # TODO: add port or server config file or something
     def __init__(self, jar_path):
         super(SimpleNLGServer, self).__init__()
+        get_log().debug('Starting simpleNLG server')
         self.jar_path = jar_path
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
-        self.ready = False
-        self.shutdown = False
+        self._ready = False
+        self._shutdown = False
 
     def start(self):
         """ Start the server (calling run() on a different thread) and wait for
@@ -205,24 +212,36 @@ class SimpleNLGServer(threading.Thread):
             except subprocess.TimeoutExpired:
                 proc.kill()
 
+    def is_ready(self):
+        """ Return true if the server is initialised. """
+        ready = False
+        self.start_cv.acquire()
+        ready = self._ready
+        self.start_cv.release()
+        return ready
+
+    def wait_for_init(self):
+        """ Block until server is ready. """
+        self._wait_for_startup()
+
     def _wait_for_startup(self):
         """ Wait for the subprocess to start. """
         self.start_cv.acquire()
-        while not self.ready:
+        while not self._ready:
             self.start_cv.wait()
         self.start_cv.release()
 
     def _wait_for_shutdown(self):
-        """ Block until self.shutdown is set to true (by calling shutdown())."""
+        """ Block until self._shutdown is set to true (by calling shutdown())."""
         self.exit_cv.acquire()
-        while not self.shutdown:
+        while not self._shutdown:
             self.exit_cv.wait()
         self.exit_cv.release()
 
     def _signal_startup_done(self):
-        """ Set self.ready to True to signal that the server is running. """
+        """ Set self._ready to True to signal that the server is running. """
         self.start_cv.acquire()
-        self.ready = True
+        self._ready = True
         self.start_cv.notify()
         self.start_cv.release()
 
@@ -232,15 +251,17 @@ class SimpleNLGServer(threading.Thread):
         
         """
         self.exit_cv.acquire()
-        self.shutdown = True
+        self._shutdown = True
         self.exit_cv.notify()
         self.exit_cv.release()
 
-    def do_shutdown(self):
+    def shutdown(self):
         """ Signal the server that it should shut down and wait for it.
         Note that the caller of this method will block until the server exits.
 
         """
+        get_log().debug('Shutting down simpleNLG server')
         self._signal_shutdown()
         self.join()
-
+#        import traceback
+#        traceback.print_stack()

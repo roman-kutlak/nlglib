@@ -1,12 +1,5 @@
 import unittest
-
 import sys
-
-folder = '../src'
-
-if folder not in sys.path:
-    sys.path.append(folder)
-
 
 from nlg.ontology import Ontology
 import rdflib

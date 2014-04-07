@@ -52,7 +52,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 def get_log():
     return logging.getLogger(__name__)
-
+    
 
 class Nlg:
     def __init__(self):
@@ -70,6 +70,24 @@ class Nlg:
         summary = self.generate_re(summary, context)
         get_log().debug('After REG: %s' % repr(summary))
         summary = self.realise(summary)
+        get_log().debug('After realisation: %s' % repr(summary))
+        summary = self.format(summary)
+        get_log().debug('After formatting: %s' % repr(summary))
+        return summary
+
+    def process_nlg_doc2(self, doc, ontology, context=None):
+        get_log().debug('Processing document v2.')
+        summary = doc
+        if context is None:
+            get_log().debug('Creating new context for REG')
+            context = reg.Context(ontology)
+        summary = self.lexicalise(summary)
+        get_log().debug('After lex: %s' % repr(summary))
+        summary = self.aggregate(summary, 3)
+        get_log().debug('After aggr: %s' % repr(summary))
+        summary = self.generate_re(summary, context)
+        get_log().debug('After REG: %s' % repr(summary))
+        summary = self.realise2(summary)
         get_log().debug('After realisation: %s' % repr(summary))
         summary = self.format(summary)
         get_log().debug('After formatting: %s' % repr(summary))
@@ -96,6 +114,12 @@ class Nlg:
     def realise(self, msgs):
         """ Perform linguistic realisation. """
         res = realisation.realise(msgs)
+        return res
+
+    def realise2(self, msgs):
+        """ Perform linguistic realisation using simpleNLG. """
+        r = realisation.Realiser()
+        res = r.realise(msgs)
         return res
 
     def format(self, msgs, fmt='txt'):

@@ -37,6 +37,7 @@
 
 
 from copy import deepcopy
+from urllib.parse import quote_plus
 
 """ Data structures used by other packages. """
 
@@ -82,6 +83,11 @@ class Document:
                 '\n\n'.join([str(s) for s in self.sections if s is not None]))
         return descr
 
+    def __eq__(self, other):
+        return (isinstance(other, Document) and
+                self.title == other.title and
+                self.sections == other.sections)
+
     def constituents(self):
         """ Return a generator to iterate through the elements. """
         yield self.title
@@ -110,6 +116,11 @@ class Section:
                 '\n'.join([str(p) for p in self.paragraphs if p is not None]))
         return descr
 
+    def __eq__(self, other):
+        return (isinstance(other, Section) and
+                self.title == other.title and
+                self.paragraphs == other.paragraphs)
+
     def constituents(self):
         """ Return a generator to iterate through the elements. """
         yield self.title
@@ -133,6 +144,10 @@ class Paragraph:
         descr = ('\t' +
                  '; '.join([str(m) for m in self.messages if m is not None]))
         return descr
+
+    def __eq__(self, other):
+        return (isinstance(other, Paragraph) and
+                self.messages == other.messages)
 
     def constituents(self):
         """ Return a generator to iterate through the elements. """
@@ -165,6 +180,12 @@ class Message:
             ([self.nucleus] + self.satelites) if x is not None ] )
         return (descr.strip() if descr is not None else '')
 
+    def __eq__(self, other):
+        return (isinstance(other, Message) and
+                self.rst == other.rst and
+                self.nucleus == other.nucleus and
+                self.satelites == other.satelites)
+
     def constituents(self):
         """ Return a generator to iterate through the elements. """
         if self.nucleus is not None: yield from self.nucleus.constituents()
@@ -187,12 +208,17 @@ class MsgSpec:
     """
     def __init__(self, name):
         self.name = name
+        self._features = dict()
 
     def __repr__(self):
         return 'MsgSpec: %s' % str(self)
 
     def __str__(self):
         return str(self.name)
+
+    def __eq__(self, other):
+        return (isinstance(other, type(self)) and
+                self.name == other.name)
 
     def value_for(self, data_member):
         """ Return a value for an argument using introspection. """
@@ -265,7 +291,7 @@ class Element:
     def features_to_xml_attributes(self):
         features = ""
         for (k, v) in self._features.items():
-            features += '%s="%s" ' % (k, v)
+            features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         return features
 
     def add_feature(self, feature, value):
@@ -371,7 +397,7 @@ class String(Element):
     def to_xml(self, element):
         text = ('<%s xsi:type="StringElement">'
                 '\n\t<val>%s</val>\n</%s>\n'
-                % (element, self.val, element))
+                % (element, quote_plus(str(self.val)), element))
         return text
     
     def to_str(self):
@@ -401,9 +427,16 @@ class Word(Element):
         self.pos = pos
 
     def to_xml(self, element):
+        # FIXME
+        # a bug in simplenlg treats 'is' differently from 'be'
+        # so keep 'is' in templates to allow simple to_str realisation
+        # but change it to 'be' for simplenlg
+        word = self.word
+        if word == 'is': word = 'be'
         text = ('<%s xsi:type="WordElement" cat="%s">'
                 '\n\t<base>%s</base>\n</%s>\n'
-                % (element, self.pos, self.word, element))
+                % (element, quote_plus(str(self.pos)),
+                    quote_plus(str(word)), element))
         return text
     
     def to_str(self):
@@ -447,7 +480,7 @@ class PlaceHolder(Element):
     def to_xml(self, element):
         text = ('<%s xsi:type="StringElement">'
                 '\n\t<val>%s</val>\n</%s>\n'
-                % (element, str(self.id), element))
+                % (element, quote_plus(str(self.id)), element))
         return text
 
     def to_str(self):
@@ -760,10 +793,11 @@ class NP(Phrase):
      * <LI>PostModifier (eg, "in the shop")</LI>
      * </UL>
      """
-    def __init__(self, head=None, spec=None):
+    def __init__(self, head=None, spec=None, compl=None):
         super().__init__(type='NOUN_PHRASE', vname='visit_np')
         self.set_spec(spec)
         self.set_head(head)
+        if compl is not None: self.add_complement(compl)
 
     def __eq__(self, other):
         if (not isinstance(other, NP)):
@@ -951,6 +985,7 @@ class CC(Element):
         return False
 
 
+# TODO: the visitor implementation is not right - look at Bruce Eckel's one
 class IVisitor:
     def visit_phrase(self, node, element=''):
         if node.front_modifier:
@@ -1041,7 +1076,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += '\n</%s>\n' % element
 
     def to_xml(self):
-        return self.header + self.xml + self.footer
+        return (self.header + self.xml + self.footer).strip()
     
     def clear(self):
         self.xml = ''

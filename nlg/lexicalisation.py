@@ -58,6 +58,8 @@ def lexicalise(msg):
         return None
     elif isinstance(msg, str):
         return String(msg)
+    elif isinstance(msg, Element):
+        return msg
     elif isinstance(msg, MsgSpec):
         return lexicalise_message_spec(msg)
     elif isinstance(msg, Message):
@@ -83,32 +85,23 @@ def lexicalise_message_spec(msg):
     template = templates.template(msg.name)
     if template is None:
         get_log().warning('No sentence template for "%s"' % msg.name)
-        return String(msg.name)
+        result = String(msg.name)
+        result._features = msg._features.copy()
+        return result
     if isinstance(template, str): return String(template)
     # find arguments
+    template._features = msg._features.copy()
     args = template.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
-        try:
-            get_log().debug('Replacing %s in %s. ' % (repr(arg), str(template)))
-            if isinstance(arg, PlaceHolder):
-                val = msg.value_for(arg.id)
-                get_log().debug(' val = %s' % repr(val))
-                template.replace(arg, val)
-            elif isinstance(arg, int):
-                print('numeric parameter in "%s"' % repr(arg))
-                pass
-            else:
-                print('unknown parameter in "%s"' % repr(arg))
-                pass
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            print('Lexicalisation - replacing argument failed:\n\t%s' % str(e))
-            traceback.print_tb(exc_traceback)
+        get_log().debug('Replacing %s in %s. ' % (repr(arg), str(template)))
+        val = msg.value_for(arg.id)
+        get_log().debug(' val = %s' % repr(val))
+        template.replace(arg, val)
     return template
 
 
-# TODO: lexicalisation should replace Messages by NLG Elements and use
+# TODO: lexicalisation should replace Messages by {NLG Elements} and use
 # RST relations to connect the clauses when applicable.
 def lexicalise_message(msg):
     """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
@@ -272,6 +265,25 @@ kick = Clause(NP('a kick'), VP('was detected'))
 
 shallow_depth = Clause(NP('the well'), VP('is in shallow depth'))
 
+in_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
+                 VP(Word('is', 'VERB'), PP(Word('in', 'PREPOSITION'),
+                             NP(PlaceHolder('type_1'),
+                                compl=PlaceHolder('var_1')))))
+at_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
+                 VP(Word('is', 'VERB'), PP(Word('at', 'PREPOSITION'),
+                             NP(PlaceHolder('type_1'),
+                                compl=PlaceHolder('var_1')))))
+in_city_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
+                      VP(Word('is', 'VERB'), PP(Word('in', 'PREPOSITION'),
+                                  NP(PlaceHolder('type_1'),
+                                     compl=PlaceHolder('var_1')))))
+
+# used for testing
+bad_in_pred = Clause(NP(PlaceHolder('tuple_0'), compl=PlaceHolder('var_0')),
+                     VP('is', PP(Word('in', 'PREPOSITION'),
+                                 NP(PlaceHolder('type_1'),
+                                    compl=PlaceHolder('var_1')))))
+
 class SentenceTemplates:
     """SentenceTemplates provides mapping from STRIPS operators to sentences.
         The keys are actionN where N is the number of parameters. These
@@ -280,6 +292,12 @@ class SentenceTemplates:
 
     def __init__(self):
         self.templates = dict()
+        self.templates['in'] = in_pred
+        self.templates['at'] = at_pred
+        self.templates['in-city'] = in_city_pred
+        # for testing
+        self.templates['bad_in'] = bad_in_pred
+
         self.templates['string'] = Clause(None, VP(PlaceHolder('val')))
         self.templates['inputCondition'] = start
         self.templates['outputCondition'] = finish
