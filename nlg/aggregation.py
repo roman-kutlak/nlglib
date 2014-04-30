@@ -221,6 +221,8 @@ def aggregate_message(msg, limit):
     elements = []
     if len(msg.satelites) > 1:
         elements = synt_aggregation(msg.satelites, limit)
+    elif len(msg.satelites) == 1:
+        elements.append(msg.satelites[0])
     if msg.nucleus is not None:
         elements.insert(0, msg.nucleus)
     return Message(msg.rst, None, *elements)

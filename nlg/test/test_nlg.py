@@ -70,4 +70,9 @@ class TestNlg(unittest.TestCase):
         expected = '    Hello. Say hello.'
         self.assertEqual(expected, result)
 
-
+    def test_string_msg(self):
+        msg = StringMsgSpec('This is some text.')
+        gen = Nlg()
+        result = gen.process_nlg_doc(msg, None, None)
+        expected = 'This is some text.'
+        self.assertEqual(expected, result)

@@ -292,6 +292,7 @@ class SentenceTemplates:
 
     def __init__(self):
         self.templates = dict()
+        self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
         self.templates['in'] = in_pred
         self.templates['at'] = at_pred
         self.templates['in-city'] = in_city_pred

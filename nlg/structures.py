@@ -236,6 +236,15 @@ class MsgSpec:
         return None
 
 
+class StringMsgSpec(MsgSpec):
+    """ Use this as a simple message that contains canned text. """
+    def __init__(self, text):
+        super().__init__('simple_message')
+        self.text = text
+
+    def value_for(self, param_idx):
+        return String(self.text)
+
 
 # microplanning level structures
 

@@ -1,7 +1,7 @@
 import unittest
 
 from nlg.structures import MsgSpec, Message, Paragraph, Section, Document
-from nlg.structures import String, PlaceHolder, Clause, NP, VP
+from nlg.structures import String, PlaceHolder, Clause, NP, VP, StringMsgSpec
 
 from nlg.lexicalisation import templates
 from nlg.lexicalisation import lexicalise_message_spec
@@ -24,6 +24,14 @@ templates.templates['dummy'] = Clause(
 
 class TestLexicalisation(unittest.TestCase):
     """ Tests for converting a MsgSpec into an NLG Element. """
+
+    def test_string_msg(self):
+        """ Test lexicalising a message with "canned text". """
+        msg = StringMsgSpec('this is some text')
+        res = lexicalise_message_spec(msg)
+        expected = [String('this is some text')]
+        result = list(res.constituents())
+        self.assertEqual(expected, result)
 
     def test_lexicalise_msg_spec(self):
         """ Test lexicalisation of MsgSpec. """
