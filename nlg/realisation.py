@@ -63,12 +63,7 @@ def get_log():
     return logging.getLogger(__name__)
 
 
-def create_server_from_jar(snlg_path=None):
-    if snlg_path is None:
-        path = os.path.dirname(nlg.__file__)
-        # remove package prefix
-        tmp = simplenlg_path.split(os.sep)
-        snlg_path = os.sep.join([path] + tmp[1:])
+def create_server_from_jar(snlg_path=simplenlg_path):
     server = SimpleNLGServer(snlg_path)
     server.start()
     return server

@@ -47,6 +47,8 @@ import logging.config
 
 import yaml
 
+import nlg.utils
+
 def setup_logging(
     default_path='log.config.yaml',
     default_level=logging.INFO,
@@ -71,4 +73,11 @@ def setup_logging(
 # read the config file
 mod_path = os.path.dirname(__file__)
 config_path = mod_path + os.path.sep + 'resources/log.config.yaml'
+
+if not (os.path.isfile(config_path) and os.access(config_path, os.R_OK)):
+    files = nlg.utils.find_files('../..', '.yaml')
+    for root, file in files:
+        if file == 'log.config.yaml':
+            config_path = os.path.join(root, file)
+
 setup_logging(config_path)

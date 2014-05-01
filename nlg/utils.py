@@ -79,3 +79,12 @@ def get_user_settings():
     path = os.sep.join([home, ".sassy/sassy.prefs"])
     return Settings(path)
 
+
+def find_files(dir, extension):
+    result = []
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            if file.endswith(extension):
+                 result.append( (root, file) )
+    return result
+

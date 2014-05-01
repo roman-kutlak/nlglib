@@ -36,6 +36,7 @@
 #############################################################################
 
 
+import os
 import sys
 import socket
 import struct
@@ -45,6 +46,7 @@ import threading
 import logging
 import traceback
 
+import nlg.utils
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -53,6 +55,13 @@ def get_log():
 
 
 simplenlg_path = 'nlg/resources/simplenlg.jar'
+
+if not (os.path.isfile(simplenlg_path) and os.access(simplenlg_path, os.R_OK)):
+    get_log().warning('simpleNLG expected in "' + simplenlg_path + '"')
+    files = nlg.utils.find_files('../..', '.jar')
+    for root, file in files:
+        if file == 'simplenlg.jar':
+            simplenlg_path = os.path.join(root, file)
 
 
 class ServerError(Exception): pass
@@ -153,6 +162,8 @@ class SimplenlgClient:
     """
 
     def __init__(self, host, port):
+        get_log().debug('Starting SimplenlgClient(%s:%s)'
+                        % (str(host), str(port)))
         self.host = host
         self.port = port
         self.socket = Socket(self.host, int(self.port))
@@ -177,7 +188,7 @@ class SimpleNLGServer(threading.Thread):
     # TODO: add port or server config file or something
     def __init__(self, jar_path):
         super(SimpleNLGServer, self).__init__()
-        get_log().debug('Starting simpleNLG server')
+        get_log().debug('Creating simpleNLG server (%s)' % jar_path)
         self.jar_path = jar_path
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
@@ -190,6 +201,7 @@ class SimpleNLGServer(threading.Thread):
         Note that the caller will block until the thread starts.
 
         """
+        get_log().debug('Starting simpleNLG server (%s)' % self.jar_path)
         super(SimpleNLGServer, self).start()
         self._wait_for_startup()
 
@@ -205,6 +217,9 @@ class SimpleNLGServer(threading.Thread):
             # use a condition variable to signal that the process is running
             time.sleep(1)
             self._signal_startup_done()
+            get_log().debug('SimpleNLG server (%s): ready to serve language.'
+                            % self.jar_path)
+
             self._wait_for_shutdown()
 
             try:
@@ -218,21 +233,33 @@ class SimpleNLGServer(threading.Thread):
         self.start_cv.acquire()
         ready = self._ready
         self.start_cv.release()
+        get_log().debug('SimpleNLG server (%s) is ready' % self.jar_path)
         return ready
 
     def wait_for_init(self):
         """ Block until server is ready. """
+        get_log().debug('SimpleNLG server (%s): waiting for init...'
+                        % self.jar_path)
         self._wait_for_startup()
+        get_log().debug('SimpleNLG server (%s): init done.'
+                        % self.jar_path)
 
     def _wait_for_startup(self):
         """ Wait for the subprocess to start. """
+        get_log().debug('SimpleNLG server (%s): waiting for startup...'
+                        % self.jar_path)
         self.start_cv.acquire()
         while not self._ready:
             self.start_cv.wait()
         self.start_cv.release()
+        get_log().debug('SimpleNLG server (%s): startup done.'
+                        % self.jar_path)
+
 
     def _wait_for_shutdown(self):
         """ Block until self._shutdown is set to true (by calling shutdown())."""
+        get_log().debug('SimpleNLG server (%s): waiting for shutdown...'
+                % self.jar_path)
         self.exit_cv.acquire()
         while not self._shutdown:
             self.exit_cv.wait()
@@ -244,6 +271,8 @@ class SimpleNLGServer(threading.Thread):
         self._ready = True
         self.start_cv.notify()
         self.start_cv.release()
+        get_log().debug('SimpleNLG server (%s): signalling startup done.'
+                        % self.jar_path)
 
     def _signal_shutdown(self):
         """ Signal to the server that it should shut down the subprocess (the 
@@ -254,13 +283,15 @@ class SimpleNLGServer(threading.Thread):
         self._shutdown = True
         self.exit_cv.notify()
         self.exit_cv.release()
+        get_log().debug('SimpleNLG server (%s): signalling shutdown done.'
+                        % self.jar_path)
 
     def shutdown(self):
         """ Signal the server that it should shut down and wait for it.
         Note that the caller of this method will block until the server exits.
 
         """
-        get_log().debug('Shutting down simpleNLG server')
+        get_log().debug('Shutting down simpleNLG server (%s)' % self.jar_path)
         self._signal_shutdown()
         self.join()
 #        import traceback
