@@ -192,6 +192,8 @@ def aggregate(msg, limit):
         return None
     elif isinstance(msg, String):
         return msg
+    elif isinstance(msg, Clause):
+        return msg
     elif isinstance(msg, MsgSpec):
         return msg
     elif isinstance(msg, Message):

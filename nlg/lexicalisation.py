@@ -326,6 +326,13 @@ class SentenceTemplates:
         self.templates['selectRunway'] = SelectRunway
         self.templates['landOnLongRunway'] = LandOnLongRunway
         self.templates['landOnShortRunway'] = LandOnShortRunway
+        self.templates['long_runway_required'] = 'long runway is required'
+        self.templates['high_fuel_consumption'] = 'high fuel consumption'
+        self.templates['batB'] = 'it is a better alternative than B'
+        self.templates['batA'] = 'it is a better alternative than A'
+        self.templates['slsA'] = 'site A is a suitable landing site'
+        self.templates['slsB'] = 'site B is a suitable landing site'
+        self.templates['CofG'] = 'the centre of gravity shifted'
         # workflow summary
         self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices
