@@ -497,3 +497,10 @@ class SentenceTemplates:
 
 
 templates = SentenceTemplates()
+
+def add_templates(newtemplates):
+    """ Add the given templates to the default SentenceTemplate instance. """
+    for k, v in newtemplates:
+        templates[k] = v
+
+
