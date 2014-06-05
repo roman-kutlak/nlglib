@@ -38,6 +38,8 @@
 
 from copy import deepcopy
 from urllib.parse import quote_plus
+import json
+
 
 """ Data structures used by other packages. """
 
@@ -248,6 +250,46 @@ class StringMsgSpec(MsgSpec):
 
 # microplanning level structures
 
+
+class ElemntCoder(json.JSONEncoder):
+    @staticmethod
+    def to_json(python_object):
+        if isinstance(python_object, Element):
+            return {'__class__': str(type(python_object)),
+                    '__value__': python_object.__dict__} 
+        raise TypeError(repr(python_object) + ' is not JSON serializable')
+
+    @staticmethod
+    def from_json(json_object):
+        if '__class__' in json_object:
+            if json_object['__class__'] == "<class 'nlg.structures.Element'>":
+                return Element.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.String'>":
+                return String.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Word'>":
+                return Word.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.PlaceHolder'>":
+                return PlaceHolder.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Phrase'>":
+                return Phrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Clause'>":
+                return Clause.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.NP'>":
+                return NP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.VP'>":
+                return VP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.PP'>":
+                return PP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.AdjP'>":
+                return AdjP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.AdvP'>":
+                return AdvP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.CC'>":
+                return CC.from_dict(json_object['__value__'])
+                
+        return json_object
+        
+        
 class Element:
     """ A base class representing an NLG element.
         Aside for providing a base class for othe kinds of NLG elements,
@@ -258,7 +300,7 @@ class Element:
         self.id = 0 # this is useful for replacing elements
         self._visitor_name = vname
         self._features = dict()
-        self.realisation = ""
+#        self.realisation = ""
 
     def __eq__(self, other):
         if (not isinstance(other, Element)):
@@ -268,10 +310,20 @@ class Element:
                 self._visitor_name == other._visitor_name and
                 self._features == other._features)
 
+    @classmethod
+    def from_dict(Cls, dct):
+        o = Cls()
+        o.__dict__ = dct
+        return o
+
     def to_str(self):
         return ""
     
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, indent=4)
+        
     def __repr__(self):
+        return self.to_JSON()
         text = 'Element (%s): ' % self._visitor_name
         text += str(self._features)
         if '' != self.realisation:
@@ -422,6 +474,7 @@ class String(Element):
         return str(self.val) if self.val is not None else ''
 
     def __repr__(self):
+        return self.to_JSON()
         return ('String(%s)' % self.val)
         
     def constituents(self):
@@ -462,6 +515,7 @@ class Word(Element):
         return self.word if self.word is not None else ''
 
     def __repr__(self):
+        return self.to_JSON()
         text = 'Word: %s (%s) %s' % (str(self.word),
                                      str(self.pos),
                                      str(self._features))
@@ -506,6 +560,7 @@ class PlaceHolder(Element):
                     super().__eq__(other))
 
     def __repr__(self):
+        return self.to_JSON()
         return ('PlaceHolder: id=%s value=%s %s' %
                 (repr(self.id), repr(self.value), repr(self._features)))
 
@@ -560,6 +615,7 @@ class Phrase(Element):
         return (' '.join(data))
 
     def __repr__(self):
+        return self.to_JSON()
         return ('(Phrase %s %s: "%s" %s)' %
                 (self.type, self.discourse_fn, str(self), str(self._features)))
 
@@ -749,6 +805,7 @@ class Clause(Phrase):
                         [self.subj, self.vp] if x is not None])
 
     def __repr__(self):
+        return self.to_JSON()
         return ('Clause: subj=%s vp=%s\n(%s)' %
                 (str(self.subj), str(self.vp), super().__str__()))
 

@@ -164,6 +164,8 @@ def lexicalise_document(doc):
 #            c.object = var
 ##           print('Replacing parameter %d with %s' % (id, var))
 
+def create_template_from(string):
+    return eval(string)
 
 
 
@@ -502,5 +504,16 @@ def add_templates(newtemplates):
     """ Add the given templates to the default SentenceTemplate instance. """
     for k, v in newtemplates:
         templates[k] = v
+
+def add_template(k, v, replace=True):
+    if replace or (not k in templates):
+        templates[k] = v
+        return True
+    else:
+        return False
+
+
+
+
 
 
