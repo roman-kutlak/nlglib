@@ -267,24 +267,6 @@ kick = Clause(NP('a kick'), VP('was detected'))
 
 shallow_depth = Clause(NP('the well'), VP('is in shallow depth'))
 
-in_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
-                 VP(Word('is', 'VERB'), PP(Word('in', 'PREPOSITION'),
-                             NP(PlaceHolder('type_1'),
-                                compl=PlaceHolder('var_1')))))
-at_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
-                 VP(Word('is', 'VERB'), PP(Word('at', 'PREPOSITION'),
-                             NP(PlaceHolder('type_1'),
-                                compl=PlaceHolder('var_1')))))
-in_city_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
-                      VP(Word('is', 'VERB'), PP(Word('in', 'PREPOSITION'),
-                                  NP(PlaceHolder('type_1'),
-                                     compl=PlaceHolder('var_1')))))
-
-# used for testing
-bad_in_pred = Clause(NP(PlaceHolder('tuple_0'), compl=PlaceHolder('var_0')),
-                     VP('is', PP(Word('in', 'PREPOSITION'),
-                                 NP(PlaceHolder('type_1'),
-                                    compl=PlaceHolder('var_1')))))
 
 class SentenceTemplates:
     """SentenceTemplates provides mapping from STRIPS operators to sentences.
@@ -295,11 +277,6 @@ class SentenceTemplates:
     def __init__(self):
         self.templates = dict()
         self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
-        self.templates['in'] = in_pred
-        self.templates['at'] = at_pred
-        self.templates['in-city'] = in_city_pred
-        # for testing
-        self.templates['bad_in'] = bad_in_pred
 
         self.templates['string'] = Clause(None, VP(PlaceHolder('val')))
         self.templates['inputCondition'] = start
@@ -503,15 +480,18 @@ templates = SentenceTemplates()
 def add_templates(newtemplates):
     """ Add the given templates to the default SentenceTemplate instance. """
     for k, v in newtemplates:
-        templates[k] = v
+        templates.templates[k] = v
 
 def add_template(k, v, replace=True):
-    if replace or (not k in templates):
-        templates[k] = v
+    if replace or (not k in templates.templates):
+        templates.templates[k] = v
         return True
     else:
         return False
 
+def del_template(k, silent=True):
+    if silent and k not in templates.templates: return False
+    del templates.templates[k]
 
 
 

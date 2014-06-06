@@ -72,7 +72,8 @@ def create_server_from_jar(snlg_path=simplenlg_path):
 # FIXME: this 'singleton' works fine, but the main module/app has to terminate
 # the server. This is a disasterous way of doing things - no explicit init
 # but explicit cleanup?!
-default_server = create_server_from_jar()
+#default_server = create_server_from_jar()
+default_server = None
 
 
 class Realiser:
