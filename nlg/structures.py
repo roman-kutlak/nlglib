@@ -36,9 +36,16 @@
 #############################################################################
 
 
+import logging
 from copy import deepcopy
 from urllib.parse import quote_plus
 import json
+
+
+def get_log():
+    return logging.getLogger(__name__)
+
+get_log().addHandler(logging.NullHandler())
 
 
 """ Data structures used by other packages. """
@@ -56,8 +63,9 @@ def enum(*sequential, **named):
 
 """ Rhetorical Structure Theory relations """
 RST = enum( 'Elaboration', 'Exemplification',
-            'Contrast', 'Exception',
-            'Sequence', 'List',
+            'Contrast', 'Exception', 'Set',
+            'List', 'Sequence', 'Alternative',
+            'Conjunction', 'Disjunction',
             'Leaf'
           )
 
@@ -170,6 +178,7 @@ class Message:
         self.rst = rel
         self.nucleus = nucleus
         self.satelites = [s for s in satelites if s is not None]
+        self.marker = ''
 
     def __repr__(self):
         descr = ' '.join( [repr(x) for x in
@@ -190,8 +199,16 @@ class Message:
 
     def constituents(self):
         """ Return a generator to iterate through the elements. """
-        if self.nucleus is not None: yield from self.nucleus.constituents()
-        for x in self.satelites: yield from x.constituents()
+        if self.nucleus:
+            if hasattr(self.nucleus, 'constituents'):
+                yield from self.nucleus.constituents()
+            else:
+                yield self.nucleus
+        for x in self.satelites:
+            if hasattr(x, 'constituents'):
+                yield from x.constituents()
+            else:   
+                yield x
 
 
 class MsgSpec:
@@ -605,9 +622,14 @@ class Phrase(Element):
                 super().__eq__(other))
 
     def __str__(self):
+        if 'COMPLEMENTISER' in self._features:
+            compl = self._features['COMPLEMENTISER']
+        else:
+            compl = ''
         data = [' '.join([str(o) for o in self.front_modifier]),
                  ' '.join([str(o) for o in self.pre_modifier]),
                  str(self.head) if self.head is not None else '',
+                 compl,
                  ' '.join([str(o) for o in self.complement]),
                  ' '.join([str(o) for o in self.post_modifier])]
         # remove empty strings
@@ -1014,10 +1036,12 @@ class CC(Element):
         if self.coords is None: return ''
         result = ''
         for i, x in enumerate(self.coords):
-            if i < len(self.coords) - 2:
+            if self.conj == 'and' and i < len(self.coords) - 2:
                 result += ', '
-            elif i == len(self.coords) - 1:
+            elif self.conj == 'and' and i == len(self.coords) - 1:
                 result += ' and '
+            else:
+                result += ' ' + self.conj + ' '
             result += str(x)
         return result
 
@@ -1030,13 +1054,17 @@ class CC(Element):
     def add_coordinate(self, *elts):
         """ Add one or more elements as a co-ordinate in the clause. """
         for e in self._strings_to_elements(*elts):
-            if e not in self.coords: self.coords.append(e)
+#            if e not in self.coords: self.coords.append(e)
+            self.coords.append(e)
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
         if self.coords is not None:
             for c in self.coords:
-                yield from c.constituents()
+                if hasattr(c, 'constituents'):
+                    yield from c.constituents()
+                else:
+                    yield c
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.
@@ -1053,7 +1081,14 @@ class CC(Element):
 
 # TODO: the visitor implementation is not right - look at Bruce Eckel's one
 class IVisitor:
-    def visit_phrase(self, node, element=''):
+    def __init__(self):
+        self.text = ''
+        
+    def visit_phrase(self, node, element=''):    
+        if (node.has_feature('NEGATION') and 
+            node.get_feature('NEGATION') == 'TRUE'):
+            self.text += ' not'
+            
         if node.front_modifier:
             for c in node.front_modifier:
                 c.accept(self, 'frontMod')
@@ -1065,6 +1100,9 @@ class IVisitor:
         if node.head:
             node.head.accept(self, 'head')
 
+        if node.has_feature('COMPLEMENTISER'):
+            self.text += ' ' + node.get_feature('COMPLEMENTISER')
+                        
         if node.complement:
             for c in node.complement:
                 c.accept(self, 'compl')
@@ -1152,8 +1190,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
 
 class StrVisitor(IVisitor):
-    def __init__(self):
-        self.text = ''
 
     def visit_element(self, node, element):
         # there is no text in Element
@@ -1172,10 +1208,17 @@ class StrVisitor(IVisitor):
             self.text += ' ' + node.to_str()
     
     def visit_clause(self, node, element):
+        if (node.has_feature('NEGATION') and 
+            node.get_feature('NEGATION') == 'TRUE'):
+            self.text += ' not'
+#        for e in node.front_modifier: e.accept()
+#        for e in node.pre_modifier: e.accept()
         if node.subj:
             node.subj.accept(self)
         if node.vp:
             node.vp.accept(self)
+#        for e in node.complement: e.accept()
+#        for e in node.post_modifier: e.accept()
     
     def visit_np(self, node, element):
         if node.spec:
@@ -1192,14 +1235,19 @@ class StrVisitor(IVisitor):
         if len(node.coords) > 2:
             for c in node.coords[:-1]:
                 c.accept(self)
-                self.text += ','
+                if node.conj == 'and':
+                    self.text += ','
+                else:
+                    self.text += ' ' + node.conj
             self.text = self.text[:-1] # remove the last ", "
-            self.text += ' and'
+            self.text += ' ' + node.conj
             node.coords[-1].accept(self)
     
         elif len(node.coords) > 1:
+            get_log().debug('visiting coord 1')
             node.coords[0].accept(self)
-            self.text += ' and'
+            self.text += ' ' + node.get_feature('conj')
+            get_log().debug('visiting coord 2')
             node.coords[1].accept(self)
 
         elif len(node.coords) > 0:

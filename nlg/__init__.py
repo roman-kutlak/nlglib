@@ -80,4 +80,6 @@ if not (os.path.isfile(config_path) and os.access(config_path, os.R_OK)):
         if file == 'log.config.yaml':
             config_path = os.path.join(root, file)
 
-setup_logging(config_path)
+# NOTE: setting up logging in the module overrides application settins!
+#       don't do that; rely on the app setting
+#setup_logging(config_path)

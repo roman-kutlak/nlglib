@@ -47,7 +47,8 @@ import nlg.reg as reg
 import nlg.realisation as realisation
 import nlg.format as format
 
-from utils import get_log
+def get_log():
+    return logging.getLogger(__name__)
 
 get_log().addHandler(logging.NullHandler())
 

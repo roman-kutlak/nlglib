@@ -109,8 +109,30 @@ def lexicalise_message(msg):
     if msg is None: return None
     nucleus = lexicalise(msg.nucleus)
     satelites = [lexicalise(x) for x in msg.satelites if x is not None]
-    return Message(msg.rst, nucleus, *satelites)
-
+#    m = Message(msg.rst, nucleus, *satelites)
+#    m.marker = msg.marker
+#    return m
+    # stick each message into a clause
+    result = None
+    if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
+        result = CC(*satelites, conj=msg.marker)
+    if msg.rst == 'Imply':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in implication; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(nucleus)
+        result.add_complement(*satelites)
+        result.add_front_modifier('if')
+        result.add_feature('COMPLEMENTISER', 'then');
+    if msg.rst == 'Quantifier':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in implication; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(NP(nucleus, String(msg.marker)))
+        result.add_complement(*satelites)
+    return result   
 
 def lexicalise_paragraph(msg):
     """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
@@ -279,6 +301,7 @@ class SentenceTemplates:
         self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
 
         self.templates['string'] = Clause(None, VP(PlaceHolder('val')))
+        self.templates['conjunction'] = None
         self.templates['inputCondition'] = start
         self.templates['outputCondition'] = finish
         self.templates['Start'] = start

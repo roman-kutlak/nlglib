@@ -128,12 +128,7 @@ class Realiser:
         sats = [self.realise(x) for x in msg.satelites if x is not None]
         sentences = _flatten([nucl] + sats)
         get_log().debug('flattened sentences: %s' % sentences)
-        # TODO: this si wrong because the recursive call can apply capitalisation
-        # and punctuation multiple times...
-        sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
-                                        ('.' if e[-1] != '.' else ''),
-                             [s for s in sentences if s != '']))
-        return sentences
+        return Message(*sentences)
 
 
     def realise_paragraph(self, msg):
@@ -202,6 +197,8 @@ def realise_message(msg):
     if msg is None: return None
     nucl = realise(msg.nucleus)
     sats = [realise(x) for x in msg.satelites if x is not None]
+#    if len(sats) > 0:
+#        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
     sentences = _flatten([nucl] + sats)
     get_log().debug('flattened sentences: %s' % sentences)
     # TODO: this si wrong because the recursive call can apply capitalisation
