@@ -47,12 +47,11 @@ import nlg.reg as reg
 import nlg.realisation as realisation
 import nlg.format as format
 
-
-logging.getLogger(__name__).addHandler(logging.NullHandler())
-
 def get_log():
     return logging.getLogger(__name__)
-    
+
+get_log().addHandler(logging.NullHandler())
+
 
 class Nlg:
     def __init__(self):

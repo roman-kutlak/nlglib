@@ -36,8 +36,17 @@
 #############################################################################
 
 
+import logging
 from copy import deepcopy
 from urllib.parse import quote_plus
+import json
+
+
+def get_log():
+    return logging.getLogger(__name__)
+
+get_log().addHandler(logging.NullHandler())
+
 
 """ Data structures used by other packages. """
 
@@ -54,8 +63,9 @@ def enum(*sequential, **named):
 
 """ Rhetorical Structure Theory relations """
 RST = enum( 'Elaboration', 'Exemplification',
-            'Contrast', 'Exception',
-            'Sequence', 'List',
+            'Contrast', 'Exception', 'Set',
+            'List', 'Sequence', 'Alternative',
+            'Conjunction', 'Disjunction',
             'Leaf'
           )
 
@@ -168,6 +178,7 @@ class Message:
         self.rst = rel
         self.nucleus = nucleus
         self.satelites = [s for s in satelites if s is not None]
+        self.marker = ''
 
     def __repr__(self):
         descr = ' '.join( [repr(x) for x in
@@ -188,8 +199,16 @@ class Message:
 
     def constituents(self):
         """ Return a generator to iterate through the elements. """
-        if self.nucleus is not None: yield from self.nucleus.constituents()
-        for x in self.satelites: yield from x.constituents()
+        if self.nucleus:
+            if hasattr(self.nucleus, 'constituents'):
+                yield from self.nucleus.constituents()
+            else:
+                yield self.nucleus
+        for x in self.satelites:
+            if hasattr(x, 'constituents'):
+                yield from x.constituents()
+            else:   
+                yield x
 
 
 class MsgSpec:
@@ -248,6 +267,46 @@ class StringMsgSpec(MsgSpec):
 
 # microplanning level structures
 
+
+class ElemntCoder(json.JSONEncoder):
+    @staticmethod
+    def to_json(python_object):
+        if isinstance(python_object, Element):
+            return {'__class__': str(type(python_object)),
+                    '__value__': python_object.__dict__} 
+        raise TypeError(repr(python_object) + ' is not JSON serializable')
+
+    @staticmethod
+    def from_json(json_object):
+        if '__class__' in json_object:
+            if json_object['__class__'] == "<class 'nlg.structures.Element'>":
+                return Element.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.String'>":
+                return String.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Word'>":
+                return Word.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.PlaceHolder'>":
+                return PlaceHolder.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Phrase'>":
+                return Phrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Clause'>":
+                return Clause.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.NP'>":
+                return NP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.VP'>":
+                return VP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.PP'>":
+                return PP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.AdjP'>":
+                return AdjP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.AdvP'>":
+                return AdvP.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.CC'>":
+                return CC.from_dict(json_object['__value__'])
+                
+        return json_object
+        
+        
 class Element:
     """ A base class representing an NLG element.
         Aside for providing a base class for othe kinds of NLG elements,
@@ -258,7 +317,7 @@ class Element:
         self.id = 0 # this is useful for replacing elements
         self._visitor_name = vname
         self._features = dict()
-        self.realisation = ""
+#        self.realisation = ""
 
     def __eq__(self, other):
         if (not isinstance(other, Element)):
@@ -268,10 +327,20 @@ class Element:
                 self._visitor_name == other._visitor_name and
                 self._features == other._features)
 
+    @classmethod
+    def from_dict(Cls, dct):
+        o = Cls()
+        o.__dict__ = dct
+        return o
+
     def to_str(self):
         return ""
     
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, indent=4)
+        
     def __repr__(self):
+        return self.to_JSON()
         text = 'Element (%s): ' % self._visitor_name
         text += str(self._features)
         if '' != self.realisation:
@@ -422,6 +491,7 @@ class String(Element):
         return str(self.val) if self.val is not None else ''
 
     def __repr__(self):
+        return self.to_JSON()
         return ('String(%s)' % self.val)
         
     def constituents(self):
@@ -462,6 +532,7 @@ class Word(Element):
         return self.word if self.word is not None else ''
 
     def __repr__(self):
+        return self.to_JSON()
         text = 'Word: %s (%s) %s' % (str(self.word),
                                      str(self.pos),
                                      str(self._features))
@@ -506,6 +577,7 @@ class PlaceHolder(Element):
                     super().__eq__(other))
 
     def __repr__(self):
+        return self.to_JSON()
         return ('PlaceHolder: id=%s value=%s %s' %
                 (repr(self.id), repr(self.value), repr(self._features)))
 
@@ -550,9 +622,14 @@ class Phrase(Element):
                 super().__eq__(other))
 
     def __str__(self):
+        if 'COMPLEMENTISER' in self._features:
+            compl = self._features['COMPLEMENTISER']
+        else:
+            compl = ''
         data = [' '.join([str(o) for o in self.front_modifier]),
                  ' '.join([str(o) for o in self.pre_modifier]),
                  str(self.head) if self.head is not None else '',
+                 compl,
                  ' '.join([str(o) for o in self.complement]),
                  ' '.join([str(o) for o in self.post_modifier])]
         # remove empty strings
@@ -560,6 +637,7 @@ class Phrase(Element):
         return (' '.join(data))
 
     def __repr__(self):
+        return self.to_JSON()
         return ('(Phrase %s %s: "%s" %s)' %
                 (self.type, self.discourse_fn, str(self), str(self._features)))
 
@@ -749,6 +827,7 @@ class Clause(Phrase):
                         [self.subj, self.vp] if x is not None])
 
     def __repr__(self):
+        return self.to_JSON()
         return ('Clause: subj=%s vp=%s\n(%s)' %
                 (str(self.subj), str(self.vp), super().__str__()))
 
@@ -957,10 +1036,12 @@ class CC(Element):
         if self.coords is None: return ''
         result = ''
         for i, x in enumerate(self.coords):
-            if i < len(self.coords) - 2:
+            if self.conj == 'and' and i < len(self.coords) - 2:
                 result += ', '
-            elif i == len(self.coords) - 1:
+            elif self.conj == 'and' and i == len(self.coords) - 1:
                 result += ' and '
+            else:
+                result += ' ' + self.conj + ' '
             result += str(x)
         return result
 
@@ -973,13 +1054,17 @@ class CC(Element):
     def add_coordinate(self, *elts):
         """ Add one or more elements as a co-ordinate in the clause. """
         for e in self._strings_to_elements(*elts):
-            if e not in self.coords: self.coords.append(e)
+#            if e not in self.coords: self.coords.append(e)
+            self.coords.append(e)
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
         if self.coords is not None:
             for c in self.coords:
-                yield from c.constituents()
+                if hasattr(c, 'constituents'):
+                    yield from c.constituents()
+                else:
+                    yield c
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.
@@ -996,7 +1081,14 @@ class CC(Element):
 
 # TODO: the visitor implementation is not right - look at Bruce Eckel's one
 class IVisitor:
-    def visit_phrase(self, node, element=''):
+    def __init__(self):
+        self.text = ''
+        
+    def visit_phrase(self, node, element=''):    
+        if (node.has_feature('NEGATION') and 
+            node.get_feature('NEGATION') == 'TRUE'):
+            self.text += ' not'
+            
         if node.front_modifier:
             for c in node.front_modifier:
                 c.accept(self, 'frontMod')
@@ -1008,6 +1100,9 @@ class IVisitor:
         if node.head:
             node.head.accept(self, 'head')
 
+        if node.has_feature('COMPLEMENTISER'):
+            self.text += ' ' + node.get_feature('COMPLEMENTISER')
+                        
         if node.complement:
             for c in node.complement:
                 c.accept(self, 'compl')
@@ -1095,8 +1190,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
 
 class StrVisitor(IVisitor):
-    def __init__(self):
-        self.text = ''
 
     def visit_element(self, node, element):
         # there is no text in Element
@@ -1115,10 +1208,17 @@ class StrVisitor(IVisitor):
             self.text += ' ' + node.to_str()
     
     def visit_clause(self, node, element):
+        if (node.has_feature('NEGATION') and 
+            node.get_feature('NEGATION') == 'TRUE'):
+            self.text += ' not'
+#        for e in node.front_modifier: e.accept()
+#        for e in node.pre_modifier: e.accept()
         if node.subj:
             node.subj.accept(self)
         if node.vp:
             node.vp.accept(self)
+#        for e in node.complement: e.accept()
+#        for e in node.post_modifier: e.accept()
     
     def visit_np(self, node, element):
         if node.spec:
@@ -1135,14 +1235,19 @@ class StrVisitor(IVisitor):
         if len(node.coords) > 2:
             for c in node.coords[:-1]:
                 c.accept(self)
-                self.text += ','
+                if node.conj == 'and':
+                    self.text += ','
+                else:
+                    self.text += ' ' + node.conj
             self.text = self.text[:-1] # remove the last ", "
-            self.text += ' and'
+            self.text += ' ' + node.conj
             node.coords[-1].accept(self)
     
         elif len(node.coords) > 1:
+            get_log().debug('visiting coord 1')
             node.coords[0].accept(self)
-            self.text += ' and'
+            self.text += ' ' + node.get_feature('conj')
+            get_log().debug('visiting coord 2')
             node.coords[1].accept(self)
 
         elif len(node.coords) > 0:

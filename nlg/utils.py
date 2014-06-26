@@ -37,6 +37,7 @@
 
 
 import os
+import logging
 
 # remove multiple spaces
 def trim(str):
@@ -88,3 +89,8 @@ def find_files(dir, extension):
                  result.append( (root, file) )
     return result
 
+
+def get_log():
+    return logging.getLogger(__name__)
+    
+    

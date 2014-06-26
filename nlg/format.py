@@ -80,7 +80,10 @@ def to_text_list(messages):
 
 def to_text_message(msg):
     get_log().debug('Formatting message(%s).' % repr(msg))
-    return str(msg)
+    sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
+                         ('.' if e[-1] != '.' else ''),
+                         [s for s in msg.nucleus if s != '']))
+    return sentences
 
 
 def to_text_paragraph(para):

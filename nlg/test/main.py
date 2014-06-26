@@ -10,4 +10,5 @@ if __name__ == '__main__':
     testRunner.run(tests)
     # shut down the server
     import nlg.realisation as realisation
-    realisation.default_server.shutdown()
+    if realisation.default_server:
+        realisation.default_server.shutdown()

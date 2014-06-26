@@ -79,7 +79,7 @@ def add_elements(e1, e2):
 
     return cc
 
-def try_to_aggregate(sent1, sent2):
+def try_to_aggregate(sent1, sent2, marker='and'):
     """ Attempt to combine two elements into one by replacing the differing 
     elements by a conjunction.
     
@@ -108,7 +108,7 @@ def try_to_aggregate(sent1, sent2):
             # if sentences are equal (eg s1: load x; s2: load x) aggregate
             if (s1 == s2):
                 get_log().debug('Aggregating:\n\t%s\n\t%s' % (repr(s1), repr(s2)))
-                cc = add_elements(e1, e2)
+                cc = add_elements(e1, e2, conj='marker')
                 replace_element(s1, replacement, cc)
                 get_log().debug('Result: %s' % repr(s1))
                 return s1
@@ -119,7 +119,7 @@ def try_to_aggregate(sent1, sent2):
     return None
 
 
-def synt_aggregation(elements, max=3):
+def synt_aggregation(elements, max=3, marker='and'):
     """ Take a list of elements and combine elements that are synt. similar.
     
     elements - a list of elements to combine
@@ -136,13 +136,13 @@ def synt_aggregation(elements, max=3):
     aggregated = list()
     i = 0
     while i < len(elements):
-        msg, increment = _do_aggregate(elements, i, max)
+        msg, increment = _do_aggregate(elements, i, max, marker)
         aggregated.append(msg)
         i += increment
 
     return aggregated
 
-def _do_aggregate(elements, i, max):
+def _do_aggregate(elements, i, max, marker='and'):
     lhs = elements[i]
     j = i + 1
     increment = 1
@@ -150,7 +150,7 @@ def _do_aggregate(elements, i, max):
         get_log().debug('LHS = %s' % lhs)
         rhs = elements[j]
         if _can_aggregate(rhs, max):
-            tmp = try_to_aggregate(lhs, rhs)
+            tmp = try_to_aggregate(lhs, rhs, marker)
             if tmp is not None:
                 lhs = tmp
                 increment += 1
@@ -217,12 +217,14 @@ def aggregate_message(msg, limit):
 
     """
     get_log().debug('Aggregating message.')
-    if not (msg.rst == 'Sequence' or msg.rst == 'List'): return msg
+    if not (msg.rst == 'Sequence' or
+            msg.rst == 'Alternative' or
+            msg.rst == 'List'): return msg
     # TODO: Sequence and list are probably multi-nucleus and not multi-satelite
     get_log().debug('Aggregating list or sequence.')
     elements = []
     if len(msg.satelites) > 1:
-        elements = synt_aggregation(msg.satelites, limit)
+        elements = synt_aggregation(msg.satelites, limit, msg.marker)
     elif len(msg.satelites) == 1:
         elements.append(msg.satelites[0])
     if msg.nucleus is not None:

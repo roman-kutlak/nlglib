@@ -109,8 +109,30 @@ def lexicalise_message(msg):
     if msg is None: return None
     nucleus = lexicalise(msg.nucleus)
     satelites = [lexicalise(x) for x in msg.satelites if x is not None]
-    return Message(msg.rst, nucleus, *satelites)
-
+#    m = Message(msg.rst, nucleus, *satelites)
+#    m.marker = msg.marker
+#    return m
+    # stick each message into a clause
+    result = None
+    if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
+        result = CC(*satelites, conj=msg.marker)
+    if msg.rst == 'Imply':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in implication; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(nucleus)
+        result.add_complement(*satelites)
+        result.add_front_modifier('if')
+        result.add_feature('COMPLEMENTISER', 'then');
+    if msg.rst == 'Quantifier':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in implication; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(NP(nucleus, String(msg.marker)))
+        result.add_complement(*satelites)
+    return result   
 
 def lexicalise_paragraph(msg):
     """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
@@ -164,6 +186,8 @@ def lexicalise_document(doc):
 #            c.object = var
 ##           print('Replacing parameter %d with %s' % (id, var))
 
+def create_template_from(string):
+    return eval(string)
 
 
 
@@ -265,24 +289,6 @@ kick = Clause(NP('a kick'), VP('was detected'))
 
 shallow_depth = Clause(NP('the well'), VP('is in shallow depth'))
 
-in_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
-                 VP(Word('is', 'VERB'), PP(Word('in', 'PREPOSITION'),
-                             NP(PlaceHolder('type_1'),
-                                compl=PlaceHolder('var_1')))))
-at_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
-                 VP(Word('is', 'VERB'), PP(Word('at', 'PREPOSITION'),
-                             NP(PlaceHolder('type_1'),
-                                compl=PlaceHolder('var_1')))))
-in_city_pred = Clause(NP(PlaceHolder('type_0'), compl=PlaceHolder('var_0')),
-                      VP(Word('is', 'VERB'), PP(Word('in', 'PREPOSITION'),
-                                  NP(PlaceHolder('type_1'),
-                                     compl=PlaceHolder('var_1')))))
-
-# used for testing
-bad_in_pred = Clause(NP(PlaceHolder('tuple_0'), compl=PlaceHolder('var_0')),
-                     VP('is', PP(Word('in', 'PREPOSITION'),
-                                 NP(PlaceHolder('type_1'),
-                                    compl=PlaceHolder('var_1')))))
 
 class SentenceTemplates:
     """SentenceTemplates provides mapping from STRIPS operators to sentences.
@@ -293,13 +299,9 @@ class SentenceTemplates:
     def __init__(self):
         self.templates = dict()
         self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
-        self.templates['in'] = in_pred
-        self.templates['at'] = at_pred
-        self.templates['in-city'] = in_city_pred
-        # for testing
-        self.templates['bad_in'] = bad_in_pred
 
         self.templates['string'] = Clause(None, VP(PlaceHolder('val')))
+        self.templates['conjunction'] = None
         self.templates['inputCondition'] = start
         self.templates['outputCondition'] = finish
         self.templates['Start'] = start
@@ -497,3 +499,24 @@ class SentenceTemplates:
 
 
 templates = SentenceTemplates()
+
+def add_templates(newtemplates):
+    """ Add the given templates to the default SentenceTemplate instance. """
+    for k, v in newtemplates:
+        templates.templates[k] = v
+
+def add_template(k, v, replace=True):
+    if replace or (not k in templates.templates):
+        templates.templates[k] = v
+        return True
+    else:
+        return False
+
+def del_template(k, silent=True):
+    if silent and k not in templates.templates: return False
+    del templates.templates[k]
+
+
+
+
+
