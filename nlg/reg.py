@@ -144,7 +144,6 @@ def generate_ref_exp(referent, context):
     result = None
 
     get_log().debug('GRE for %s:' % str(referent))
-    get_log().debug('\treferents: %s' % str(context.referents))
     if referent in context.referents:
         result = _do_repeated_reference(referent, context)
     else:
@@ -161,15 +160,20 @@ def _do_initial_reference(referent, context):
             get_log().warning('GRE does not have ontology!')
 
         entity_type = onto.best_entity_type(':' + referent)
-        entity_type = entity_type[1:] # strip the ':' at the beginning
+        entity_type = entity_type.rpartition(':')[2] # strip the ':' at the beginning
         result = NP(Word(entity_type, 'NOUN'))
         get_log().debug('\t%s: type "%s"' % (referent, entity_type))
         # if the object is the only one in the domain, add 'the'
-        distractors = onto.entities_of_type(':' + entity_type)
+        same_type = set([x.rpartition(':')[2] for x in 
+                         onto.entities_of_type(':' + entity_type)])
+        entities = set(context.referents.keys())
+        distractors = list(same_type)
+#        distractors = list(entities & same_type)
+        get_log().debug('\tsame type: %s' % str(same_type))
+        get_log().debug('\tentities: %s' % str(entities))
         get_log().debug('\tdistractors: %s' % str(distractors))
         count = len(distractors)
-
-        if count == 1:
+        if count == 0 or (count == 1 and distractors[0] == referent):
             # save the RE without the determiner
             context.referents[referent] = (True, deepcopy(result))
             # this should really be done by simpleNLG...
@@ -190,6 +194,7 @@ def _do_initial_reference(referent, context):
             if (number is not None):
                 result.add_complement(Word(number))
     except Exception as msg:
+        get_log().exception(msg)
         # if we have no info, assume referent is not unique
         result = NP(Word(referent, 'NOUN'))
         context.referents[referent] = (False, result)

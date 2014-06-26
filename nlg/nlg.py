@@ -12,7 +12,7 @@
 ## met:
 ##   * Redistributions of source code must retain the above copyright
 ##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
+##   * Redistributions in binary form must stroduce the above copyright
 ##     notice, this list of conditions and the following disclaimer in
 ##     the documentation and/or other materials provided with the
 ##     distribution.
@@ -63,15 +63,15 @@ class Nlg:
             get_log().debug('Creating new context for REG')
             context = reg.Context(ontology)
         summary = self.lexicalise(doc)
-        get_log().debug('After lex: %s' % repr(summary))
+        get_log().debug('After lex: %s' % str(summary))
         summary = self.aggregate(summary, 3)
-        get_log().debug('After aggr: %s' % repr(summary))
+        get_log().debug('After aggr: %s' % str(summary))
         summary = self.generate_re(summary, context)
-        get_log().debug('After REG: %s' % repr(summary))
+        get_log().debug('After REG: %s' % str(summary))
         summary = self.realise(summary)
-        get_log().debug('After realisation: %s' % repr(summary))
+        get_log().debug('After realisation: %s' % str(summary))
         summary = self.format(summary)
-        get_log().debug('After formatting: %s' % repr(summary))
+        get_log().debug('After formatting: %s' % str(summary))
         return summary
 
     def process_nlg_doc2(self, doc, ontology, context=None):
@@ -81,15 +81,15 @@ class Nlg:
             get_log().debug('Creating new context for REG')
             context = reg.Context(ontology)
         summary = self.lexicalise(summary)
-        get_log().debug('After lex: %s' % repr(summary))
+        get_log().debug('After lex: %s' % str(summary))
         summary = self.aggregate(summary, 3)
-        get_log().debug('After aggr: %s' % repr(summary))
+        get_log().debug('After aggr: %s' % str(summary))
         summary = self.generate_re(summary, context)
-        get_log().debug('After REG: %s' % repr(summary))
+        get_log().debug('After REG: %s' % str(summary))
         summary = self.realise2(summary)
-        get_log().debug('After realisation: %s' % repr(summary))
+        get_log().debug('After realisation: %s' % str(summary))
         summary = self.format(summary)
-        get_log().debug('After formatting: %s' % repr(summary))
+        get_log().debug('After formatting: %s' % str(summary))
         return summary
 
     def lexicalise(self, msgs):

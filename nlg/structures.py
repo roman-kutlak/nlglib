@@ -1035,13 +1035,14 @@ class CC(Element):
     def __str__(self):
         if self.coords is None: return ''
         result = ''
+        conj = self.get_feature('conj')
         for i, x in enumerate(self.coords):
-            if self.conj == 'and' and i < len(self.coords) - 2:
+            if conj == 'and' and i < len(self.coords) - 2:
                 result += ', '
-            elif self.conj == 'and' and i == len(self.coords) - 1:
+            elif conj == 'and' and i == len(self.coords) - 1:
                 result += ' and '
             else:
-                result += ' ' + self.conj + ' '
+                result += ' ' + conj + ' '
             result += str(x)
         return result
 
@@ -1232,15 +1233,16 @@ class StrVisitor(IVisitor):
         self.visit_phrase(node)
     
     def visit_cc(self, node, element):
+        conj = node.get_feature('conj')
         if len(node.coords) > 2:
             for c in node.coords[:-1]:
                 c.accept(self)
-                if node.conj == 'and':
+                if conj == 'and':
                     self.text += ','
                 else:
-                    self.text += ' ' + node.conj
+                    self.text += ' ' + conj
             self.text = self.text[:-1] # remove the last ", "
-            self.text += ' ' + node.conj
+            self.text += ' ' + conj
             node.coords[-1].accept(self)
     
         elif len(node.coords) > 1:

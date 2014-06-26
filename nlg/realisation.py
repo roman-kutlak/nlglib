@@ -106,7 +106,7 @@ class Realiser:
 
     def realise_element(self, elt):
         """ Realise NLG element. """
-        get_log().debug('Realising element "%s" through realiser' % repr(elt))
+        get_log().debug('Realising element "%s" through realiser' % str(elt))
         v = XmlVisitor()
         elt.accept(v)
         get_log().debug(v.to_xml())
@@ -178,7 +178,7 @@ def realise(msg):
 
 def realise_element(elt):
     """ Realise NLG element. """
-    get_log().debug('Realising element %s' % repr(elt))
+    get_log().debug('Realising element %s' % str(elt))
     v = StrVisitor()
     elt.accept(v)
     result = v.to_str()

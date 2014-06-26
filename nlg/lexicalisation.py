@@ -94,7 +94,7 @@ def lexicalise_message_spec(msg):
     args = template.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
-        get_log().debug('Replacing %s in %s. ' % (repr(arg), str(template)))
+        get_log().debug('Replacing %s in %s. ' % (str(arg), str(template)))
         val = msg.value_for(arg.id)
         get_log().debug(' val = %s' % repr(val))
         template.replace(arg, val)
@@ -132,6 +132,9 @@ def lexicalise_message(msg):
         result = Phrase()
         result.set_head(NP(nucleus, String(msg.marker)))
         result.add_complement(*satelites)
+    else:
+        result = Message(msg.rst, nucleus, *satelites)
+        result.marker = msg.marker
     return result   
 
 def lexicalise_paragraph(msg):

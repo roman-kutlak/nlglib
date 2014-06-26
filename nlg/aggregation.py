@@ -52,7 +52,7 @@ class ElementError(Exception):
     pass
 
 
-def add_elements(e1, e2):
+def add_elements(e1, e2, conj='and'):
     if (not isinstance(e1, Element) or not isinstance(e2, Element)):
         raise ElementError("To add elements they have to be NLGElements")
 
@@ -76,7 +76,8 @@ def add_elements(e1, e2):
             cc._features['discourseFunction'] = e2._features['discourseFunction']
         elif 'discourseFunction' in e1._features:
             cc._features['discourseFunction'] = e1._features['discourseFunction']
-
+    cc.add_feature('conj', conj)
+    get_log().warning('added elements: \n' + str(cc))
     return cc
 
 def try_to_aggregate(sent1, sent2, marker='and'):
@@ -107,8 +108,8 @@ def try_to_aggregate(sent1, sent2, marker='and'):
             
             # if sentences are equal (eg s1: load x; s2: load x) aggregate
             if (s1 == s2):
-                get_log().debug('Aggregating:\n\t%s\n\t%s' % (repr(s1), repr(s2)))
-                cc = add_elements(e1, e2, conj='marker')
+                get_log().debug('Aggregating:\n\t%s\n\t%s' % (str(s1), str(s2)))
+                cc = add_elements(e1, e2, conj=marker)
                 replace_element(s1, replacement, cc)
                 get_log().debug('Result: %s' % repr(s1))
                 return s1
@@ -132,7 +133,7 @@ def synt_aggregation(elements, max=3, marker='and'):
     """
     if elements is None: return
     if len(elements) < 2: return elements
-
+    get_log().debug('performing synt. aggr on: ' + str(elements))
     aggregated = list()
     i = 0
     while i < len(elements):
@@ -224,11 +225,16 @@ def aggregate_message(msg, limit):
     get_log().debug('Aggregating list or sequence.')
     elements = []
     if len(msg.satelites) > 1:
-        elements = synt_aggregation(msg.satelites, limit, msg.marker)
+        if msg.marker is None or msg.marker == '': 
+            marker = 'and'
+        else:
+            marker = msg.marker
+        elements = synt_aggregation(msg.satelites, limit)
     elif len(msg.satelites) == 1:
         elements.append(msg.satelites[0])
     if msg.nucleus is not None:
         elements.insert(0, msg.nucleus)
+        # TODO: put elements in nucleus or come up with a different struct.
     return Message(msg.rst, None, *elements)
 
 
