@@ -525,6 +525,33 @@ class SentenceTemplates:
         self.templates['do_kill'] = 'kill the kick'
         self.templates['HSP_very_low'] = 'HSP is very low'
 
+        self.templates['OpenChokeLine'] =\
+            Clause(NP('you'), VP('open choke line'))
+        self.templates['CollarsInBOP'] =\
+            Clause(NP('you'), VP('collars in bop'))
+        self.templates['InstallKillAssemblyAndTest'] =\
+            Clause(NP('you'), VP('install kill assembly and test'))
+        self.templates['CheckSpaceOut'] =\
+            Clause(NP('you'), VP('check space out'))
+        self.templates['ClosePipeRams'] =\
+            Clause(NP('you'), VP('close pipe rams'))
+        self.templates['LandStringAndClosePosilocks'] =\
+            Clause(NP('you'), VP('land string and close posilocks'))
+        self.templates['OpenKellyCock'] =\
+            Clause(NP('you'), VP('open kelly cock'))
+        self.templates['CheckSurfacePressures'] =\
+            Clause(NP('you'), VP('check surface pressures'))
+        self.templates['CheckUpwardForce'] =\
+            Clause(NP('you'), VP('check upward force'))
+        self.templates['DropStringThenCloseShearRams'] =\
+            Clause(NP('you'), VP('drop string then close shear rams'))
+        self.templates['ObserveWell'] =\
+            Clause(NP('you'), VP('observe well'))
+        self.templates['MusterAllCrewsForInformation'] =\
+            Clause(NP('you'), VP('muster all crews for information'))
+        self.templates['PrepareToKillWell'] =\
+            Clause(NP('you'), VP('prepare to kill well'))
+
     def template(self, action):
         if action in self.templates:
             return deepcopy(self.templates[action])
