@@ -116,7 +116,7 @@ def lexicalise_message(msg):
     result = None
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
         result = CC(*satelites, conj=msg.marker)
-    if msg.rst == 'Imply':
+    elif msg.rst == 'Imply':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication; got '
                             + str(satelites))
@@ -125,7 +125,7 @@ def lexicalise_message(msg):
         result.add_complement(*satelites)
         result.add_front_modifier('if')
         result.add_feature('COMPLEMENTISER', 'then')
-    if msg.rst == 'ImpliedBy':
+    elif msg.rst == 'ImpliedBy':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication; got '
                             + str(satelites))
@@ -133,7 +133,7 @@ def lexicalise_message(msg):
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_feature('COMPLEMENTISER', 'when')
-    if msg.rst == 'Equivalence':
+    elif msg.rst == 'Equivalence':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in equivalence; got '
                             + str(satelites))
@@ -141,7 +141,7 @@ def lexicalise_message(msg):
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_feature('COMPLEMENTISER', 'is')
-    if msg.rst == 'Inequivalence':
+    elif msg.rst == 'Inequivalence':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in equivalence; got '
                             + str(satelites))
@@ -149,7 +149,7 @@ def lexicalise_message(msg):
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_feature('COMPLEMENTISER', 'is not')
-    if msg.rst == 'Quantifier':
+    elif msg.rst == 'Quantifier':
         # quantifiers have multiple nuclei (variables)
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication; got '
@@ -167,16 +167,17 @@ def lexicalise_message(msg):
         result.add_complement(*satelites)
 #        result.add_front_modifier('(')
         result.add_post_modifier(')')
-    if msg.rst == 'Negation':
+    elif msg.rst == 'Negation':
         result = Phrase()
         np = NP(nucleus, String(msg.marker))
         np.add_pre_modifier('(')
         result.set_head(np)
         result.add_complement(*satelites)
         result.add_post_modifier(')')
-#    else:
-#        result = Message(msg.rst, nucleus, *satelites)
-#        result.marker = msg.marker
+    else:
+        get_log().debug('RST is: ' + repr(msg.rst))
+        result = Message(msg.rst, nucleus, *satelites)
+        result.marker = msg.marker
     return result
 
 def lexicalise_paragraph(msg):
