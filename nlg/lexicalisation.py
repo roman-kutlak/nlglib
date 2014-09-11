@@ -46,7 +46,6 @@ from nlg.structures import *
 from nlg.aggregation import *
 
 def get_log():
-    print('__________________________ getting log for name: ' + __name__)
     return logging.getLogger(__name__)
 
 get_log().addHandler(logging.NullHandler())
@@ -175,10 +174,10 @@ def lexicalise_message(msg):
         result.set_head(np)
         result.add_complement(*satelites)
         result.add_post_modifier(')')
-    else:
-        result = Message(msg.rst, nucleus, *satelites)
-        result.marker = msg.marker
-    return result   
+#    else:
+#        result = Message(msg.rst, nucleus, *satelites)
+#        result.marker = msg.marker
+    return result
 
 def lexicalise_paragraph(msg):
     """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """

@@ -1090,14 +1090,13 @@ class CC(Element):
     def __str__(self):
         if self.coords is None: return ''
         result = ''
-        conj = self.get_feature('conj')
         for i, x in enumerate(self.coords):
-            if conj == 'and' and i < len(self.coords) - 2:
+            if self.conj == 'and' and i < len(self.coords) - 2:
                 result += ', '
-            elif conj == 'and' and i == len(self.coords) - 1:
+            elif self.conj == 'and' and i == len(self.coords) - 1:
                 result += ' and '
             else:
-                result += ' ' + conj + ' '
+                result += ' ' + self.conj + ' '
             result += str(x)
         return result
 
@@ -1297,12 +1296,12 @@ class StrVisitor(IVisitor):
         else:
             for c in node.coords[:-2]:
                 c.accept(self)
-                if conj == 'and':
+                if node.conj == 'and':
                     self.text += ','
                 else:
                     self.text += ' ' + node.conj
             node.coords[-2].accept(self)
-            self.text += ' ' + conj
+            self.text += ' ' + node.conj
             node.coords[-1].accept(self)
 
     def to_str(self):
