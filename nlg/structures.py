@@ -402,6 +402,10 @@ class Element:
             if val is not None: del self._features[feat]
             elif val == self._features[feat]: del self._features[feat]
 
+    def set_features(self, features):
+        """ Set the current features to the given features (dict). """
+        self._features = features
+
     def constituents(self):
         """ Return a generator representing constituents of an element. """
         return []
@@ -481,6 +485,10 @@ class String(Element):
     def to_str(self):
         return str(self.val)
     
+    def to_python(self):
+        """ Return a representation that can be used as a python code. """
+        return ('String(%s)' % val)
+    
     def __eq__(self, other):
         if (not isinstance(other, String)):
             return False
@@ -520,6 +528,15 @@ class Word(Element):
     
     def to_str(self):
         return self.word if self.word is not None else ''
+    
+    def to_python(self):
+        if self.pos is not None:
+            # assuming that if the word has POS it contains some word...
+            return ('Word(%s, %s)' % (str(self.word), str(self.pos)))
+        elif self.word is not None:
+            return ('Word(%s)' % str(self.word))
+        else:
+            return 'Word()'
     
     def __eq__(self, other):
         if (not isinstance(other, Word)):
@@ -567,6 +584,14 @@ class PlaceHolder(Element):
         if (self.value):
             return str(self.value)
         return str(self.id)
+        
+    def to_python(self):
+        if self.obj is not None:
+            return ('PlaceHolder(%s, %s)' % (self.id, str(self.obj)))
+        elif self.id is not None:
+            return ('PlaceHolder(%s)' % self.id)
+        else:
+            return ('PlaceHolder()')
 
     def __eq__(self, other):
         if (not isinstance(other, PlaceHolder)):
@@ -599,15 +624,26 @@ class Phrase(Element):
         Not every phrase has need for all of the kinds of modiffications.
 
     """
-    def __init__(self, type=None, discourse_fn=None, vname='visit_phrase'):
+    def __init__(self, type=None, dfn=None, vname='visit_phrase', **kwargs):
         super().__init__(vname)
         self.type = type
-        self.discourse_fn = discourse_fn
+        self.discourse_fn = dfn
         self.front_modifier = list()
         self.pre_modifier = list()
         self.head = None
         self.complement = list()
         self.post_modifier = list()
+        # see if anything was passed from above...
+        if 'front_modifier' in kwargs:
+            self.front_modifier = kwargs['front_modifier']
+        if 'pre_modifier' in kwargs:
+            self.pre_modifier = kwargs['pre_modifier']
+        if 'head' in kwargs:
+            self.head = kwargs['head']
+        if 'complement' in kwargs:
+            self.complement = kwargs['complement']
+        if 'post_modifier' in kwargs:
+            self.post_modifier = kwargs['post_modifier']
 
     def __eq__(self, other):
         if (not isinstance(other, Phrase)):
@@ -815,6 +851,19 @@ class Clause(Phrase):
         text = '<%s xsi:type="SPhraseSpec" %s>\n' % (element, features)
         return text
     
+    def to_python(self):
+        subj = None if self.subj is None else self.subj.to_python()
+        vp =   None if self.vp is None else self.vp.to_python()
+        if subj and vp:
+            return ('Clause(%s, %s)' % (subj, vp))
+        elif subj:
+            return ('Clause(%s)' % (subj))
+        elif vp:
+            return ('Clause(%s)' % (vp))
+        else:
+            return 'Clause()'
+
+    
     def __eq__(self, other):
         if (not isinstance(other, Clause)):
             return False
@@ -840,6 +889,11 @@ class Clause(Phrase):
         """ Set the vp of the clause. """
         self.vp = String(vp) if isinstance(vp, str) else vp
 
+    def set_features(self, features):
+        """ Set features on the VP. """
+        if self.vp:
+            self.vp.set_features(features)
+    
     def constituents(self):
         """ Return a generator to iterate through constituents. """
         yield from self.yield_front_modifiers()
@@ -1024,6 +1078,7 @@ class CC(Element):
         self.coords = list()
         self.add_coordinate(*coords)
         self.add_feature('conj', conj)
+        self.conj = conj
 
     def __eq__(self, other):
         if (not isinstance(other, CC)):
@@ -1084,11 +1139,7 @@ class IVisitor:
     def __init__(self):
         self.text = ''
         
-    def visit_phrase(self, node, element=''):    
-        if (node.has_feature('NEGATION') and 
-            node.get_feature('NEGATION') == 'TRUE'):
-            self.text += ' not'
-            
+    def visit_phrase(self, node, element=''):
         if node.front_modifier:
             for c in node.front_modifier:
                 c.accept(self, 'frontMod')
@@ -1099,6 +1150,10 @@ class IVisitor:
         
         if node.head:
             node.head.accept(self, 'head')
+
+        if (node.has_feature('NEGATION') and
+            node.get_feature('NEGATION') == 'TRUE'):
+            self.text += ' not'
 
         if node.has_feature('COMPLEMENTISER'):
             self.text += ' ' + node.get_feature('COMPLEMENTISER')
@@ -1232,29 +1287,25 @@ class StrVisitor(IVisitor):
         self.visit_phrase(node)
     
     def visit_cc(self, node, element):
-        if len(node.coords) > 2:
-            for c in node.coords[:-1]:
+        if len(node.coords)  == 1:
+            node.coords[0].accept(self)
+        elif len(node.coords) == 2:
+            node.coords[0].accept(self)
+            self.text += ' ' + node.conj
+            node.coords[1].accept(self)
+        else:
+            for c in node.coords[:-2]:
                 c.accept(self)
                 if node.conj == 'and':
                     self.text += ','
                 else:
                     self.text += ' ' + node.conj
-            self.text = self.text[:-1] # remove the last ", "
+            node.coords[-2].accept(self)
             self.text += ' ' + node.conj
             node.coords[-1].accept(self)
-    
-        elif len(node.coords) > 1:
-            get_log().debug('visiting coord 1')
-            node.coords[0].accept(self)
-            self.text += ' ' + node.get_feature('conj')
-            get_log().debug('visiting coord 2')
-            node.coords[1].accept(self)
-
-        elif len(node.coords) > 0:
-            node.coords[0].accept(self)
 
     def to_str(self):
-        return self.text.strip()
+        return self.text.strip().replace(' , ', ', ')
     
     def clear(self):
         self.text = ''

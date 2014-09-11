@@ -49,36 +49,40 @@ import yaml
 
 import nlg.utils
 
-def setup_logging(
-    default_path='log.config.yaml',
-    default_level=logging.INFO,
-    env_key='LOG_CFG'
-):
-    """Setup logging configuration
+import logging
 
-    """
-    path = default_path
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
-    if os.path.exists(path):
-        with open(path, 'rt') as f:
-            config = yaml.load(f.read())
-        logging.config.dictConfig(config)
-    else:
-        print('Could not open log config file "%s"' % path)
-        logging.basicConfig(level=default_level)
+logging.getLogger(__name__).warning('initialising NLG library')
 
-
-# read the config file
-mod_path = os.path.dirname(__file__)
-config_path = mod_path + os.path.sep + 'resources/log.config.yaml'
-
-if not (os.path.isfile(config_path) and os.access(config_path, os.R_OK)):
-    files = nlg.utils.find_files('../..', '.yaml')
-    for root, file in files:
-        if file == 'log.config.yaml':
-            config_path = os.path.join(root, file)
+#def setup_logging(
+#    default_path='log.config.yaml',
+#    default_level=logging.INFO,
+#    env_key='LOG_CFG'
+#):
+#    """Setup logging configuration
+#
+#    """
+#    path = default_path
+#    value = os.getenv(env_key, None)
+#    if value:
+#        path = value
+#    if os.path.exists(path):
+#        with open(path, 'rt') as f:
+#            config = yaml.load(f.read())
+#        logging.config.dictConfig(config)
+#    else:
+#        print('Could not open log config file "%s"' % path)
+#        logging.basicConfig(level=default_level)
+#
+#
+## read the config file
+#mod_path = os.path.dirname(__file__)
+#config_path = mod_path + os.path.sep + 'resources/log.config.yaml'
+#
+#if not (os.path.isfile(config_path) and os.access(config_path, os.R_OK)):
+#    files = nlg.utils.find_files('../..', '.yaml')
+#    for root, file in files:
+#        if file == 'log.config.yaml':
+#            config_path = os.path.join(root, file)
 
 # NOTE: setting up logging in the module overrides application settins!
 #       don't do that; rely on the app setting

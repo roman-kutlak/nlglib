@@ -34,11 +34,11 @@ handlers:
 loggers:
     nlg:
         level: DEBUG
-        handlers: [single_run_handler, rotating_lib_handler]
+        handlers: [console, single_run_handler, rotating_lib_handler]
         propagate: no
 
-root:
-    level: INFO
-    handlers: [console, single_run_handler, rotating_lib_handler]
+    root:
+        level: DEBUG
+        handlers: [console, single_run_handler, rotating_lib_handler]
 
 ...

@@ -91,6 +91,6 @@ def find_files(dir, extension):
 
 
 def get_log():
-    return logging.getLogger(__name__)
+    return logging.getLogger('nlg')
     
     

@@ -45,11 +45,11 @@ import logging
 from nlg.structures import *
 from nlg.aggregation import *
 
-# add default logger
-logging.getLogger(__name__).addHandler(logging.NullHandler())
-
 def get_log():
+    print('__________________________ getting log for name: ' + __name__)
     return logging.getLogger(__name__)
+
+get_log().addHandler(logging.NullHandler())
 
 
 def lexicalise(msg):
@@ -85,12 +85,13 @@ def lexicalise_message_spec(msg):
     template = templates.template(msg.name)
     if template is None:
         get_log().warning('No sentence template for "%s"' % msg.name)
-        result = String(msg.name)
+        result = String(str(msg))
         result._features = msg._features.copy()
         return result
-    if isinstance(template, str): return String(template)
+    if isinstance(template, str):
+        return String(template)
+    template.set_features(msg._features.copy())
     # find arguments
-    template._features = msg._features.copy()
     args = template.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
@@ -107,11 +108,11 @@ def lexicalise_message(msg):
     """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
     get_log().debug('Lexicalising message.')
     if msg is None: return None
-    nucleus = lexicalise(msg.nucleus)
+    if isinstance(msg.nucleus, list):
+        nucleus = [lexicalise(x) for x in msg.nucleus if x is not None]
+    else:
+        nucleus = lexicalise(msg.nucleus)
     satelites = [lexicalise(x) for x in msg.satelites if x is not None]
-#    m = Message(msg.rst, nucleus, *satelites)
-#    m.marker = msg.marker
-#    return m
     # stick each message into a clause
     result = None
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
@@ -124,14 +125,56 @@ def lexicalise_message(msg):
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_front_modifier('if')
-        result.add_feature('COMPLEMENTISER', 'then');
-    if msg.rst == 'Quantifier':
+        result.add_feature('COMPLEMENTISER', 'then')
+    if msg.rst == 'ImpliedBy':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication; got '
                             + str(satelites))
         result = Phrase()
-        result.set_head(NP(nucleus, String(msg.marker)))
+        result.set_head(nucleus)
         result.add_complement(*satelites)
+        result.add_feature('COMPLEMENTISER', 'when')
+    if msg.rst == 'Equivalence':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in equivalence; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(nucleus)
+        result.add_complement(*satelites)
+        result.add_feature('COMPLEMENTISER', 'is')
+    if msg.rst == 'Inequivalence':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in equivalence; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(nucleus)
+        result.add_complement(*satelites)
+        result.add_feature('COMPLEMENTISER', 'is not')
+    if msg.rst == 'Quantifier':
+        # quantifiers have multiple nuclei (variables)
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in implication; got '
+                            + str(satelites))
+        result = Phrase()
+        if len(nucleus) == 1:
+            np = NP(nucleus[0], String(msg.marker))
+        else:
+            cc = CC(*nucleus, conj='and')
+            np = NP(cc, String(msg.marker))
+        if (msg.marker.startswith('there exist')):
+            np.add_complement('such that')
+        np.add_post_modifier('(')
+        result.set_head(np)
+        result.add_complement(*satelites)
+#        result.add_front_modifier('(')
+        result.add_post_modifier(')')
+    if msg.rst == 'Negation':
+        result = Phrase()
+        np = NP(nucleus, String(msg.marker))
+        np.add_pre_modifier('(')
+        result.set_head(np)
+        result.add_complement(*satelites)
+        result.add_post_modifier(')')
     return result   
 
 def lexicalise_paragraph(msg):
