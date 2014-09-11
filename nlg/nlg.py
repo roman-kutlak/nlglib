@@ -69,9 +69,9 @@ class Nlg:
         summary = self.generate_re(summary, context)
         get_log().debug('After REG: %s' % str(summary))
         summary = self.realise(summary)
-        get_log().debug('After realisation: %s' % repr(summary))
+        get_log().debug('After realisation: %s' % str(summary))
         summary = self.format(summary)
-        get_log().debug('After formatting: %s' % repr(summary))
+        get_log().debug('After formatting: %s' % str(summary))
         return summary
 
     def process_nlg_doc2(self, doc, ontology, context=None):
@@ -87,9 +87,9 @@ class Nlg:
         summary = self.generate_re(summary, context)
         get_log().debug('After REG: %s' % str(summary))
         summary = self.realise2(summary)
-        get_log().debug('After realisation: %s' % repr(summary))
+        get_log().debug('After realisation: %s' % str(summary))
         summary = self.format(summary)
-        get_log().debug('After formatting: %s' % repr(summary))
+        get_log().debug('After formatting: %s' % str(summary))
         return summary
 
     def lexicalise(self, msgs):

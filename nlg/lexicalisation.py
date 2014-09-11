@@ -95,7 +95,7 @@ def lexicalise_message_spec(msg):
     args = template.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
-        get_log().debug('Replacing %s in %s. ' % (repr(arg), str(template)))
+        get_log().debug('Replacing %s in %s. ' % (str(arg), str(template)))
         val = msg.value_for(arg.id)
         get_log().debug(' val = %s' % repr(val))
         template.replace(arg, val)
@@ -175,6 +175,9 @@ def lexicalise_message(msg):
         result.set_head(np)
         result.add_complement(*satelites)
         result.add_post_modifier(')')
+    else:
+        result = Message(msg.rst, nucleus, *satelites)
+        result.marker = msg.marker
     return result   
 
 def lexicalise_paragraph(msg):
@@ -318,6 +321,16 @@ ReverseCirculation = Message('Ellaboration',
 Bullheading = Message('Ellaboration',
     VP('kill', 'the kick', 'using Bullheading'), sat)
 
+RecordData = VP('record', 'data', 'using the kill sheet')
+#PP('on', 'success', VP('assert', 'well_shut')))
+
+sat = None#PP('on', 'success', VP('assert', 'kick_killed'))
+
+WaitAndWeight = VP('kill', 'the kick', 'using the Wait and Weight method')
+DrillersMethod = VP('kill', 'the kick', 'using the Driller\'s method')
+ReverseCirculation = VP('kill', 'the kick', 'using Reverse Circulation')
+Bullheading = VP('kill', 'the kick', 'using Bullheading')
+
 ReopenWell = VP('reopen', 'the well')
 
 SealWell = VP('seal', 'the well')
@@ -410,6 +423,13 @@ class SentenceTemplates:
         self.templates['Stirling'] = Clause(you, VP('drive to', 'Stirling'))
         self.templates['Inverness'] = Clause(you, VP('drive to', 'Inverness'))
         self.templates['Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
+        
+        self.templates['drive_to_Edinburgh'] = Clause(you, VP('drive to', 'Edinburgh'))
+        self.templates['drive_to_Perth'] = Clause(you, VP('drive to', 'Perth'))
+        self.templates['drive_to_Kincardine'] = Clause(you, VP('drive to', 'Kincardine'))
+        self.templates['drive_to_Stirling'] = Clause(you, VP('drive to', 'Stirling'))
+        self.templates['drive_to_Inverness'] = Clause(you, VP('drive to', 'Inverness'))
+        self.templates['drive_to_Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
 
         self.templates['edinburgh_bridge_closed'] = \
             'Forth Road Bridge outside Edinburgh is closed'
@@ -429,14 +449,19 @@ class SentenceTemplates:
             'the weather forecast indicates high snow fall'
         self.templates['accident'] = \
             'an accident'
+        # TODO: fix the cheet with the preposition: eg. if template is NP, add 'of'
         self.templates['accident_on_bridge'] = \
-            'an accident on the bridge'
+            'of an accident on the bridge'
+        self.templates['stirling_faster'] = \
+            'going through Stirling is faster'
+        self.templates['kincardine_faster'] = \
+            'going through Kincardine is faster'
+        self.templates['kincardine_better'] = \
+            'going through Kincardine is better'
         self.templates['stirling_shorter'] = \
             'going through Stirling is faster'
         self.templates['kincardine_shorter'] = \
             'going through Kincardine is faster'
-        self.templates['kincardine_better'] = \
-            'going through Kincardine is better'
 
         self.templates['can_Edinburgh_to_Stirling'] = \
             'you can go from Edinburgh to Stirling'
@@ -527,18 +552,57 @@ class SentenceTemplates:
         self.templates['-alpA'] = \
             'no automated landing possible at airfield A'
 
+        self.templates['ilsA'] = \
+            'Instrumental Landing System detected at airfield A'
+        self.templates['ilsB'] = \
+            'Instrumental Landing System detected at airfield B'
+        self.templates['vlpA'] = \
+            'visual landing at airfield A possible'
+        self.templates['alpA'] = \
+            'automated landing possible at airfield A'
+        self.templates['vlpB'] = \
+            'visual landing at airfield B possible'
+        self.templates['alpB'] = \
+            'automated landing possible at airfield B'
+
         self.templates['kick'] = 'a kick was detected'
         self.templates['need_speed'] = 'the well has to be shut quickly'
         self.templates['shallow_depth'] = 'the well is in a shallow depth'
         self.templates['do_kill'] = 'kill the kick'
         self.templates['HSP_very_low'] = 'HSP is very low'
 
+        self.templates['OpenChokeLine'] =\
+            Clause(NP('you'), VP('open choke line'))
+        self.templates['CollarsInBOP'] =\
+            Clause(NP('you'), VP('collars in bop'))
+        self.templates['InstallKillAssemblyAndTest'] =\
+            Clause(NP('you'), VP('install kill assembly and test'))
+        self.templates['CheckSpaceOut'] =\
+            Clause(NP('you'), VP('check space out'))
+        self.templates['ClosePipeRams'] =\
+            Clause(NP('you'), VP('close pipe rams'))
+        self.templates['LandStringAndClosePosilocks'] =\
+            Clause(NP('you'), VP('land string and close posilocks'))
+        self.templates['OpenKellyCock'] =\
+            Clause(NP('you'), VP('open kelly cock'))
+        self.templates['CheckSurfacePressures'] =\
+            Clause(NP('you'), VP('check surface pressures'))
+        self.templates['CheckUpwardForce'] =\
+            Clause(NP('you'), VP('check upward force'))
+        self.templates['DropStringThenCloseShearRams'] =\
+            Clause(NP('you'), VP('drop string then close shear rams'))
+        self.templates['ObserveWell'] =\
+            Clause(NP('you'), VP('observe well'))
+        self.templates['MusterAllCrewsForInformation'] =\
+            Clause(NP('you'), VP('muster all crews for information'))
+        self.templates['PrepareToKillWell'] =\
+            Clause(NP('you'), VP('prepare to kill well'))
+
     def template(self, action):
         if action in self.templates:
             return deepcopy(self.templates[action])
         else:
             return None
-
 
 
 templates = SentenceTemplates()
