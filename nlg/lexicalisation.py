@@ -125,25 +125,34 @@ def lexicalise_message(msg):
         result.add_complement(*satelites)
         result.add_front_modifier('if')
         result.add_feature('COMPLEMENTISER', 'then')
+    elif msg.rst == 'Equivalent':
+        if (len(satelites) != 1):
+            get_log().error('expected only one satelite in equivalence; got '
+                            + str(satelites))
+        result = Phrase()
+        result.set_head(nucleus)
+        result.add_complement(*satelites)
+        result.add_front_modifier('if and only if')
+        result.add_feature('COMPLEMENTISER', 'then')
     elif msg.rst == 'ImpliedBy':
         if (len(satelites) != 1):
-            get_log().error('expected only one satelite in implication; got '
+            get_log().error('expected only one satelite in implication by; got '
                             + str(satelites))
         result = Phrase()
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_feature('COMPLEMENTISER', 'when')
-    elif msg.rst == 'Equivalence':
+    elif msg.rst == 'Equality':
         if (len(satelites) != 1):
-            get_log().error('expected only one satelite in equivalence; got '
+            get_log().error('expected only one satelite in Equality; got '
                             + str(satelites))
         result = Phrase()
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_feature('COMPLEMENTISER', 'is')
-    elif msg.rst == 'Inequivalence':
+    elif msg.rst == 'Inequality':
         if (len(satelites) != 1):
-            get_log().error('expected only one satelite in equivalence; got '
+            get_log().error('expected only one satelite in Inequality; got '
                             + str(satelites))
         result = Phrase()
         result.set_head(nucleus)
