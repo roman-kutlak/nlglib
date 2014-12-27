@@ -1,40 +1,3 @@
-#############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
-
 
 from copy import deepcopy
 import re
@@ -78,7 +41,7 @@ def lexicalise_message_spec(msg):
     """ Return Element corresponding to given message specification.
     If the lexicaliser can not find correct lexicalisation, it returns None
     and logs the error.
-    
+
     """
     get_log().debug('Lexicalising message specs')
     template = templates.template(msg.name)
@@ -432,7 +395,7 @@ class SentenceTemplates:
         self.templates['Stirling'] = Clause(you, VP('drive to', 'Stirling'))
         self.templates['Inverness'] = Clause(you, VP('drive to', 'Inverness'))
         self.templates['Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
-        
+
         self.templates['drive_to_Edinburgh'] = Clause(you, VP('drive to', 'Edinburgh'))
         self.templates['drive_to_Perth'] = Clause(you, VP('drive to', 'Perth'))
         self.templates['drive_to_Kincardine'] = Clause(you, VP('drive to', 'Kincardine'))
@@ -636,3 +599,39 @@ def del_template(k, silent=True):
 
 
 
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################

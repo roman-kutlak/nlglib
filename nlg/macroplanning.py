@@ -1,3 +1,18 @@
+
+from nlg.structures import RST, Document, Section, Paragraph, Message, MsgSpec
+
+
+def select_content(messages, workflow, ontology, user_model, domain_history):
+    selected = list()
+    for msg in messages:
+        instance = msg.instantiate(workflow)
+        if instance is not None:
+            selected.append(instance)
+
+    return selected
+
+
+
 #############################################################################
 ##
 ## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
@@ -34,19 +49,3 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 ##
 #############################################################################
-
-
-from nlg.structures import RST, Document, Section, Paragraph, Message, MsgSpec
-
-
-def select_content(messages, workflow, ontology, user_model, domain_history):
-    selected = list()
-    for msg in messages:
-        instance = msg.instantiate(workflow)
-        if instance is not None:
-            selected.append(instance)
-
-    return selected
-
-
-

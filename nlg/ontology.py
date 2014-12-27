@@ -1,40 +1,3 @@
-#############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
-
 
 import rdflib
 import rdflib.plugins.sparql as sparql
@@ -49,7 +12,7 @@ def get_log():
 
 
 class Ontology:
-    """ The class Ontology represents an interface to the underlying RDF 
+    """ The class Ontology represents an interface to the underlying RDF
     ontology. It allows querying the ontology for things such as entity
     types.
     """
@@ -74,11 +37,11 @@ class Ontology:
         return result
 
     def best_entity_type(self, entity_name):
-        """ Return the most specific type of the entity. 
+        """ Return the most specific type of the entity.
         An object can belong to multiple hierarchies (multiple inheritance).
         The function assumes that the longest hierarchy path is the best one
         and it returns the most specific type from the longest hierarchy.
-        If two or more hierarchies have the same length, the function takes 
+        If two or more hierarchies have the same length, the function takes
         the first one (i.e. undefined order between the two).
 
         """
@@ -150,7 +113,7 @@ WHERE {
     def partition(self, classes):
         """ Partition classes according to subsumption hierarchy and return
         the partitions in a list sorted by size of partition from largest down.
-        
+
         """
         partitions = subsume_partition(classes, self)
         partitions = sorted(partitions, key=lambda x: len(x), reverse=True)
@@ -197,7 +160,7 @@ WHERE {
 
 def subsume_sort(list, ontology):
     """Quicksort list of classes. Assume classes are on the same hierarchy. """
-    if list == []: 
+    if list == []:
         return []
     else:
         pivot = list[0]
@@ -273,3 +236,41 @@ def subsume_partition(classes, ontology):
 #        if not consumed: partitions.append([elt])
 #    return partitions
 #
+
+
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################

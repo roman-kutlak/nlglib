@@ -1,56 +1,26 @@
-#############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
-
 
 from copy import deepcopy
 import logging
 import re
 
+from nlg.simplenlg import SimplenlgClient, SimpleNLGServer
 from nlg.structures import *
 import nlg.aggregation as aggregation
 import nlg.lexicalisation as lexicalisation
 import nlg.reg as reg
 import nlg.realisation as realisation
 import nlg.format as format
+from nlg.utils import Settings
+
 
 def get_log():
     return logging.getLogger(__name__)
 
 get_log().addHandler(logging.NullHandler())
+
+
+simplenlg_server = None
+simplenlg_client = None
 
 
 class Nlg:
@@ -95,7 +65,7 @@ class Nlg:
     def lexicalise(self, msgs):
         """ Lexicalise the given high-level structure using lexicalise
         from the lexicalisation package.
-        
+
         """
         res = lexicalisation.lexicalise(msgs)
         return res
@@ -127,4 +97,61 @@ class Nlg:
         return text
 
 
+def init(server=True, client=True):
+    """ Initialise the simpleNLG client and server. """
+    s = Settings('nlg/resources/simplenlg.settings')
+    host = s.get_setting('SimplenlgHost')
+    port = s.get_setting('SimplenlgPort')
+    jar  = s.get_setting('SimplenlgJarPath')
+    if server:
+        simplenlg_server = SimpleNLGServer(jar, port)
+        simplenlg_server.start()
+    if client:
+        simplenlg_client = SimplenlgClient(host, port)
 
+
+def shutdown(server=True, client=True):
+    """ Shut down the simpleNLG client and server. """
+    if server:
+        simplenlg_server.shutdown()
+        simplenlg_server = None
+    if client:
+        simplenlg_client = None
+
+
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################

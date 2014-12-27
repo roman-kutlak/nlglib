@@ -51,7 +51,7 @@ import nlg.utils
 
 import logging
 
-logging.getLogger(__name__).warning('initialising NLG library')
+logging.getLogger(__name__).info('initialising NLG library')
 
 #def setup_logging(
 #    default_path='log.config.yaml',

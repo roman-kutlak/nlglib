@@ -13,14 +13,14 @@ class TestAggregation(unittest.TestCase):
         the_truck = NP(head=truck, spec=the)
         into = Word("into", "PREPOSITION")
         pp = PP(head=into)
-        pp.complement.append(the_truck)
+        pp.complements.append(the_truck)
         
         put = Word("put", "VERB")
         vp = VP(head=put)
         
         piano = Word("piano", "NOUN")
         drum = Word("drum", "NOUN")
-        vp.complement.append(pp)
+        vp.complements.append(pp)
         
         obj1 = NP(piano, the)
         obj1._features["discourseFunction"] = 'OBJECT'
@@ -28,8 +28,8 @@ class TestAggregation(unittest.TestCase):
         obj2._features["discourseFunction"] = 'OBJECT'
         
         vp2 = deepcopy(vp)
-        vp.complement.insert(0, obj1)
-        vp2.complement.insert(0, obj2)
+        vp.complements.insert(0, obj1)
+        vp2.complements.insert(0, obj2)
         
         self.c1 = Clause(vp=vp)
         self.c1._features['FORM'] = "IMPERATIVE"

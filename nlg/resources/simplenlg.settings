@@ -1,0 +1,3 @@
+SimplenlgHost     localhost
+SimplenlgPort     50007
+SimplenlgJarPath  nlg/resources/simplenlg.jar

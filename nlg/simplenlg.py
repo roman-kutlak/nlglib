@@ -1,40 +1,3 @@
-#############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
-
 
 import os
 import sys
@@ -54,14 +17,14 @@ def get_log():
     return logging.getLogger(__name__)
 
 
-simplenlg_path = 'nlg/resources/simplenlg.jar'
-
-if not (os.path.isfile(simplenlg_path) and os.access(simplenlg_path, os.R_OK)):
-    get_log().warning('simpleNLG expected in "' + simplenlg_path + '"')
-    files = nlg.utils.find_files('../..', '.jar')
-    for root, file in files:
-        if file == 'simplenlg.jar':
-            simplenlg_path = os.path.join(root, file)
+# simplenlg_path = 'nlg/resources/simplenlg.jar'
+#
+# if not (os.path.isfile(simplenlg_path) and os.access(simplenlg_path, os.R_OK)):
+#     get_log().warning('simpleNLG expected in "' + simplenlg_path + '"')
+#     files = nlg.utils.find_files('../..', '.jar')
+#     for root, file in files:
+#         if file == 'simplenlg.jar':
+#             simplenlg_path = os.path.join(root, file)
 
 
 class ServerError(Exception): pass
@@ -104,7 +67,7 @@ class Socket:
                 raise RuntimeError('Connection lost.')
             total_sent += sent
         return total_sent
-    
+
     def _recv(self, length = 0):
         """ Receive a sequence of bytes of the specified length. """
         msg = b''
@@ -130,7 +93,7 @@ class Socket:
         """ Read a string from the server. """
         # first read the length of the message
         length = ntoh(self._recv(4)) # 4 bytes for int
-    
+
         # now read the message
         msg = self._recv(length)
         return msg.decode(encoding)
@@ -158,7 +121,7 @@ class Socket:
 class SimplenlgClient:
     """ A class that acts as a client to a simplenlg server.
         The host and port are configured through the settings file.
-        
+
     """
 
     def __init__(self, host, port):
@@ -179,17 +142,17 @@ class SimpleNLGServer(threading.Thread):
     """ A class that can be used as a SimpleNLG server. The actual java server
     is started as a subprocess and listens on the port 50007 for incoming XML
     requests for realisation.
-    
-    As the server starts in a separate thread, it requires certain 
+
+    As the server starts in a separate thread, it requires certain
     synchronisation. In particular, the caller should call the start() method
     after creating the object and wait for the startup to finish.
-    
+
     """
-    # TODO: add port or server config file or something
-    def __init__(self, jar_path):
+    def __init__(self, jar_path, port):
         super(SimpleNLGServer, self).__init__()
         get_log().debug('Creating simpleNLG server (%s)' % jar_path)
         self.jar_path = jar_path
+        self.port = port
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
         self._ready = False
@@ -208,10 +171,9 @@ class SimpleNLGServer(threading.Thread):
     def run(self):
         """ Start up SimpleNLG server as a subprocess and wait until someone
         signals that the server should be shut down using do_shutdown().
-        
-        """
-        args = ['java', '-jar', self.jar_path, '-Xmx512MB']
 
+        """
+        args = ['java', '-jar', self.jar_path, '-Xmx512MB', self.port]
         with subprocess.Popen(args, stdin=subprocess.PIPE,
                                 universal_newlines=True) as proc:
             # use a condition variable to signal that the process is running
@@ -275,9 +237,9 @@ class SimpleNLGServer(threading.Thread):
                         % self.jar_path)
 
     def _signal_shutdown(self):
-        """ Signal to the server that it should shut down the subprocess (the 
+        """ Signal to the server that it should shut down the subprocess (the
         actual SimpleNLG server running in java virtual machine.
-        
+
         """
         self.exit_cv.acquire()
         self._shutdown = True
@@ -294,5 +256,41 @@ class SimpleNLGServer(threading.Thread):
         get_log().debug('Shutting down simpleNLG server (%s)' % self.jar_path)
         self._signal_shutdown()
         self.join()
-#        import traceback
-#        traceback.print_stack()
+
+
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################

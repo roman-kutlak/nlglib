@@ -1,40 +1,3 @@
-#############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
-
 
 import logging
 
@@ -81,9 +44,9 @@ def add_elements(e1, e2, conj='and'):
     return cc
 
 def try_to_aggregate(sent1, sent2, marker='and'):
-    """ Attempt to combine two elements into one by replacing the differing 
+    """ Attempt to combine two elements into one by replacing the differing
     elements by a conjunction.
-    
+
     """
     if sent1 is None or sent2 is None: return None
     if not isinstance(sent1, Clause) or not isinstance(sent2, Clause):
@@ -105,7 +68,7 @@ def try_to_aggregate(sent1, sent2, marker='and'):
                     isinstance(s2.vp, Phrase) and
                     s1.vp.head != s2.vp.head):
                     continue
-            
+
             # if sentences are equal (eg s1: load x; s2: load x) aggregate
             if (s1 == s2):
                 get_log().debug('Aggregating:\n\t%s\n\t%s' % (str(s1), str(s2)))
@@ -122,12 +85,12 @@ def try_to_aggregate(sent1, sent2, marker='and'):
 
 def synt_aggregation(elements, max=3, marker='and'):
     """ Take a list of elements and combine elements that are synt. similar.
-    
+
     elements - a list of elements to combine
     max      - a maximum number of elements to aggregate
-    
-    The algorithm relies on shared structure of the elements. If, for 
-    example, two elements share the subject, combine the VPs into 
+
+    The algorithm relies on shared structure of the elements. If, for
+    example, two elements share the subject, combine the VPs into
     a conjunction. Do not combine more than 'max' elements into each other.
 
     """
@@ -169,7 +132,7 @@ def _do_aggregate(elements, i, max, marker='and'):
 def _can_aggregate(message, max):
     """ Return true if this message can be aggregated.
     max - maximum number of coordinates in a coordingated clause
-    If the message does not have a coordinated clause or if the number 
+    If the message does not have a coordinated clause or if the number
     of coordinates is less then 'max', return True.
 
     """
@@ -212,8 +175,8 @@ def aggregate(msg, limit):
 
 
 def aggregate_message(msg, limit):
-    """ Perform syntactic aggregation on the constituents. 
-    The aggregation is triggered only if the RST relation is 
+    """ Perform syntactic aggregation on the constituents.
+    The aggregation is triggered only if the RST relation is
     a sequence or a list.
 
     """
@@ -225,7 +188,7 @@ def aggregate_message(msg, limit):
     get_log().debug('Aggregating list or sequence.')
     elements = []
     if len(msg.satelites) > 1:
-        if msg.marker is None or msg.marker == '': 
+        if msg.marker is None or msg.marker == '':
             marker = 'and'
         else:
             marker = msg.marker
@@ -265,25 +228,39 @@ def aggregate_document(doc, limit):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#############################################################################
+##
+## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+## All rights reserved.
+##
+## This file is part of SAsSy NLG library.
+##
+## You may use this file under the terms of the BSD license as follows:
+##
+## "Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+##   * Redistributions of source code must retain the above copyright
+##     notice, this list of conditions and the following disclaimer.
+##   * Redistributions in binary form must reproduce the above copyright
+##     notice, this list of conditions and the following disclaimer in
+##     the documentation and/or other materials provided with the
+##     distribution.
+##   * Neither the name of University of Aberdeen nor
+##     the names of its contributors may be used to endorse or promote
+##     products derived from this software without specific prior written
+##     permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+##
+#############################################################################
