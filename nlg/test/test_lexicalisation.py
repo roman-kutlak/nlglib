@@ -10,6 +10,8 @@ from nlg.lexicalisation import lexicalise_paragraph
 from nlg.lexicalisation import lexicalise_section
 from nlg.lexicalisation import lexicalise_document
 
+from nlg.realisation import simple_realisation as real
+
 
 class DummyMsg(MsgSpec):
     def __init__(self):
@@ -55,7 +57,7 @@ class TestLexicalisation(unittest.TestCase):
         p = Paragraph(m)
         tmp = lexicalise_paragraph(p)
         expected = '\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, str(tmp))
+        self.assertEqual(expected, real(tmp))
 
     def test_lexicalise_paragraph(self):
         """ Test lixicalisation of Paragraph. """
@@ -63,7 +65,7 @@ class TestLexicalisation(unittest.TestCase):
         p = Paragraph(m)
         tmp = lexicalise_paragraph(p)
         expected = '\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, str(tmp))
+        self.assertEqual(expected, real(tmp))
 
     def test_lexicalise_section(self):
         """ Test lixicalisation of Section. """
@@ -72,7 +74,7 @@ class TestLexicalisation(unittest.TestCase):
         s = Section('Section 1', p)
         tmp = lexicalise_section(s)
         expected = 'Section 1\n\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, str(tmp))
+        self.assertEqual(expected, real(tmp))
 
         s = Section('Section 1', p, p, p)
         tmp = lexicalise_section(s)
@@ -80,7 +82,7 @@ class TestLexicalisation(unittest.TestCase):
             '\n\tBoris is fast Boris is fast Boris is fast' + \
             '\n\tBoris is fast Boris is fast Boris is fast' + \
             '\n\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, str(tmp))
+        self.assertEqual(expected, real(tmp))
 
     def test_lexicalise_document(self):
         """ Test lixicalisation of Document. """
@@ -95,7 +97,7 @@ class TestLexicalisation(unittest.TestCase):
             '\n\tBoris is fast' + \
             '\n\nSection Two' + \
             '\n\tBoris is fast Boris is fast'
-        self.assertEqual(expected, str(tmp))
+        self.assertEqual(expected, real(tmp))
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import logging
 
 from copy import deepcopy
 from nlg.structures import *
+from nlg.microplanning import sentence_iterator
 
 
 # add default logger
@@ -55,11 +56,11 @@ def try_to_aggregate(sent1, sent2, marker='and'):
     replacement = Word("REPLACEMENT", "REPLACEMENT")
     for e1 in sentence_iterator(sent1):
         s1 = deepcopy(sent1)
-        replace_element(s1, e1, replacement) # replace one element
+        s1.replace(e1, replacement) # replace one element
 
         for e2 in sentence_iterator(sent2):
             s2 = deepcopy(sent2)
-            replace_element(s2, e2, replacement) #replace one element
+            s2.replace(e2, replacement) #replace one element
 
             if s1.subj is None:
                 if s1.vp == replacement:
@@ -73,7 +74,7 @@ def try_to_aggregate(sent1, sent2, marker='and'):
             if (s1 == s2):
                 get_log().debug('Aggregating:\n\t%s\n\t%s' % (str(s1), str(s2)))
                 cc = add_elements(e1, e2, conj=marker)
-                replace_element(s1, replacement, cc)
+                s1.replace(replacement, cc)
                 get_log().debug('Result: %s' % repr(s1))
                 return s1
 #            else:

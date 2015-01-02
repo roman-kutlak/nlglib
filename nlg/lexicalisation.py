@@ -178,31 +178,6 @@ def lexicalise_document(doc):
     return Document(title, *sections)
 
 
-## TODO: hwo to lexicalise this given that NLG does know about tasks?
-#def lexicalise_task(task, document):
-#    """ Convert a task to a syntax tree with lexical items in it. """
-#    get_log().debug('Lexicalising task %s' % str(task))
-#    params = task.input_params[:]
-#    key = task.name
-#    sent = templates.template(key)
-#    if None is sent:
-#        sent = templates.template(task.id)
-#    if None != sent:
-#        _replace_placeholders_with_params(sent, params)
-#    else:
-#        print('Key "%s" or id "%s" not found' % (task.name, task.id))
-#    return sent
-#
-#
-#def _replace_placeholders_with_params(template, params):
-#    get_log().debug('Replacing params in template:\n%s' % str(template))
-#    get_log().debug('Params: \n\t %s' % str(params))
-#    for c in sentence_iterator(template):
-#        if (isinstance(c, PlaceHolder)):
-#            id = c.id
-#            var = params[id]
-#            c.object = var
-##           print('Replacing parameter %d with %s' % (id, var))
 
 def create_template_from(string):
     return eval(string)

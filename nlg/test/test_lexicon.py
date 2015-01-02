@@ -2,6 +2,41 @@ import unittest
 
 from nlg.lexicon import *
 
+
+class TestLexicon(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        path = 'nlg/test/data/nih_lexicon_extract.xml'
+        cls.lexicon = lexicon_from_nih_xml(path)
+
+    def test_nih_build(self):
+        for w in self.lexicon.words:
+            self.assertNotEqual(None, w.id)
+            self.assertNotEqual('', w.id)
+
+    def test_pos(self):
+        tags = self.lexicon.pos_tags_for('house')
+        self.assertEqual(True, POS_NOUN in tags)
+        self.assertEqual(True, POS_VERB in tags)
+        self.assertEqual(True, POS_ADJECTIVE in tags)
+
+    def test_word(self):
+        word = self.lexicon.word('house', POS_NOUN)
+        self.assertIsNotNone(word)
+        self.assertEqual('house', word.word)
+        self.assertEqual(POS_NOUN, word.pos)
+        self.assertNotEqual('', word.id)
+
+        word = self.lexicon.word('walking')
+        self.assertIsNotNone(word)
+        self.assertEqual('walking', word.word)
+        self.assertEqual('walk', word.base)
+        self.assertEqual(POS_VERB, word.pos)
+        self.assertNotEqual('', word.id)
+
+
+
 regular = [ ('road', 'roads'),
             ('flower', 'flowers'),
             ('girl', 'girls') ]

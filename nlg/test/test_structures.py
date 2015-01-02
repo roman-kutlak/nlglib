@@ -230,7 +230,12 @@ Message (Contrast): 'baz' 'bar'"""
         self.assertEqual(expected, descr)
 
 
-# microplanning
+################################################################################
+#                                                                              #
+#                              microplanning                                   #
+#                                                                              #
+################################################################################
+
 
 class TestElement(unittest.TestCase):
     """ Test the functionality of the base class of NLG elements. """
@@ -239,12 +244,12 @@ class TestElement(unittest.TestCase):
         """ Test ctor. """
         e = Element()
         self.assertIsNotNone(e)
-        e = Element('visit_element')
+        e = Element(ELEMENT)
         self.assertEqual('visit_element', e._visitor_name)
 
     def test_features(self):
         """ Test handeling features. """
-        e = Element('visit_element')
+        e = Element(ELEMENT)
         self.assertEqual('visit_element', e._visitor_name)
         self.assertEqual(False, e.has_feature('TENSE'))
         self.assertEqual(None, e.feature('TENSE'))
@@ -254,22 +259,6 @@ class TestElement(unittest.TestCase):
         self.assertEqual(True, e.has_feature('TENSE'))
         self.assertEqual('PAST', e.feature('TENSE'))
         self.assertEqual('PAST', e.get_feature('TENSE'))
-
-    def test_str(self):
-        """ Test printing. """
-        e = Element('visit_element')
-        e.add_feature('conj', 'and')
-        expected = ''
-        descr = str(e)
-        self.assertEqual(expected, descr)
-
-    # def test_repr(self):
-    #     """ Test debug printing. """
-    #     e = Element('visit_element')
-    #     e.add_feature('conj', 'and')
-    #     expected = 'Element (visit_element): {\'conj\': \'and\'}'
-    #     descr = repr(e)
-    #     self.assertEqual(expected, descr)
 
     def test_arguments(self):
         """ Test retrieving arguments from an Element. """
@@ -284,12 +273,12 @@ class TestElement(unittest.TestCase):
     def test_features_to_xml_attributes(self):
         """ Test formatting features so that they can be put into XML. """
         e = Element()
-        expected = 'tense="past" '
+        expected = ' tense="past"'
         e.add_feature('tense', 'past')
         data = e.features_to_xml_attributes()
         self.assertEqual(expected, data)
 
-        expected = 'tense="past" aspect="progressive" '
+        expected = ' tense="past" aspect="progressive"'
         e.add_feature('aspect', 'progressive')
         data = e.features_to_xml_attributes()
         self.assertEqual(True, 'tense="past"' in data)
@@ -311,11 +300,10 @@ class TestElement(unittest.TestCase):
         e2.add_feature('tense', 'future')
         self.assertEqual(e1, e2)
 
-
-    def test_strings_to_elements(self):
+    def test_str_to_elt(self):
         """ Test converting strings to Strings. """
         expected = [String('late'), Word('evening', 'NOUN')]
-        actual = list(Phrase._strings_to_elements('late', Word('evening', 'NOUN')))
+        actual = list(str_to_elt('late', Word('evening', 'NOUN')))
         self.assertEqual(expected, actual)
 
     def test_adding_mods(self):
@@ -366,14 +354,14 @@ class TestString(unittest.TestCase):
 class TestWord(unittest.TestCase):
     """ Tests for a word element. """
 
-    def test_str(self):
-        """ Test basic printing. """
-        w = Word('foo', 'NOUN')
-        expected = 'foo'
-        self.assertEqual(expected, str(w))
-
-        w.add_feature('countable', 'yes')
-        self.assertEqual(expected, str(w))
+#    def test_str(self):
+#        """ Test basic printing. """
+#        w = Word('foo', 'NOUN')
+#        expected = 'foo'
+#        self.assertEqual(expected, str(w))
+#
+#        w.add_feature('countable', 'yes')
+#        self.assertEqual(expected, str(w))
 
     # def test_repr(self):
     #     """ Test debug printing. """
@@ -450,35 +438,35 @@ class TestPlaceHolder(unittest.TestCase):
 class TestPhrase(unittest.TestCase):
     """ Test harness for the Phrase base class. """
 
-    def test_str(self):
-        """ Test basic printing. """
-        p = Phrase()
-        expected = ''
-        self.assertEqual(expected, str(p))
-
-        p.head = 'went'
-        expected = 'went'
-        self.assertEqual(expected, str(p))
-
-        p.front_modifiers.append('yesterday')
-        expected = 'yesterday went'
-        self.assertEqual(expected, str(p))
-
-        p.pre_modifiers.append('Peter')
-        expected = 'yesterday Peter went'
-        self.assertEqual(expected, str(p))
-
-        p.complements.append('to')
-        expected = 'yesterday Peter went to'
-        self.assertEqual(expected, str(p))
-
-        p.post_modifiers.append('Russia')
-        expected = 'yesterday Peter went to Russia'
-        self.assertEqual(expected, str(p))
-
-        p.add_feature('tense', 'past')
-        expected = 'yesterday Peter went to Russia'
-        self.assertEqual(expected, str(p))
+#    def test_str(self):
+#        """ Test basic printing. """
+#        p = Phrase()
+#        expected = ''
+#        self.assertEqual(expected, str(p))
+#
+#        p.head = 'went'
+#        expected = 'went'
+#        self.assertEqual(expected, str(p))
+#
+#        p.front_modifiers.append('yesterday')
+#        expected = 'yesterday went'
+#        self.assertEqual(expected, str(p))
+#
+#        p.pre_modifiers.append('Peter')
+#        expected = 'yesterday Peter went'
+#        self.assertEqual(expected, str(p))
+#
+#        p.complements.append('to')
+#        expected = 'yesterday Peter went to'
+#        self.assertEqual(expected, str(p))
+#
+#        p.post_modifiers.append('Russia')
+#        expected = 'yesterday Peter went to Russia'
+#        self.assertEqual(expected, str(p))
+#
+#        p.add_feature('tense', 'past')
+#        expected = 'yesterday Peter went to Russia'
+#        self.assertEqual(expected, str(p))
 
     # def test_repr(self):
     #     """ Test debug printing. """
@@ -517,10 +505,10 @@ class TestPhrase(unittest.TestCase):
         p2 = Phrase()
         self.assertEqual(p1, p2)
 
-        p1.head = 'went'
+        p1.head = Word('went', 'VERB', {'TENSE': 'PAST'})
         self.assertNotEqual(p1, p2)
 
-        p2.head = 'went'
+        p2.head = Word('went', 'VERB', {'TENSE': 'PAST'})
         self.assertEqual(p1, p2)
 
         p1.front_modifiers.append('yesterday')
@@ -553,16 +541,10 @@ class TestPhrase(unittest.TestCase):
         p2.add_feature('tense', 'past')
         self.assertEqual(p1, p2)
 
-        p1.type = 'Phrase'
+        p1._type = PHRASE
         self.assertNotEqual(p1, p2)
 
-        p2.type = 'Phrase'
-        self.assertEqual(p1, p2)
-
-        p1.discourse_fn = 'sentence'
-        self.assertNotEqual(p1, p2)
-
-        p2.discourse_fn = 'sentence'
+        p2._type = PHRASE
         self.assertEqual(p1, p2)
 
     def test_constituents(self):
@@ -621,19 +603,19 @@ class TestPhrase(unittest.TestCase):
 class TestClause(unittest.TestCase):
     """ Tests for Clause. """
 
-    def test_str(self):
-        """ Test printing. """
-        c = Clause()
-        expected = ''
-        self.assertEqual(expected, str(c))
-
-        c = Clause('Roman')
-        expected = 'Roman'
-        self.assertEqual(expected, str(c))
-
-        c = Clause('Roman', 'is slow!')
-        expected = 'Roman is slow!'
-        self.assertEqual(expected, str(c))
+#    def test_str(self):
+#        """ Test printing. """
+#        c = Clause()
+#        expected = ''
+#        self.assertEqual(expected, str(c))
+#
+#        c = Clause('Roman')
+#        expected = 'Roman'
+#        self.assertEqual(expected, str(c))
+#
+#        c = Clause('Roman', 'is slow!')
+#        expected = 'Roman is slow!'
+#        self.assertEqual(expected, str(c))
 
     def test_constituents(self):
         """ Test iterating through constituents. """
@@ -642,7 +624,7 @@ class TestClause(unittest.TestCase):
         actual = list(c.constituents())
         self.assertEqual(expected, actual)
 
-        c.add_front_modifier('Alas!')
+        c.add_pre_modifier('Alas!')
         expected = [String('Alas!'), String('Roman'), String('is slow!')]
         actual = list(c.constituents())
         self.assertEqual(expected, actual)
@@ -655,7 +637,7 @@ class TestClause(unittest.TestCase):
         self.assertEqual(False, p.replace(hi, hello))
         ph = PlaceHolder('arg_name')
         p.subj = hi
-        p.complements.append(ph)
+        p.post_modifiers.append(ph)
         self.assertEqual(True, p.replace(hi, hello))
         self.assertEqual(hello, p.subj)
 
@@ -738,54 +720,12 @@ class TestCC(unittest.TestCase):
         self.assertEqual(expected, list(p.constituents()))
 
 
-class TestReprVisitor(unittest.TestCase):
-    """ Tests for the visitor that creates the repr() string of an element. """
 
-    def test_string(self):
-        expected = "String('hello')"
-        v = ReprVisitor()
-        s = String('hello')
-        s_repr = s.accept(v)
-        self.assertEqual(expected, str(v))
 
-        expected = "String('hello', {'POS': 'EXCLAMATION'})"
-        v = ReprVisitor()
-        s = String('hello', {'POS': 'EXCLAMATION'})
-        s_repr = s.accept(v)
-        self.assertEqual(expected, str(v))
 
-    def test_word(self):
-        expected = "Word('person', 'NOUN')"
-        v = ReprVisitor()
-        w = Word('person', 'NOUN')
-        w_repr = w.accept(v)
-        self.assertEqual(expected, str(v))
 
-        expected = "Word('person', 'NOUN', {'NUMBER': 'SINGULAR'})"
-        v = ReprVisitor()
-        s = Word('person', 'NOUN', {'NUMBER': 'SINGULAR'})
-        s_repr = s.accept(v)
-        self.assertEqual(expected, str(v))
 
-    def test_placeholder(self):
-        expected = "PlaceHolder(None, None)"
-        v = ReprVisitor()
-        p = PlaceHolder()
-        p.accept(v)
-        self.assertEqual(expected, str(v))
 
-        expected = "PlaceHolder(1, String('hello'))"
-        v = ReprVisitor()
-        p = PlaceHolder(1, 'hello')
-        p.accept(v)
-        self.assertEqual(expected, str(v))
-
-        expected = "PlaceHolder(1, String('hello'), {'FEATURE': 'VALUE'})"
-        v = ReprVisitor()
-        p = PlaceHolder(1, 'hello')
-        p.add_feature('FEATURE', 'VALUE')
-        p.accept(v)
-        self.assertEqual(expected, str(v))
 
 
 # main

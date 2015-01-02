@@ -1,10 +1,9 @@
-
 import logging
 from urllib.parse import quote_plus
 
 from nlg.structures import *
 import nlg.lexicon as lexicon
-
+from nlg.lexicon import POS_ANY
 
 def get_log():
     return logging.getLogger(__name__)
@@ -68,108 +67,13 @@ def nnp(name):
     return o
 
 
-# Visitors -- printing, realisation, etc.
+
+def template(word, lexicon, pos=POS_ANY):
+    """ Create syntactic template for expressing a word. """
+    pass
 
 
-class RealisationVisitor:
-    """ A visitor that collects the strings in the NLG structure
-    and performs a simple surface realisation.
-
-    """
-    def __init__(self):
-        self.text = ''
-    
-    def __str__(self):
-        tmp = self.text.replace(' ,', ',')
-        tmp = tmp.split(' ')
-        return ' '.join([x for x in tmp if x != '']).strip()
-
-    def visit_element(self, node):
-        pass
-    
-    def visit_string(self, node):
-        self.text += node.val + ' '
-
-    def visit_word(self, node):
-        word = node.word
-        if (node.get_feature('NUMBER') == 'PLURAL' and
-            node.pos == 'NOUN'):
-            word = lexicon.pluralise_noun(node.word)
-        self.text += word + ' '
-
-    def visit_placeholder(self, node):
-        if node.value: node.value.accept(self)
-        else: self.text += str(self.id)
-        self.text += ' '
-
-    def visit_clause(self, node):
-        for o in node.pre_modifiers: o.accept(self)
-        node.subj.accept(self)
-        node.vp.accept(self)
-        for o in node.post_modifiers: o.accept(self)
-    
-    def visit_coordination(self, node):
-        if node.coords is None or len(node.coords) == 0: return ''
-        if len(node.coords) == 1:
-            node.coords[0].accept(self)
-            return
-        for i, x in enumerate(node.coords):
-            x.accept(self)
-            if node.conj == 'and' and i < len(node.coords) - 2:
-                self.text += ', '
-            elif i < len(node.coords) - 1:
-                conj = node.conj
-                if is_clause_t(self): conj = ', ' + node.conj
-                self.text += ' ' + conj + ' '
-
-    # FIXME: implement
-    def visit_subordination(self, node):
-        assert False, 'not implemented'
-        if node.has_feature('COMPLEMENTISER'):
-            self.text += ' ' + node.get_feature('COMPLEMENTISER')
-
-    def visit_np(self, node):
-        for c in node.front_modifiers: c.accept(self)
-        node.spec.accept(self)
-        for c in node.pre_modifiers: c.accept(self)
-        node.head.accept(self)
-        for c in node.complements: c.accept(self)
-        for c in node.post_modifiers: c.accept(self)
-    
-    def visit_vp(self, node):
-        for c in node.front_modifiers: c.accept(self)
-        for c in node.pre_modifiers: c.accept(self)
-        if str(node.head).strip() == 'have':
-            if (node.has_feature('NEGATION') and
-                node.get_feature('NEGATION') == 'TRUE'):
-                self.text += 'do not have '
-        elif str(node.head).strip() == 'has':
-            if (node.has_feature('NEGATION') and
-                node.get_feature('NEGATION') == 'TRUE'):
-                self.text += 'does not have '
-        else:
-            node.head.accept(self)
-            if (node.has_feature('NEGATION') and
-                node.get_feature('NEGATION') == 'TRUE'):
-                self.text += 'not '
-        for c in node.complements: c.accept(self)
-        for c in node.post_modifiers: c.accept(self)
-    
-    def visit_pp(self, node):
-        self.visit_phrase(node)
-    
-    def visit_adjp(self, node):
-        self.visit_phrase(node)
-    
-    def visit_advp(self, node):
-        self.visit_phrase(node)
-
-    def visit_phrase(self, node):
-        for c in node.front_modifiers: c.accept(self)
-        for c in node.pre_modifiers: c.accept(self)
-        node.head.accept(self)
-        for c in node.complements: c.accept(self)
-        for c in node.post_modifiers: c.accept(self)
+# Visitors -- printing, xml, etc.
 
 
 class PrintVisitor:
@@ -538,7 +442,7 @@ class StrVisitor(PrintVisitor):
         self.do_indent = True
     
     def visit_element(self, node):
-        self.data += Element()
+        self.data += ''
     
     def visit_string(self, node):
         if self.do_indent: self.data += self.indent
@@ -791,7 +695,7 @@ def sentence_iterator(sent):
             for x in sentence_iterator(o):
                 yield x
 
-    if isinstance(sent, CC):
+    if isinstance(sent, Coordination):
         for x in sent.coords:
             yield x
         yield sent
@@ -823,6 +727,7 @@ def aggregation_sentence_iterator(sent):
         yield (sent)
 
 
+# unused
 def replace_element(sent, elt, replacement=None):
     if sent == elt:
         return True

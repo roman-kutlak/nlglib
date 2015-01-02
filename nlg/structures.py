@@ -281,7 +281,11 @@ class StringMsgSpec(MsgSpec):
         return String(self.text)
 
 
-# microplanning level structures
+################################################################################
+#                                                                              #
+#                              microplanning                                   #
+#                                                                              #
+################################################################################
 
 
 class ElemntCoder(json.JSONEncoder):
@@ -471,15 +475,20 @@ class Element:
         """
         self._features[feature] = value
 
-    def has_feature(self, feature):
-        """ Return True if the element has the given feature. """
-        return (feature in self._features)
+    def has_feature(self, feature, value=None):
+        """ Return True if the element has the given feature. 
+        If a value is given, return true if the feature matches the value,
+        otherwise return true if the element has some value for the feature.
+        
+        """
+        if feature in self._features:
+            if value is None: return True
+            return value == self._features[feature]
+        return False
 
     def get_feature(self, feature):
         """ Return value for given feature or None. """
-        if feature in self._features:
-            return self._features[feature]
-        return None
+        return self._features[feature]
 
     def feature(self, feat):
         """ Return value for given feature or None. """
@@ -573,10 +582,12 @@ class String(Element):
 
 class Word(Element):
     """ Word represents word and its corresponding POS (Part-of-Speech) tag. """
-    def __init__(self, word, pos, features=None):
+    def __init__(self, word, pos='ANY', features=None, base=None):
         super().__init__(WORD, features)
         self.word = word
         self.pos = pos
+        self.base = base or word
+        self.do_inflection = False
 
     def __eq__(self, other):
         if (not isinstance(other, Word)):
@@ -661,6 +672,10 @@ class Coordination(Element):
                 else: del self.coords[i]
                 return True
         return False
+
+
+# CC is a synonym for coordination
+class CC(Coordination): pass
 
 
 # FIXME: incomplete implementation -- who is parent and who is subord child?
@@ -999,7 +1014,7 @@ class Clause(Element):
 
     """
 
-    def __init__(self, subj=None, vp=None, features=None, **kwargs):
+    def __init__(self, subj=Element(), vp=Element(), features=None, **kwargs):
         super().__init__(CLAUSE, features)
         self.pre_modifiers = list()
         self.post_modifiers = list()
@@ -1036,14 +1051,9 @@ class Clause(Element):
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
-        yield from self.yield_front_modifiers()
-        if self.subj is not None:
-            # TODO: can we use yield from here? I think so...
-            for c in self.subj.constituents(): yield c
         yield from self.yield_pre_modifiers()
-        if self.vp is not None:
-            for c in self.vp.constituents(): yield c
-        yield from self.yield_complements()
+        yield from self.subj.constituents()
+        yield from self.vp.constituents()
         yield from self.yield_post_modifiers()
 
     def replace(self, one, another):
@@ -1065,6 +1075,41 @@ class Clause(Element):
 
         return super().replace(one, another)
 
+    def set_pre_modifiers(self, *mods):
+        """ Set pre-modifiers to the passed parameters. """
+        self.pre_modifiers = list(str_to_elt(*mods))
+
+    def add_pre_modifier(self, *mods):
+        """ Add one or more pre-modifiers. """
+        self._add_to_list(self.pre_modifiers, *mods)
+
+    def del_pre_modifier(self, *mods):
+        """ Delete one or more pre-modifiers if present. """
+        self._del_from_list(self.pre_modifiers, *mods)
+
+    def yield_pre_modifiers(self):
+        """ Iterate through pre-modifiers. """
+        for o in self.pre_modifiers:
+            for x in o.constituents():
+                yield x
+
+    def set_post_modifiers(self, *mods):
+        """ Set post-modifiers to the given parameters. """
+        self.post_modifiers = list(str_to_elt(*mods))
+
+    def add_post_modifier(self, *mods):
+        """ Add one or more post-modifiers. """
+        self._add_to_list(self.post_modifiers, *mods)
+
+    def del_post_modifier(self, *mods):
+        """ Delete one or more post-modifiers if present. """
+        self._del_from_list(self.post_modifiers, *mods)
+
+    def yield_post_modifiers(self):
+        """ Iterate through pre-modifiers. """
+        for o in self.post_modifiers:
+            for x in o.constituents():
+                yield x
 
 #############################################################################
 ##
