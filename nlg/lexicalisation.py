@@ -87,7 +87,7 @@ def lexicalise_message(msg):
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_front_modifier('if')
-        result.add_feature('COMPLEMENTISER', 'then')
+        result.set_feature('COMPLEMENTISER', 'then')
     elif msg.rst == 'Equivalent':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in equivalence; got '
@@ -96,7 +96,7 @@ def lexicalise_message(msg):
         result.set_head(nucleus)
         result.add_complement(*satelites)
         result.add_front_modifier('if and only if')
-        result.add_feature('COMPLEMENTISER', 'then')
+        result.set_feature('COMPLEMENTISER', 'then')
     elif msg.rst == 'ImpliedBy':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication by; got '
@@ -104,7 +104,7 @@ def lexicalise_message(msg):
         result = Phrase()
         result.set_head(nucleus)
         result.add_complement(*satelites)
-        result.add_feature('COMPLEMENTISER', 'when')
+        result.set_feature('COMPLEMENTISER', 'when')
     elif msg.rst == 'Equality':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in Equality; got '
@@ -112,7 +112,7 @@ def lexicalise_message(msg):
         result = Phrase()
         result.set_head(nucleus)
         result.add_complement(*satelites)
-        result.add_feature('COMPLEMENTISER', 'is')
+        result.set_feature('COMPLEMENTISER', 'is')
     elif msg.rst == 'Inequality':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in Inequality; got '
@@ -120,7 +120,7 @@ def lexicalise_message(msg):
         result = Phrase()
         result.set_head(nucleus)
         result.add_complement(*satelites)
-        result.add_feature('COMPLEMENTISER', 'is not')
+        result.set_feature('COMPLEMENTISER', 'is not')
     elif msg.rst == 'Quantifier':
         # quantifiers have multiple nuclei (variables)
         if (len(satelites) != 1):

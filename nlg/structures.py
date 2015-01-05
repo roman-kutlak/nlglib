@@ -1,6 +1,5 @@
 
 import logging
-from copy import deepcopy
 from urllib.parse import quote_plus
 import json
 import inspect
@@ -9,7 +8,9 @@ import inspect
 def get_log():
     return logging.getLogger(__name__)
 
+
 get_log().addHandler(logging.NullHandler())
+
 
 # indentation constant for printing XML
 indent = '  '
@@ -20,6 +21,7 @@ indent = '  '
 # macroplanning level structures
 #   for content determination and content structuring
 
+
 def enum(*sequential, **named):
     """ This functions declares a new type 'enum' that acts as an enum. """
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -29,12 +31,12 @@ def enum(*sequential, **named):
 
 
 """ Rhetorical Structure Theory relations """
-RST = enum( 'Elaboration', 'Exemplification',
-            'Contrast', 'Exception', 'Set',
-            'List', 'Sequence', 'Alternative',
-            'Conjunction', 'Disjunction',
-            'Leaf'
-          )
+RST = enum('Elaboration', 'Exemplification',
+           'Contrast', 'Exception', 'Set',
+           'List', 'Sequence', 'Alternative',
+           'Conjunction', 'Disjunction',
+           'Leaf'
+           )
 
 
 class Document:
@@ -52,7 +54,7 @@ class Document:
 
     def __repr__(self):
         descr = (repr(self.title) + '\n' +
-                '\n\n'.join([repr(s) for s in self.sections if s is not None]))
+                 '\n\n'.join([repr(s) for s in self.sections if s is not None]))
         return 'Document:\ntitle: %s' % descr.strip()
 
     def __str__(self):
@@ -148,8 +150,8 @@ class Message:
         self.marker = ''
 
     def __repr__(self):
-        descr = ' '.join( [repr(x) for x in
-            ([self.nucleus] + self.satelites) if x is not None ] )
+        descr = ' '.join([repr(x) for x in
+                  ([self.nucleus] + self.satelites) if x is not None ])
         if descr == '': descr = '_empty_'
         return 'Message (%s): %s' % (self.rst, descr.strip())
 
@@ -377,7 +379,7 @@ def is_phrase_t(o):
     
     """
     return (is_element_t(o) and
-            (o._type in {PHRASE, NP, VP, PP, ADJP, ADVP} or
+            (o._type in {PHRASE, NP, VP, PP, ADJPHRASE, ADVPHRASE} or
              (o._type == COORDINATION and
              (o.coord == [] or is_phrase_t(o.coord[0])))))
 
@@ -468,7 +470,7 @@ class Element:
             return ' ' + features
         return ''
 
-    def add_feature(self, feature, value):
+    def set_feature(self, feature, value):
         """ Add a feature to the feature set.
         If the feature exists, overwrite the old value.
 
@@ -637,7 +639,7 @@ class Coordination(Element):
         super().__init__(COORDINATION, features)
         self.coords = list()
         self.add_coordinate(*coords)
-        self.add_feature('conj', conj)
+        self.set_feature('conj', conj)
         self.conj = conj
 
     def __eq__(self, other):
@@ -834,7 +836,7 @@ class Phrase(Element):
         for i, o in enumerate(self.front_modifiers):
             if o == one:
                 if another is None:
-                    del sent.front_modifiers[i]
+                    del self.front_modifiers[i]
                 else:
                     self.front_modifiers[i] = another
                 return True
@@ -845,7 +847,7 @@ class Phrase(Element):
         for i, o in enumerate(self.pre_modifiers):
             if o == one:
                 if another is None:
-                    del sent.pre_modifiers[i]
+                    del self.pre_modifiers[i]
                 else:
                     self.pre_modifiers[i] = another
                 return True
@@ -863,7 +865,7 @@ class Phrase(Element):
         for i, o in enumerate(self.complements):
             if o == one:
                 if another is None:
-                    del sent.complements[i]
+                    del self.complements[i]
                 else:
                     self.complements[i] = another
                 return True
@@ -874,7 +876,7 @@ class Phrase(Element):
         for i, o in enumerate(self.post_modifiers):
             if o == one:
                 if another is None:
-                    del sent.front_modifiers[i]
+                    del self.front_modifiers[i]
                 else:
                     self.front_modifiers[i] = another
                 return True
@@ -1112,38 +1114,38 @@ class Clause(Element):
                 yield x
 
 #############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
+#
+# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+# All rights reserved.
+#
+# This file is part of SAsSy NLG library.
+#
+# You may use this file under the terms of the BSD license as follows:
+#
+# "Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of University of Aberdeen nor
+#     the names of its contributors may be used to endorse or promote
+#     products derived from this software without specific prior written
+#     permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+#
 #############################################################################

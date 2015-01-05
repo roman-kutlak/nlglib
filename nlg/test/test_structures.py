@@ -254,7 +254,7 @@ class TestElement(unittest.TestCase):
         self.assertEqual(False, e.has_feature('TENSE'))
         self.assertEqual(None, e.feature('TENSE'))
         self.assertRaises(KeyError, e.get_feature, 'TENSE')
-        e.add_feature('TENSE', 'PAST')
+        e.set_feature('TENSE', 'PAST')
         self.assertEqual('PAST', e._features['TENSE'])
         self.assertEqual(True, e.has_feature('TENSE'))
         self.assertEqual('PAST', e.feature('TENSE'))
@@ -274,12 +274,12 @@ class TestElement(unittest.TestCase):
         """ Test formatting features so that they can be put into XML. """
         e = Element()
         expected = ' tense="past"'
-        e.add_feature('tense', 'past')
+        e.set_feature('tense', 'past')
         data = e.features_to_xml_attributes()
         self.assertEqual(expected, data)
 
         expected = ' tense="past" aspect="progressive"'
-        e.add_feature('aspect', 'progressive')
+        e.set_feature('aspect', 'progressive')
         data = e.features_to_xml_attributes()
         self.assertEqual(True, 'tense="past"' in data)
         self.assertEqual(True, 'aspect="progressive"' in data)
@@ -290,14 +290,14 @@ class TestElement(unittest.TestCase):
         e2 = Element()
         self.assertEqual(e1, e2)
 
-        e1.add_feature('tense', 'future')
+        e1.set_feature('tense', 'future')
         self.assertNotEqual(e1, e2)
 
-        e2.add_feature('aspect', 'progressive')
+        e2.set_feature('aspect', 'progressive')
         self.assertNotEqual(e1, e2)
 
-        e1.add_feature('aspect', 'progressive')
-        e2.add_feature('tense', 'future')
+        e1.set_feature('aspect', 'progressive')
+        e2.set_feature('tense', 'future')
         self.assertEqual(e1, e2)
 
     def test_str_to_elt(self):
@@ -344,11 +344,11 @@ class TestString(unittest.TestCase):
         s2 = String('word')
         self.assertNotEqual(s1, s2)
 
-        s1.add_feature('type', 'greeting')
+        s1.set_feature('type', 'greeting')
         s2 = String('hello')
         self.assertNotEqual(s1, s2)
 
-        s2.add_feature('type', 'greeting')
+        s2.set_feature('type', 'greeting')
         self.assertEqual(s1, s2)
 
 class TestWord(unittest.TestCase):
@@ -360,7 +360,7 @@ class TestWord(unittest.TestCase):
 #        expected = 'foo'
 #        self.assertEqual(expected, str(w))
 #
-#        w.add_feature('countable', 'yes')
+#        w.set_feature('countable', 'yes')
 #        self.assertEqual(expected, str(w))
 
     # def test_repr(self):
@@ -371,7 +371,7 @@ class TestWord(unittest.TestCase):
     #     self.assertEqual(expected, repr(w))
     #
     #     expected = "Word(foo, NOUN) {'countable': 'yes'}"
-    #     w.add_feature('countable', 'yes')
+    #     w.set_feature('countable', 'yes')
     #     self.assertEqual(expected, repr(w))
 
     def test_eq(self):
@@ -383,17 +383,17 @@ class TestWord(unittest.TestCase):
         w2.pos = 'NOUN'
         self.assertEqual(w1, w2)
 
-        w2.add_feature('role', 'subject')
+        w2.set_feature('role', 'subject')
         self.assertNotEqual(w1, w2)
 
         w2.del_feature('role', 'subject')
         self.assertEqual(w1, w2)
 
-        w1.add_feature('role', 'subject')
-        w2.add_feature('role', 'object')
+        w1.set_feature('role', 'subject')
+        w2.set_feature('role', 'object')
         self.assertNotEqual(w1, w2)
 
-        w2.add_feature('role', 'subject')
+        w2.set_feature('role', 'subject')
         self.assertEqual(w1, w2)
 
 
@@ -411,14 +411,14 @@ class TestPlaceHolder(unittest.TestCase):
         p2 = PlaceHolder('arg1')
         self.assertEqual(p1, p2)
 
-        p1.add_feature('countable', 'no')
+        p1.set_feature('countable', 'no')
         self.assertNotEqual(p1, p2)
 
-        p2.add_feature('countable', 'no')
+        p2.set_feature('countable', 'no')
         self.assertEqual(p1, p2)
 
         p1 = PlaceHolder('arg1', 'drum')
-        p1.add_feature('countable', 'no')
+        p1.set_feature('countable', 'no')
         self.assertNotEqual(p1, p2)
 
         p2.set_value('drum')
@@ -431,7 +431,7 @@ class TestPlaceHolder(unittest.TestCase):
     #     self.assertEqual(expected, repr(p))
     #
     #     expected = "PlaceHolder: id='obj1' value=None {'countable': 'yes'}"
-    #     p.add_feature('countable', 'yes')
+    #     p.set_feature('countable', 'yes')
     #     self.assertEqual(expected, repr(p))
 
 
@@ -464,7 +464,7 @@ class TestPhrase(unittest.TestCase):
 #        expected = 'yesterday Peter went to Russia'
 #        self.assertEqual(expected, str(p))
 #
-#        p.add_feature('tense', 'past')
+#        p.set_feature('tense', 'past')
 #        expected = 'yesterday Peter went to Russia'
 #        self.assertEqual(expected, str(p))
 
@@ -494,7 +494,7 @@ class TestPhrase(unittest.TestCase):
     #     expected = '(Phrase None None: "yesterday Peter went to Russia" {})'
     #     self.assertEqual(expected, repr(p))
     #
-    #     p.add_feature('tense', 'past')
+    #     p.set_feature('tense', 'past')
     #     expected = '(Phrase None None: "yesterday ' \
     #                 + 'Peter went to Russia" {\'tense\': \'past\'})'
     #     self.assertEqual(expected, repr(p))
@@ -535,10 +535,10 @@ class TestPhrase(unittest.TestCase):
         p2.post_modifiers.append('Russia')
         self.assertEqual(p1, p2)
 
-        p1.add_feature('tense', 'past')
+        p1.set_feature('tense', 'past')
         self.assertNotEqual(p1, p2)
 
-        p2.add_feature('tense', 'past')
+        p2.set_feature('tense', 'past')
         self.assertEqual(p1, p2)
 
         p1._type = PHRASE

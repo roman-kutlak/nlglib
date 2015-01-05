@@ -58,12 +58,12 @@ def nn(word):
 
 def nns(word):
     o = noun(word)
-    o.add_feature('NUMBER', 'PLURAL')
+    o.set_feature('NUMBER', 'PLURAL')
     return o
 
 def nnp(name):
     o = noun(name)
-    o.add_feature('PROPER', 'true')
+    o.set_feature('PROPER', 'true')
     return o
 
 

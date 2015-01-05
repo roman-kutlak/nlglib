@@ -232,7 +232,7 @@ class TestRepresentation(unittest.TestCase):
         
         v = ReprVisitor()
         s = noun('truck')
-        s.add_feature('NUMBER', 'PLURAL')
+        s.set_feature('NUMBER', 'PLURAL')
         expected = "Word('truck', 'NOUN', {'NUMBER': 'PLURAL'})"
         s.accept(v)
         actual = str(v)
@@ -259,7 +259,7 @@ class TestRepresentation(unittest.TestCase):
         v = ReprVisitor()
         s = Clause(NP(noun('Python')), VP(verb('rocks')))
         s.pre_modifiers.append(adverb('today'))
-        s.add_feature('foo', 'bar')
+        s.set_feature('foo', 'bar')
         expected = ("Clause(NP(Word('Python', 'NOUN')),\n"
                     "       VP(Word('rocks', 'VERB')),\n"
                     "       {'foo': 'bar'},\n"

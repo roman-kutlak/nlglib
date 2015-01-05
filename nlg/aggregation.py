@@ -40,7 +40,7 @@ def add_elements(e1, e2, conj='and'):
             cc._features['discourseFunction'] = e2._features['discourseFunction']
         elif 'discourseFunction' in e1._features:
             cc._features['discourseFunction'] = e1._features['discourseFunction']
-    cc.add_feature('conj', conj)
+    cc.set_feature('conj', conj)
     get_log().warning('added elements: \n' + str(cc))
     return cc
 

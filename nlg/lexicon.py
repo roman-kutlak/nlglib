@@ -80,7 +80,6 @@ class Lexicon:
             get_log().exception('Could not load pickled tagger.')
             self.tagger = None
     
-    
     def word(self, string, pos=POS_ANY, default=None):
         """ Return a word element corresponding to the given POS or None. 
         When default is set to the string 'new' the method returns
@@ -102,7 +101,7 @@ class Lexicon:
             elif len(ids) == 1:
                 w = deepcopy(self._words[next(iter(ids))])
                 w.word = string
-                fs = self.features_for_variant(string)
+                fs = self.features_for_variant(w, string)
                 for k, v in fs: w.set_feature(k, v)
                 return w
             # otherwise try the different word categories
@@ -124,7 +123,7 @@ class Lexicon:
         else:
             # an unknown tag passed -- try to find the correct one
             raise Exception('Unknown tag')
-    
+
     def adjective(self, string):
         """ Return a word as an adjective. """
         return self.word(string, POS_ADJECTIVE, 'new')
@@ -197,7 +196,7 @@ class Lexicon:
             elif id in self._sym: tags.add(POS_SYMBOL)
         return tags
 
-    def features_for_variant(self, variant):
+    def features_for_variant(self, word, variant):
         """ Find the most likely features for the given variant. """
         # FIXME: implement
         return {}
@@ -208,7 +207,7 @@ class Lexicon:
         Otherwise it will search for the given word in this order:
         nouns, verbs, adjectives, adverbs, pronouns, prepositions, conjunctions,
         complementisers, numeral, symbol. If the word is not in the lexicon,
-        it is tagged as a noun.
+        it is tagged as a POS_SYMBOL.
         
         """
         if self.tagger is not None:
@@ -225,8 +224,8 @@ class Lexicon:
                     self.adverb(word) or self.pronoun(word) or
                     self.preposition(word) or self.conjunction(word) or
                     self.complementiser(word) or self.numeral(word) or
-                    self.symbol(word))
-    
+                    self.symbol(word, 'new'))
+
     def brown_tag_to_features(self, tag):
         """ Return the features corresponding to the given (Brown corp) tag. """
         features = {}
@@ -364,6 +363,7 @@ def lexicon_from_nih_xml(path):
     return lexicon
 
 
+# nouns with irregular plural form
 irregulars = {
     'addendum': 'addenda',
     'aircraft': 'aircraft',
@@ -482,6 +482,7 @@ def is_vowel(l):
     return l in {'a', 'e', 'i', 'o', 'u'}
 
 
+# a helper function used for simple realisation when lexicon is not available
 def pluralise_noun(word):
     if word in irregulars: return irregulars[word]
     if word == '': return ''

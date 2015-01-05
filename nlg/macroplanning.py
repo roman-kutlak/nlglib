@@ -1,15 +1,167 @@
+from nlg.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
+from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
+from nlg.fol import OP_EXISTS, OP_FORALL
+from nlg.fol import is_prop_symbol
 
-from nlg.structures import RST, Document, Section, Paragraph, Message, MsgSpec
+from nlg.structures import Message, MsgSpec, Word
+
+import logging
+
+def get_log():
+    return logging.getLogger(__name__)
 
 
-def select_content(messages, workflow, ontology, user_model, domain_history):
-    selected = list()
-    for msg in messages:
-        instance = msg.instantiate(workflow)
-        if instance is not None:
-            selected.append(instance)
+class SignatureError(Exception):
+    pass
+    
 
-    return selected
+class PredicateMsgSpec(MsgSpec):
+    """ This class is used for instantiating Predicate as message spec. """
+
+    def __init__(self, pred):
+        """ Keep a reference to the corresponding predicate so that
+        we can look up arguments for any variables.
+        
+        """
+        super().__init__(pred.op)
+        self.predicate = pred
+        self._features = {}
+
+    def __str__(self):
+        """ Return a suitable string representation. """
+        p = self.predicate
+        if len(p.args) == 0:
+            return p.op
+        else:
+            neg = ''
+            if ('NEGATION' in self._features and
+                self._features['NEGATION'] == 'TRUE'):
+                    neg = 'not '
+            return(neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')')
+
+    @classmethod
+    def instantiate(Klass, task):
+        """ The MsgSpec class relies on instantiate() to create its instances.
+        The main reason is so that when the MsgSpec does not have enough data
+        to instantiate the class, it just returns None instead of rising 
+        an exception.
+
+        """
+        if task is None: return None
+        c = Klass(task)
+        return c
+
+    def value_for(self, param):
+        """ Return a replacement for a placeholder with id param.
+        Predicates have two types of parameters - type_N and var_N, which
+        correspond to the type and variable on position N respectively 
+        (e.g., ?pkg - package).
+        The function returns the type for type_N and the name of the variable
+        for var_N at position N or throws SignatureError.
+
+        """
+        tmp = param.partition('_')
+        idx = -1
+        try:
+            idx = int(tmp[2])
+        except Exception:
+            msg = 'Expected var_N or type_N in replacing a PlaceHolder ' \
+            'but received ' + str(param)
+            raise SignatureError(msg)
+
+        if idx >= len(self.predicate.args):
+            msg = 'Requested index (' + str(idx) + ') larger than '\
+            'number of variables in predicate "' + str(self.predicate) + '"'
+            raise SignatureError(msg)
+
+        parameter = self.predicate.args[idx]
+        result = None
+        if tmp[0] == 'type':
+            result = Word(parameter.op, 'NOUN')
+        elif tmp[0] == 'var':
+            result = Word(parameter.op, 'NOUN')
+        else:
+            msg = 'Expected var_N or type_N in replacing a PlaceHolder ' \
+            'but received ' + str(param)
+            raise SignatureError(msg)
+
+        return result
+
+
+def formula_to_rst(f):
+    """ Convert a FOL formula to an RST tree. """
+    get_log().debug(str(f))
+    if f.op == OP_AND:
+        msgs = [formula_to_rst(x) for x in f.args]
+        m = Message('Conjunction', None, *msgs)
+        test = lambda x: (x.op == '&' or x.op == '|')
+        if any(map(test, f.args)):
+            m.marker = ', and'
+        else:
+            m.marker = 'and'
+        return m
+    if f.op == OP_OR:
+        msgs = [formula_to_rst(x) for x in f.args]
+        m = Message('Disjunction', None, *msgs)
+        test = lambda x: (x.op != 'forall' and
+                          x.op != 'exists')
+        if any(map(test, f.args)):
+            m.marker = ', or'
+        else:
+            m.marker = 'or'
+        return m
+    if f.op == OP_IMPLIES:
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Imply', msgs[0], msgs[1])
+        return m
+    if f.op == OP_IMPLIED_BY:
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Imply', msgs[1], msgs[0])
+        return m
+    if f.op == OP_EQUIVALENT:
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Equivalent', msgs[0], msgs[1])
+        return m
+    if f.op == OP_EQUALS:
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Equality', msgs[0], *msgs[1:])
+        return m
+    if f.op == OP_NOTEQUALS:
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Inequality', msgs[0], *msgs[1:])
+        return m
+    if f.op == OP_FORALL:
+        vars = [formula_to_rst(x) for x in f.vars]
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Quantifier', vars, *msgs)
+        m.marker = 'for all'
+        return m
+    if f.op == OP_EXISTS:
+        vars = [formula_to_rst(x) for x in f.vars]
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Quantifier', vars, *msgs)
+        if len(f.vars) == 1:
+            m.marker = 'there exists'
+        else:
+            m.marker = 'there exist'
+        return m
+    if f.op[0] == OP_NOT and len(f.args) == 1 and is_prop_symbol(f.args[0].op):
+        get_log().debug('negated proposition: ' + str(f))
+        m = PredicateMsgSpec(f.args[0])
+        m._features = {'NEGATION': 'TRUE'}
+        return m
+    if f.op[0] == OP_NOT:
+        get_log().debug('negated formula: ' + str(f))
+        msgs = [formula_to_rst(x) for x in f.args] 
+        m = Message('Negation', msgs[0], *msgs[1:])
+        m.marker = 'it is not the case that'
+        return m
+    if is_prop_symbol(f.op):
+        get_log().debug('proposition: ' + str(f))
+        return PredicateMsgSpec(f)
+    else:
+        get_log().debug('None: ' + repr(f))
+        return Word(str(f), 'NOUN')
 
 
 
