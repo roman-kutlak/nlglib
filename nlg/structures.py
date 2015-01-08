@@ -283,6 +283,25 @@ class StringMsgSpec(MsgSpec):
         return String(self.text)
 
 
+class DiscourseContext:
+    """ A class that captures the discourse referents and history. """
+
+    def __init__(self):
+        self.referents = []
+        self.history = []
+        self.referent_info = {}
+
+
+class OperatorContext:
+    """ A class that captures the operators in a logical formula. """
+
+    def __init__(self):
+        self.variables = []
+        self.symbols = []
+        self.negations = 0
+
+
+
 ################################################################################
 #                                                                              #
 #                              microplanning                                   #
