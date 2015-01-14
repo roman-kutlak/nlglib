@@ -1,5 +1,5 @@
 import numbers
-from pyparsing import (nums, alphas, alphanums, printables, restOfLine, Word,
+from pyparsing import (nums, alphas, alphanums, restOfLine, Word,
                        Group, Optional, Keyword, Literal, CaselessKeyword,
                        Combine, Forward, Suppress, opAssoc, operatorPrecedence,
                        delimitedList, ParserElement,
@@ -107,7 +107,8 @@ class Expr:
     def __init__(self, op, *args):
         "Op is a string or number; args are Exprs (or are coerced to Exprs)."
         assert (isinstance(op, str) or
-                (isinstance(op, numbers.Number) and not args))
+                (isinstance(op, numbers.Number) and not args)),\
+               '{0}({1})'.format(op, args)
         self.op = num_or_str(op)
         self.args = list(map(to_expr, args)) ## Coerce args to Exprs
 
@@ -116,11 +117,11 @@ class Expr:
         if not self.args:         # Constant or proposition with arity 0
             return str(self.op)
         elif is_symbol(self.op):  # Functional or propositional operator
-            return '%s(%s)' % (self.op, ', '.join(map(repr, self.args)))
+            return '%s(%s)' % (self.op, ', '.join(map(str, self.args)))
         elif len(self.args) == 1: # Prefix operator
-            return self.op + repr(self.args[0])
+            return self.op + str(self.args[0])
         else:                     # Infix operator
-            return '(%s)' % (' '+self.op+' ').join(map(repr, self.args))
+            return '(%s)' % (' '+self.op+' ').join(map(str, self.args))
 
     def __repr__(self):
         "Show something like 'P' or '(P x, y)', or '(~ P)' or '(| P Q R)'"
@@ -170,7 +171,10 @@ class Quantifier(Expr):
 
     def __init__(self, op, vars, *args):
         super(Quantifier, self).__init__(op, *args)
-        self.vars = list(map(to_expr, vars))
+        if isinstance(vars, Expr):
+            self.vars = [vars]
+        else:
+            self.vars = list(map(to_expr, vars))
 
     def __repr__(self):
         "Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"
@@ -178,13 +182,18 @@ class Quantifier(Expr):
                                 ', '.join(map(repr, self.vars)),
                                 ', '.join(map(repr, self.args)))
 
+    def __str__(self):
+        "Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"
+        return '{0} {1}: ({2})'.format(self.op,
+                                ', '.join(map(str, self.vars)),
+                                ', '.join(map(str, self.args)))
+    
     def __eq__(self, other):
         """x and y are equal iff their ops and args are equal."""
-        return ((other is self) or
-                (isinstance(other, Expr) and
-                 self.op == other.op and
-                 self.vars == other.vars and
-                 self.args == other.args))
+        return (isinstance(other, Quantifier) and
+                self.op == other.op and
+                self.vars == other.vars and
+                self.args == other.args)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -234,7 +243,8 @@ def is_variable(f):
 
 def is_constant(f):
     """Formula f is a constant if its op is a function symbol with no args. """
-    return (is_function_symbol(f.op) and len(f.args) == 0)
+    return ((is_function_symbol(f.op) and len(f.args) == 0) or
+            (isinstance(f.op, numbers.Number)))
 
 
 def is_function(f):
@@ -268,6 +278,7 @@ def is_false(f):
 
 
 def vars(s):
+    """ Return all variables in a formula (including vars in quantifiers). """
     if is_variable(s):
         return {s}
     elif is_quantified(s):
@@ -277,6 +288,7 @@ def vars(s):
 
 
 def fvars(s):
+    """ Return free variables. """
     if is_variable(s):
         return {s}
     elif is_quantified(s):
@@ -291,40 +303,61 @@ def generalise(f):
 
 
 def variant(x, vars):
+    """ Create a variant of a variable name. If the variable x appears 
+    in the set of variables, add an apostrophe and try again.
+    
+    >>> variant('x', ['y', 'z'])
+    "x"
+    >>> variant('x', ['x', 'y', 'z'])
+    "x'"
+    
+    """
     if x in vars: return variant(Expr(x.op + "'", *x.args), vars)
     else: return x
 
 
 def subst(mappings, tm):
+    """ Substitute terms in a formula.
+    
+    For example, to substitute 'c' by 'x' the variable in forall x has to be
+    renamed to something else (x' in our case).
+    
+    >>> subst({Expr('c'): Expr('x')}, expr('forall x: c > 0 -> x + c > x'))
+    #   --> "forall x': x > 0 -> x' + x > x'"
+    
+    """
     if is_variable(tm):
         if tm in mappings: return mappings[tm]
         else: return tm
     if is_quantified(tm):
         for var in tm.vars:
-            if var in set().union(*list(map(vars, mappings.values()))):
-                var2 = variant(var, mappings)
+            # get the list of existing variables in the mappings
+            existing_vars = set().union(*list(map(vars, mappings.values())))
+            # rename any quantifier variable that would become bound by subst.
+            if var in existing_vars:
+                var2 = variant(var, existing_vars)
                 mappings[var] = var2
         return Quantifier(tm.op,
-                          list(map(lambda x: subst(mappings, x), tm.vars)),
-                          *list(map(lambda x: subst(mappings, x), tm.args)))
+                          [subst(mappings, x) for x in tm.vars],
+                          *[subst(mappings, x) for x in tm.args])
     else:
-        return Expr(tm.op, *list(map(lambda x: subst(mappings, x), tm.args)))
+        return Expr(tm.op, *[subst(mappings, x) for x in tm.args])
 
 
 def simplify(f):
     """ Take a FOL formula and try to simplify it. """
-#    print('\nSimplifying op "{0}" args "{1}"'.format(str(f.op), str(f.args)))
+#    print('\nSimplifying op "{0}" args "{1}"'.format(f.op, f.args))
     if is_quantified(f): # remove variable that are not in f
         vars = set(f.vars)
         fv = fvars(f.args[0])
         needed = vars & fv
-#        print('\tneeded: {}'.format(needed))
         if needed == set():
-            return f.args[0]
+            return simplify(f.args[0])
         else:
             arg = simplify(f.args[0])
-            if arg != f.args[0]:
-                return simplify(Quantifier(f.op, needed, arg))
+            variables = [v for v in f.vars if v in needed] # keep the same order
+            if (arg != f.args[0]) or (len(needed) < len(f.vars)):
+                return simplify(Quantifier(f.op, variables, arg))
             else:
                 return f
     if f.op == OP_NOT:
@@ -363,27 +396,31 @@ def simplify(f):
             else:
                 return f
     if f.op == OP_IMPLIES:
-        if is_true(f.args[0]):
+        if is_false(f.args[0]) or is_true(f.args[1]):
             return Expr(OP_TRUE)
+        elif is_true(f.args[0]):
+            return simplify(f.args[1])
         elif is_false(f.args[1]):
-            return Expr(OP_TRUE)
+            return simplify(Expr(OP_NOT, simplify(f.args[0])))
         else:
             arg1 = simplify(f.args[0])
             arg2 = simplify(f.args[1])
-            if arg1 != f.args[0] and arg2 != f.args[1]:
+            if arg1 != f.args[0] or arg2 != f.args[1]:
                 return simplify(Expr(OP_IMPLIES, arg1, arg2))
             else:
                 return f
     if f.op == OP_IMPLIED_BY:
-        if is_true(f.args[1]):
+        if is_false(f.args[1]) or is_true(f.args[0]):
             return Expr(OP_TRUE)
+        elif is_true(f.args[1]):
+            return simplify(f.args[0])
         elif is_false(f.args[0]):
-            return Expr(OP_TRUE)
+            return simplify(Expr(OP_NOT, simplify(f.args[1])))
         else:
             arg1 = simplify(f.args[0])
             arg2 = simplify(f.args[1])
-            if arg1 != f.args[0] and arg2 != f.args[1]:
-                return simplify(Expr(OP_IMPLIED_BY, arg1, arg2))
+            if arg1 != f.args[0] or arg2 != f.args[1]:
+                return simplify(Expr(OP_IMPLIES, arg1, arg2))
             else:
                 return f
     if f.op == OP_EQUIVALENT:
@@ -398,7 +435,7 @@ def simplify(f):
         else:
             arg1 = simplify(f.args[0])
             arg2 = simplify(f.args[1])
-            if arg1 != f.args[0] and arg2 != f.args[1]:
+            if arg1 != f.args[0] or arg2 != f.args[1]:
                 return simplify(Expr(OP_EQUIVALENT, arg1, arg2))
             else:
                 return f
@@ -406,23 +443,172 @@ def simplify(f):
         return f
 
 
-def dual(s):
-    """ Reverse AND and OR, and T and F. dual(dual(s)) == s """
-    if s.op == OP_TRUE: return Expr(OP_FALSE)
-    elif s.op == OP_FALSE: return Expr(OP_TRUE)
-    elif s.op == OP_NOT: return Expr(OP_NOT, dual(s.args[0]))
-    elif s.op == OP_AND: return Expr(OP_OR, *list(map(dual, s.args)))
-    elif s.op == OP_AND: return Expr(OP_OR, *list(map(dual, s.args)))
-    elif s.op == OP_FORALL:
-        return Expr(OP_NOT, Expr(OP_EXISTS, dual(s.args[0])))
-    elif s.op == OP_EXISTS:
-        return Expr(OP_NOT, Expr(OP_FORALL, dual(s.args[0])))
-    else: return s
+def nnf(f):
+    """ Create a Negated Normal Form """
+    if f.op == OP_NOT:
+        arg = f.args[0]
+        if arg.op == OP_NOT:
+            return nnf(arg.args[0])
+        elif arg.op == OP_AND:
+            return Expr(OP_OR, *[nnf(Expr(OP_NOT, x)) for x in arg.args])
+        elif arg.op == OP_OR:
+            return Expr(OP_AND, *[nnf(Expr(OP_NOT, x)) for x in arg.args])
+        elif arg.op == OP_IMPLIES: # p -> q
+            p, q = arg.args[0], arg.args[1]
+            return (nnf(p) & nnf(~(q)))
+        elif arg.op == OP_IMPLIED_BY: # p <- q
+            p, q = arg.args[0], arg.args[1]
+            return (nnf(~p) & nnf(q))
+        elif arg.op == OP_EQUIVALENT: # p <-> q
+            p, q = arg.args[0], arg.args[1]
+            return ((nnf(p) & nnf(~q)) | (nnf(~p) & nnf(q)))
+        elif arg.op == OP_FORALL:
+            return Quantifier(OP_EXISTS, arg.vars,
+                              nnf(Expr(OP_NOT, arg.args[0])))
+        elif arg.op == OP_EXISTS:
+            return Quantifier(OP_FORALL, arg.vars,
+                              nnf(Expr(OP_NOT, arg.args[0])))
+        else:
+            return f
+    elif f.op == OP_AND or f.op == OP_OR:
+        if len(f.args) > 2:
+            return Expr(f.op,
+                        nnf(f.args[0]),
+                        nnf(Expr(f.op, *[nnf(x) for x in f.args[1:]])))
+        else:
+            return Expr(f.op, *[nnf(x) for x in f.args])
+    elif f.op == OP_IMPLIES:
+        p, q = f.args[0], f.args[1]
+        return (nnf(~p) | nnf(q))
+    elif f.op == OP_IMPLIED_BY:
+        p, q = f.args[0], f.args[1]
+        return (nnf(p) | nnf(~q))
+    elif f.op == OP_EQUIVALENT:
+        p, q = f.args[0], f.args[1]
+        return (nnf(p) & nnf(q)) | (nnf(~p) & nnf(~q))
+    elif is_quantified(f):
+        if len(f.vars) > 1:
+            return Quantifier(f.op, f.vars[0],
+                              nnf(Quantifier(f.op, f.vars[1:],
+                                  *[nnf(x) for x in f.args])))
+        else:
+            return Quantifier(f.op, f.vars, *[nnf(x) for x in f.args])
+    else:
+        return f
 
 
-def push_negations(s):
-    """ Push negations inwards. """
-    pass
+def unique_vars(f):
+    """ Rename variable so that each variable appears only once per formula.
+    >>> unique_vars(expr('(forall x: P(x)) | (forall x: Q(x)))')
+    expr("(forall x: P(x)) | (forall x': Q(x'))")
+    
+    """
+    def helper(f, used, substs):
+        if is_variable(f):
+            if f in substs: return substs[f]
+            else: return f
+        if is_quantified(f):
+            # does this quantifier use a variable that is already used?
+            clashing = (used & set(f.vars)) # set intersection
+            if len(clashing) > 0:
+                for var in clashing:
+                    existing = used.union(*list(map(vars, substs.values())))
+                    # rename any clashing variable
+                    var2 = variant(var, existing)
+                    substs[var] = var2
+                used.update(f.vars)
+                arg = helper(f.args[0], used, substs)
+                return Quantifier(f.op,
+                                  [subst(substs, x) for x in f.vars],
+                                  *[subst(substs, x) for x in f.args])
+            else:
+                used.update(f.vars)
+                arg = helper(f.args[0], used, substs)
+                return Quantifier(f.op, f.vars, arg)
+        else:
+            return Expr(f.op, *[helper(x, used, substs) for x in f.args])
+    return helper(f, set(), {})
+
+
+def pullquants(f):
+    """ Pull out quantifiers to the front of the formula f.
+    The function assumes that all operators have at most two arguments 
+    and all quantifiers have at most one variable (this can be achieved using
+    the function nnf(), which converts a formula into a negated normal form).
+    Also, each variabl name can be used only once per formula.
+    
+    """
+#    print('pullquants({0})'.format(str(f)))
+    if f.op == OP_AND:
+        arg1 = pullquants(f.args[0])
+        arg2 = pullquants(f.args[1])
+        if arg1.op == OP_FORALL and arg2.op == OP_FORALL:
+            # when both conjuncts are forall, we can re-use the variable name
+            # eg. (forall x: P(x) & forall y: Q(y)) <-> (forall x: P(x) & Q(x))
+            old_var = arg1.vars[0]
+            new_var = variant(arg1.vars[0], fvars(f))
+            a1 = subst({arg1.vars[0]: new_var}, arg1.args[0])
+            a2 = subst({arg2.vars[0]: new_var}, arg2.args[0])
+            return Quantifier(OP_FORALL, [new_var], pullquants(a1 & a2))
+        elif arg1.op == OP_EXISTS and arg2.op == OP_EXISTS:
+            return f
+        elif is_quantified(arg1):
+            old_var = arg1.vars[0]
+            new_var = variant(old_var, fvars(f))
+            a1 = subst({old_var: new_var}, arg1.args[0])
+            a2 = arg2 #subst({old_var: new_var}, arg2)
+            return Quantifier(arg1.op, [new_var], pullquants(a1 & a2))
+        elif is_quantified(arg2):
+            old_var = arg2.vars[0]
+            new_var = variant(old_var, fvars(f))
+            a1 = arg1 #subst({old_var: new_var}, arg1)
+            a2 = subst({old_var: new_var}, arg2.args[0])
+            return Quantifier(arg2.op, [new_var], pullquants(a1 & a2))
+        else:
+            return (arg1 & arg2)
+    elif f.op == OP_OR:
+        arg1 = pullquants(f.args[0])
+        arg2 = pullquants(f.args[1])
+        if arg1.op == OP_EXISTS and arg2.op == OP_EXISTS:
+            # when both disjuncts are exists, we can re-use the variable name
+            # eg. (exists x: P(x) | exists y: Q(y)) <-> (exists x: P(x) | Q(y))
+            new_var = variant(arg1.vars[0], fvars(f))
+            a1 = subst({arg1.vars[0]: new_var}, arg1.args[0])
+            a2 = subst({arg2.vars[0]: new_var}, arg2.args[0])
+            return Quantifier(OP_EXISTS, [new_var], pullquants(a1 | a2))
+        elif arg1.op == OP_FORALL and arg2.op == OP_FORALL:
+            return f
+        elif is_quantified(arg1):
+            old_var = arg1.vars[0]
+            new_var = variant(old_var, fvars(f))
+            a1 = subst({old_var: new_var}, arg1.args[0])
+            a2 = arg2 #subst({old_var: new_var}, arg2)
+            return Quantifier(arg1.op, [new_var], pullquants(a1 | a2))
+        elif is_quantified(arg2):
+            old_var = arg2.vars[0]
+            new_var = variant(old_var, fvars(f))
+            a1 = arg1 #subst({old_var: new_var}, arg1)
+            a2 = subst({old_var: new_var}, arg2.args[0])
+            return Quantifier(arg2.op, [new_var], pullquants(a1 | a2))
+        else:
+            return (arg1 | arg2)
+    # TODO add conditionals (just for fun)
+    else:
+        return f
+
+
+def pnf(f):
+    """ Return formula f in a Prenex Normal Form. """
+    return pullquants(nnf(simplify(f)))
+
+
+def pushquants(f):
+    """Return formula f' equivalent to f in which quantifiers have the smallest
+    possible scope.
+    
+    """
+    assert False, 'Not implemented.'
+
 
 
 # #############################  PARSING  ################################### #
@@ -430,9 +616,6 @@ def push_negations(s):
 
 PARSE_DEBUG = False
 
-# code nicked from the book Programming in Python 3 (kindle)
-# optimisation -- before creating any parsing elements
-ParserElement.enablePackrat()
 
 def get_op(x):
     """ Return a standard operator given an alternative one. """
@@ -521,6 +704,11 @@ class FOLPred:
         return Expr(self.op, *self.args)
 
 
+# code nicked from the book Programming in Python 3 (kindle)
+# optimisation -- before creating any parsing elements
+ParserElement.enablePackrat()
+
+
 left_parenthesis, right_parenthesis = map(Suppress, '()')
 forall = Keyword('forall') | Literal('\u2200')
 exists = Keyword('exists') | Literal('\u2203')
@@ -559,8 +747,8 @@ comment = (Literal('#') + restOfLine).suppress()
 formula = Forward()
 formula.ignore(comment)
 forall_expression = Group(forall.setResultsName("quantifier") +
-                      delimitedList(symbol).setResultsName("vars") + colon +
-                      formula.setResultsName("args")
+                       delimitedList(symbol).setResultsName("vars") + colon +
+                       formula.setResultsName("args")
                     ).setParseAction(FOLQuant)
 exists_expression = Group(exists.setResultsName("quantifier") +
                       delimitedList(symbol).setResultsName("vars") + colon +
@@ -569,19 +757,40 @@ exists_expression = Group(exists.setResultsName("quantifier") +
 operand = forall_expression | exists_expression | boolean | term
 
 # specify the precedence -- highest precedence first, lowest last
-operator_list = [(equals, 2, opAssoc.LEFT, FOLBinOp),
-                 (notequals, 2, opAssoc.LEFT, FOLBinOp),
-                 (not_, 1, opAssoc.RIGHT, FOLUnOp)]
+operator_list = [(not_, 1, opAssoc.RIGHT, FOLUnOp)]
 
 operator_list += ([(r, 2, opAssoc.LEFT, FOLBinOp) for r in relations])
 
-operator_list += [(and_, 2, opAssoc.LEFT, FOLBinOp),
+operator_list += [(equals, 2, opAssoc.LEFT, FOLBinOp),
+                  (notequals, 2, opAssoc.LEFT, FOLBinOp),
+                  (and_, 2, opAssoc.LEFT, FOLBinOp),
                   (or_, 2, opAssoc.LEFT, FOLBinOp),
                   (implies, 2, opAssoc.RIGHT, FOLBinOp),
                   (implied, 2, opAssoc.RIGHT, FOLBinOp),
                   (iff, 2, opAssoc.RIGHT, FOLBinOp)]
 
 formula << operatorPrecedence(operand, operator_list)
+
+
+# #############################  HELPERS  ################################### #
+
+
+def num_or_str(x):
+    """The argument is a string; convert to a number if possible, or strip it.
+    >>> num_or_str('42')
+    42
+    >>> num_or_str(' 42x ')
+    '42x'
+    """
+    if isinstance(x, numbers.Number):
+        return x
+    try:
+        if '.' in x:
+            return float(x)
+        else:
+            return int(x)
+    except ValueError:
+        return str(x).strip()
 
 
 class FormulaParseError(Exception):
@@ -613,24 +822,3 @@ def expr(s):
 #col:1)
 
 ###
-
-
-# #############################  HELPERS  ################################### #
-
-
-def num_or_str(x):
-    """The argument is a string; convert to a number if possible, or strip it.
-    >>> num_or_str('42')
-    42
-    >>> num_or_str(' 42x ')
-    '42x'
-    """
-    if isinstance(x, numbers.Number):
-        return x
-    try:
-        if '.' in x:
-            return float(x)
-        else:
-            return int(x)
-    except ValueError:
-        return str(x).strip()

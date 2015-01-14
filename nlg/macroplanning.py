@@ -4,6 +4,7 @@ from nlg.fol import OP_EXISTS, OP_FORALL
 from nlg.fol import is_prop_symbol
 
 from nlg.structures import Message, MsgSpec, Word
+from nlg.structures import DiscourseContext, OperatorContext
 
 import logging
 
@@ -18,14 +19,14 @@ class SignatureError(Exception):
 class PredicateMsgSpec(MsgSpec):
     """ This class is used for instantiating Predicate as message spec. """
 
-    def __init__(self, pred):
+    def __init__(self, pred, features=None):
         """ Keep a reference to the corresponding predicate so that
         we can look up arguments for any variables.
         
         """
         super().__init__(pred.op)
         self.predicate = pred
-        self._features = {}
+        self._features = features or {}
 
     def __str__(self):
         """ Return a suitable string representation. """
@@ -39,35 +40,26 @@ class PredicateMsgSpec(MsgSpec):
                     neg = 'not '
             return(neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')')
 
-    @classmethod
-    def instantiate(Klass, task):
-        """ The MsgSpec class relies on instantiate() to create its instances.
-        The main reason is so that when the MsgSpec does not have enough data
-        to instantiate the class, it just returns None instead of rising 
-        an exception.
-
-        """
-        if task is None: return None
-        c = Klass(task)
-        return c
-
     def value_for(self, param):
         """ Return a replacement for a placeholder with id param.
         Predicates have two types of parameters - type_N and var_N, which
         correspond to the type and variable on position N respectively 
         (e.g., ?pkg - package).
         The function returns the type for type_N and the name of the variable
-        for var_N at position N or throws SignatureError.
+        for N at position N or throws SignatureError.
 
         """
-        tmp = param.partition('_')
         idx = -1
         try:
-            idx = int(tmp[2])
+            idx = int(param)
         except Exception:
-            msg = 'Expected var_N or type_N in replacing a PlaceHolder ' \
-            'but received ' + str(param)
-            raise SignatureError(msg)
+            try:
+                tmp = param.partition('_')
+                idx = tmp[2]
+            except:
+                msg = 'Expected N or type_N in replacing a PlaceHolder ' \
+                'but received ' + str(param)
+                raise SignatureError(msg)
 
         if idx >= len(self.predicate.args):
             msg = 'Requested index (' + str(idx) + ') larger than '\
@@ -76,16 +68,18 @@ class PredicateMsgSpec(MsgSpec):
 
         parameter = self.predicate.args[idx]
         result = None
-        if tmp[0] == 'type':
+        if param.startswith('type'):
             result = Word(parameter.op, 'NOUN')
-        elif tmp[0] == 'var':
+        elif param.startswith('var'):
             result = Word(parameter.op, 'NOUN')
         else:
-            msg = 'Expected var_N or type_N in replacing a PlaceHolder ' \
-            'but received ' + str(param)
-            raise SignatureError(msg)
-
+            result = PlaceHolder(parameter.op)
         return result
+
+
+def fol_to_msg(f):
+    """ Convert a FOL formula to a suitable set of message specifications. """
+    pass
 
 
 def formula_to_rst(f):

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lexRecords>
+<lexRecord>
+	<base>house</base>
+	<eui>E0032085</eui>
+	<cat>noun</cat>
+		<inflVars cat="noun" cit="house" eui="E0032085" infl="base" type="basic" unInfl="house">house</inflVars>
+		<inflVars cat="noun" cit="house" eui="E0032085" infl="singular" type="basic" unInfl="house">house</inflVars>
+		<inflVars cat="noun" cit="house" eui="E0032085" infl="plural" type="reg" unInfl="house">houses</inflVars>
+		<nounEntry>
+			<variants>reg</variants>
+		</nounEntry>
+</lexRecord>
+<lexRecord>
+	<base>house</base>
+	<eui>E0032086</eui>
+	<cat>verb</cat>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="base" type="basic" unInfl="house">house</inflVars>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="pres1p23p" type="basic" unInfl="house">house</inflVars>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="infinitive" type="basic" unInfl="house">house</inflVars>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="pres3s" type="reg" unInfl="house">houses</inflVars>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="past" type="reg" unInfl="house">housed</inflVars>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="pastPart" type="reg" unInfl="house">housed</inflVars>
+		<inflVars cat="verb" cit="house" eui="E0032086" infl="presPart" type="reg" unInfl="house">housing</inflVars>
+		<verbEntry>
+			<variants>reg</variants>
+			<tran>np</tran>
+			<nominalization>housing|noun|E0219276</nominalization>
+		</verbEntry>
+</lexRecord>
+<lexRecord>
+	<base>house</base>
+	<eui>E0032087</eui>
+	<cat>adj</cat>
+		<inflVars cat="adj" cit="house" eui="E0032087" infl="base" type="basic" unInfl="house">house</inflVars>
+		<inflVars cat="adj" cit="house" eui="E0032087" infl="positive" type="basic" unInfl="house">house</inflVars>
+		<adjEntry>
+			<variants>inv</variants>
+			<position type="attrib(3)"/>
+			<stative/>
+		</adjEntry>
+</lexRecord>
+<lexRecord>
+	<base>eat</base>
+	<eui>E0024352</eui>
+	<cat>verb</cat>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="base" type="basic" unInfl="eat">eat</inflVars>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="pres1p23p" type="basic" unInfl="eat">eat</inflVars>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="infinitive" type="basic" unInfl="eat">eat</inflVars>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="pres3s" type="irreg" unInfl="eat">eats</inflVars>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="past" type="irreg" unInfl="eat">ate</inflVars>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="pastPart" type="irreg" unInfl="eat">eaten</inflVars>
+		<inflVars cat="verb" cit="eat" eui="E0024352" infl="presPart" type="irreg" unInfl="eat">eating</inflVars>
+		<verbEntry>
+			<variants>irreg|eat|eats|ate|eaten|eating|</variants>
+			<intran>intran</intran>
+			<tran>np</tran>
+			<tran>np;part(up)</tran>
+			<tran>np;part(away)</tran>
+			<tran>pphr(through,np)</tran>
+			<tran>pphr(into,np)</tran>
+		</verbEntry>
+</lexRecord>
+<lexRecord>
+	<base>walk</base>
+	<eui>E0065000</eui>
+	<cat>verb</cat>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="base" type="basic" unInfl="walk">walk</inflVars>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="pres1p23p" type="basic" unInfl="walk">walk</inflVars>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="infinitive" type="basic" unInfl="walk">walk</inflVars>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="pres3s" type="reg" unInfl="walk">walks</inflVars>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="past" type="reg" unInfl="walk">walked</inflVars>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="pastPart" type="reg" unInfl="walk">walked</inflVars>
+		<inflVars cat="verb" cit="walk" eui="E0065000" infl="presPart" type="reg" unInfl="walk">walking</inflVars>
+		<verbEntry>
+			<variants>reg</variants>
+			<intran>intran</intran>
+			<tran>np</tran>
+			<link>advbl</link>
+		</verbEntry>
+</lexRecord>
+<lexRecord>
+	<base>walk</base>
+	<eui>E0065001</eui>
+	<cat>noun</cat>
+		<inflVars cat="noun" cit="walk" eui="E0065001" infl="base" type="basic" unInfl="walk">walk</inflVars>
+		<inflVars cat="noun" cit="walk" eui="E0065001" infl="singular" type="basic" unInfl="walk">walk</inflVars>
+		<inflVars cat="noun" cit="walk" eui="E0065001" infl="plural" type="reg" unInfl="walk">walks</inflVars>
+		<nounEntry>
+			<variants>reg</variants>
+		</nounEntry>
+</lexRecord>
+</lexRecords>

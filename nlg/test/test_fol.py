@@ -63,7 +63,7 @@ class TestFOL(unittest.TestCase):
         self.assertEqual(expected, e)
         
         # TODO: why does this not parse?
-        #    e = expr('forall x: forall y: ((x + y > 0))')
+#        e = expr('forall x: forall y: ((x + y > 0))')
 
         e = expr('forall x: x + y = z -> exists c: z > 0')
         expected = Quantifier(OP_FORALL, ['x'],
@@ -73,7 +73,11 @@ class TestFOL(unittest.TestCase):
                                    Quantifier(OP_EXISTS, ['c'],
                                               Expr('>', Expr('z'), Expr(0)))))
         self.assertEqual(expected, e)
-        
+    
+        e = expr('(P) | (Q)')
+        expected = Expr('P') | Expr('Q')
+        self.assertEqual(expected, e)
+    
         # TODO: add more tests for parsing
 
     def test_operators(self):
@@ -135,7 +139,6 @@ class TestFOL(unittest.TestCase):
         expected = Expr('x\'')
         self.assertEqual(expected, v)
     
-
     def test_subst(self):
         f1 = expr('x + y = z')
         expected = expr('x + y = 0')
@@ -152,11 +155,11 @@ class TestFOL(unittest.TestCase):
         expected = expr('forall x: 3 > 0 -> x + 3 > x')
         f2 = subst({Expr('c'): Expr(3)}, f1)
         self.assertEqual(expected, f2)
-        # TODO: fix
-#        f1 = expr('forall x: c > 0 -> x + c > x')
-#        expected = expr("forall x': x > 0 -> x' + x > x'")
-#        f2 = subst({Expr('c'): Expr('x')}, f1)
-#        self.assertEqual(expected, f2)
+
+        f1 = expr('forall x: c > 0 -> x + c > x')
+        expected = expr("forall x': x > 0 -> x' + x > x'")
+        f2 = subst({Expr('c'): Expr('x')}, f1)
+        self.assertEqual(expected, f2)
 
     def test_simplification_none(self):
         f = expr('1')
@@ -249,11 +252,11 @@ class TestFOL(unittest.TestCase):
         self.assertEqual(expected, simplify(f))
         
         f = expr('P -> false')
-        expected = expr('true')
+        expected = expr('~P')
         self.assertEqual(expected, simplify(f))
         
         f = expr('true -> P')
-        expected = expr('true')
+        expected = expr('P')
         self.assertEqual(expected, simplify(f))
     
         f = expr('P <-> true')
@@ -274,21 +277,222 @@ class TestFOL(unittest.TestCase):
         self.assertEqual(expected, simplify(f))
         
         f = expr('forall x: P(x) & Q(x) -> false')
-        expected = expr('TRUE')
+        expected = expr('forall x: ~(P(x) & Q(x))')
         self.assertEqual(expected, simplify(f))
         
         f = expr('forall x, y: P(x) & true')
         expected = expr('forall x: P(x)')
         self.assertEqual(expected, simplify(f))
         
-#        f = expr('forall x, y: exists z: '\
-#                 '((P(x1) & true) | (Q(y1) & false) -> Z(xy)) ')
-#        expected = expr('true')
-#        self.assertEqual(expected, simplify(f))
-#        
-#        f = expr('forall x, y: exists z: x =/= y -> x < z & z < y')
-#        expected = expr('forall x, y: exists z: x =/= y -> x < z & z < y')
-#        self.assertEqual(expected, simplify(f))
+        f = expr('forall x: forall y: P(x) & Q(x) -> false')
+        expected = expr('forall x: ~(P(x) & Q(x))')
+        self.assertEqual(expected, simplify(f))
+        
+        f = expr('forall x: exists y: P(x) & Q(x) -> false')
+        expected = expr('forall x: ~(P(x) & Q(x))')
+        self.assertEqual(expected, simplify(f))
+        
+        f = expr('forall x, y: exists z: x =/= y -> x < z & z < y')
+        expected = expr('forall x, y: exists z: x =/= y -> x < z & z < y')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('forall x, y: (P(x1) & true) | (Q(y1) & false)')
+        expected = expr('P(x1)')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('forall x, y: exists z: (P(x1) & true) -> (Q(y1) & false)')
+        expected = expr('~P(x1)')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('forall x, y: exists z: '\
+                 '(P(x1) & true) | (Q(y1) & false) -> Z(xy) ')
+        expected = expr('P(x1) -> Z(xy)')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('forall x, y: exists z: '\
+                 '(P(x1) & true) | (Q(y1) & false) <-> true ')
+        expected = expr('P(x1)')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('forall x, y: exists z: '\
+                 '(P(x1) & true) | (Q(y1) & false) <- Z(xy) | true ')
+        expected = expr('true')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('true -> (P <-> (P <-> false))')
+        expected = expr('P <-> ~P')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('exists x, y, z: P(x) -> Q(z) -> false')
+        expected = expr('exists x, z: P(x) -> ~Q(z)')
+        self.assertEqual(expected, simplify(f))
+
+        f = expr('(forall x, y: P(x) | (P(y) & false)) -> exists z: Q')
+        expected = expr('(forall x: P(x)) -> Q')
+        self.assertEqual(expected, simplify(f))
+
+    def test_nnf(self):
+        f = expr('P & Q & R')
+        expected = expr('P & (Q & R)')
+        self.assertEqual(expected, nnf(f))
+        
+        f = expr('P | Q | R')
+        expected = expr('P | (Q | R)')
+        self.assertEqual(expected, nnf(f))
+        
+        f = expr('P -> Q')
+        expected = expr('~P | Q')
+        self.assertEqual(expected, nnf(f))
+        
+        f = expr('P <- Q')
+        expected = expr('P | ~Q')
+        self.assertEqual(expected, nnf(f))
+
+        f = expr('P <-> Q')
+        expected = expr('(P & Q) | (~P & ~Q)')
+        self.assertEqual(expected, nnf(f))
+
+        f = expr('P <-> (Q -> R)')
+        expected = expr('(P & (~Q | R)) | (~P & (Q & ~R))')
+        self.assertEqual(expected, nnf(f))
+
+        f = expr('P -> (Q <-> R)')
+        expected = expr('(~P | ((Q & R) | (~Q & ~R)))')
+        self.assertEqual(expected, nnf(f))
+        
+        f = expr('(exists x: P(x)) -> (forall x: Q(x))')
+        expected = expr('(forall x: ~P(x)) | (forall x: Q(x))')
+        self.assertEqual(expected, nnf(f))
+
+        f = expr('((exists y: Q(y)) <-> exists z: P(z) & Q(z))')
+        expected = expr('(exists y: Q(y)) & (exists z: P(z) & Q(z)) | '
+                        '(forall y: ~Q(y)) & (forall z: ~P(z) | ~Q(z))')
+        self.assertEqual(expected, nnf(f))
+
+        f = expr('(forall x: P(x)) ->'\
+                 '((exists y: Q(y)) <-> exists z: P(z) & Q(z))')
+        expected = Expr(OP_OR,
+                        Quantifier(OP_EXISTS, ['x'], expr('~P(x)')),
+                        expr('((exists y: Q(y)) & (exists z: P(z) & Q(z))) | '
+                            '((forall y: ~Q(y)) & (forall z: ~P(z) | ~Q(z)))'))
+        self.assertEqual(expected, nnf(f))
+
+    def test_unique_vars(self):
+        f = expr('P(x) & Q(x) & R(x)')
+        expected = expr('P(x) & Q(x) & R(x)')
+        self.assertEqual(expected, unique_vars(f))
+        
+        f = expr('forall x: P(x) | Q(x)')
+        expected = expr('forall x: P(x) | Q(x)')
+        self.assertEqual(expected, unique_vars(f))
+        
+        f = expr('(forall x: P(x)) | (forall x: Q(x))')
+        expected = expr("(forall x: P(x)) | (forall x': Q(x'))")
+        self.assertEqual(expected, unique_vars(f))
+        
+        f = expr('(forall x: P(x)) | (exists x: Q(x))')
+        expected = expr("(forall x: P(x)) | (exists x': Q(x'))")
+        self.assertEqual(expected, unique_vars(f))
+
+        f = expr("(forall x, x': P(x) | Q(x')) | (forall x: Q(x))")
+        expected = expr("(forall x, x': P(x) | Q(x')) | (forall x'': Q(x''))")
+        self.assertEqual(expected, unique_vars(f))
+        
+        f = expr('(forall x: P(x)) & (exists y: Q(y)) & (forall x, y: Z(x, y))')
+        expected = expr("(forall x: P(x)) & (exists y: Q(y)) &"
+                        "(forall x', y': Z(x', y'))")
+        self.assertEqual(expected, unique_vars(f))
+
+        f = expr("(forall x: P(x)) & (exists y: Q(y)) &"
+                 "(forall x', y': Z(x', y')) | (forall x', y': Z(x', y'))")
+        expected = expr("(forall x: P(x)) & (exists y: Q(y)) &"
+                "(forall x', y': Z(x', y')) | (forall x'', y'': Z(x'', y''))")
+        self.assertEqual(expected, unique_vars(f))
+
+    def test_pullquants(self):
+        # easy forall cases
+        f = expr('(forall x: P(x)) & Q')
+        e = expr('forall x: P(x) & Q')
+        self.assertEqual(e, pullquants(f))
+        
+        f = expr('P & (forall x: Q(x))')
+        e = expr('forall x: P & Q(x)')
+        self.assertEqual(e, pullquants(f))
+
+        f = expr('(forall x: P(x)) | Q')
+        e = expr('forall x: P(x) | Q')
+        self.assertEqual(e, pullquants(f))
+
+        f = expr('P | forall x: Q(x)')
+        e = expr('forall x: P | Q(x)')
+        self.assertEqual(e, pullquants(f))
+
+        # easy exists cases
+        f = expr('(exists x: P(x)) & Q')
+        e = expr('exists x: P(x) & Q')
+        self.assertEqual(e, pullquants(f))
+        
+        f = expr('P & (exists x: Q(x))')
+        e = expr('exists x: P & Q(x)')
+        self.assertEqual(e, pullquants(f))
+
+        f = expr('(exists x: P(x)) | Q')
+        e = expr('exists x: P(x) | Q')
+        self.assertEqual(e, pullquants(f))
+
+        f = expr('P | (exists x: Q(x))')
+        e = expr('exists x: P | Q(x)')
+        self.assertEqual(e, pullquants(f))
+        
+        # variable reduction
+        f = expr('(forall x: P(x)) & (forall y: Q(y))')
+        e = expr('(forall x: P(x) & Q(x))')
+        self.assertEqual(e, pullquants(f))
+        
+        # catch
+        f = expr('(forall x: P(x)) | (forall y: Q(y))')
+        e = expr('(forall x: P(x)) | (forall y: Q(y))')
+        self.assertEqual(e, pullquants(f))
+
+        # variable reduction
+        f = expr('(exists x: P(x)) | (exists y: Q(y))')
+        e = expr('(exists x: P(x) | Q(x))')
+        self.assertEqual(e, pullquants(f))
+        
+        # catch
+        f = expr('(exists x: P(x)) & (exists y: Q(y))')
+        e = expr('(exists x: P(x)) & (exists y: Q(y))')
+        self.assertEqual(e, pullquants(f))
+        
+        # no rename
+        f = expr('P(x) & (forall y: Q(y))')
+        e = expr('(forall y: P(x) & Q(y))')
+        self.assertEqual(e, pullquants(f))
+        
+        # rename required
+        f = expr('P(x) & (forall x: Q(x))')
+        e = expr("(forall x': P(x) & Q(x'))")
+        self.assertEqual(e, pullquants(f))
+
+        # rename required
+        f = expr('P(x) & (exists x: Q(x))')
+        e = expr("(exists x': P(x) & Q(x'))")
+        self.assertEqual(e, pullquants(f))
+
+    def test_pnf(self):
+        """ prenex normal form """
+        f = expr("(forall x: P(x) | R(y)) ->"
+                 "(exists y, z: Q(y)) | ~(exists z: P(z) & Q(z))")
+        e = expr("exists x: forall z: foo")
+        foo = expr('~P(x) & ~R(y) | (Q(x) | (~P(z) | ~Q(z)))')
+        e.args[0].args[0] = foo
+        self.assertEqual(e, pullquants(nnf(simplify(f))))
+
+
+
+
+
+
 
 
 
