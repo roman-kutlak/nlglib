@@ -29,6 +29,10 @@ OP_EXISTS = 'exists'
 OP_TRUE   = 'TRUE'
 OP_FALSE  = 'FALSE'
 
+LOGIC_OPS = [OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+UNARY_LOGIC_OPS = [OP_NOT]
+BINARY_LOGIC_OPS = [OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+CONDITIONAL_LOGIC_OPS = [OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
 
 # ∀ ?x: Happy(?x) ⇔ ¬Sad(?x)
 OPS = {
@@ -212,7 +216,6 @@ def opposite(quant):
     assert False, 'Unknown quantifier "{0}"'.format(quant)
 
 
-# TODO: split into is_symbol and is_number?
 def is_symbol(s):
     "A string s is a symbol if it starts with an alphabetic char."
     return ((isinstance(s, str) and
@@ -354,6 +357,62 @@ def subst(mappings, tm):
         return Expr(tm.op, *[subst(mappings, x) for x in tm.args])
 
 
+def deepen(f):
+    """ Return a copy of f where each operator takes at most 2 arguments.
+    >>> flatten(expr('A & B & C')) == expr('A & (B & C))
+    True
+    
+    """
+    if is_quantified(f):
+        if len(f.vars) > 1:
+            return Quantifier(f.op, f.vars[0],
+                              deepen(Quantifier(f.op, f.vars[1:], f.args[0])))
+        else:
+            return Quantifier(f.op, f.vars, deepen(f.args[0]))
+    elif f.op == OP_AND or f.op == OP_OR:
+        args = [deepen(x) for x in f.args]
+        if len(args) > 2:
+            return Expr(f.op, args[0], deepen(Expr(f.op, *args[1:])))
+        else:
+            return Expr(f.op, *args)
+    elif f.op in [OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]:
+        return Expr(f.op, *[deepen(x) for x in f.args])
+    elif f.op == OP_NOT:
+        return Expr(f.op, deepen(f.args[0]))
+    else:
+        return f
+
+
+def flatten(f):
+    """ Return a copy of f where each operator takes as many arguments
+    as possible.
+    >>> flatten(expr('A & (B & C)')) == expr('A & B & C)
+    True
+    
+    """
+#    print('flatten({0})'.format(str(f)))
+    if is_quantified(f):
+        arg = flatten(f.args[0])
+        if is_quantified(arg) and f.op == arg.op:
+            return Quantifier(f.op, f.vars + arg.vars, arg.args[0])
+        else:
+            return Quantifier(f.op, f.vars, arg)
+    elif f.op == OP_AND or f.op == OP_OR:
+        args = list(map(flatten, f.args))
+        same_args = list(filter(lambda x: x.op == f.op, args))
+        new_args = []
+        for el in same_args:
+            new_args.extend(el.args)
+        other_args = [x for x in args if x not in same_args]
+        return Expr(f.op, *(other_args + new_args))
+    elif f.op in [OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]:
+        return Expr(f.op, *[flatten(x) for x in f.args])
+    elif f.op == OP_NOT:
+        return Expr(f.op, flatten(f.args[0]))
+    else:
+        return f
+
+
 def simplify(f):
     """ Take a FOL formula and try to simplify it. """
 #    print('\nSimplifying op "{0}" args "{1}"'.format(f.op, f.args))
@@ -453,58 +512,74 @@ def simplify(f):
         return f
 
 
-def nnf(f):
-    """ Create a Negated Normal Form """
+def remove_conditionals(f):
+    """ Return a copy of f where conditionals are replaced by & and |. """
+    if f.op == OP_IMPLIES:
+        p, q = f.args[0], f.args[1]
+        return (remove_conditionals(~p) | remove_conditionals(q))
+    elif f.op == OP_IMPLIED_BY:
+        p, q = f.args[0], f.args[1]
+        return (remove_conditionals(p) | remove_conditionals(~q))
+    elif f.op == OP_EQUIVALENT:
+        p, q = f.args[0], f.args[1]
+        return (remove_conditionals(p) & remove_conditionals(q) |
+                remove_conditionals(~p) & remove_conditionals(~q))
+    elif is_quantified(f):
+        return Quantifier(f.op, f.vars, remove_conditionals(f.args[0]))
+    else:
+        return Expr(f.op, *[remove_conditionals(x) for x in f.args])
+
+
+def push_neg(f):
+    """ Return a copy of f that has negation as close to terms as possible. 
+    Unlike nnf(), push_neg() leaves conditionals as they are.
+    
+    """
     if f.op == OP_NOT:
         arg = f.args[0]
         if arg.op == OP_NOT:
-            return nnf(arg.args[0])
+            return push_neg(arg.args[0])
         elif arg.op == OP_AND:
-            return Expr(OP_OR, *[nnf(Expr(OP_NOT, x)) for x in arg.args])
+            return Expr(OP_OR, *[push_neg(Expr(OP_NOT, x)) for x in arg.args])
         elif arg.op == OP_OR:
-            return Expr(OP_AND, *[nnf(Expr(OP_NOT, x)) for x in arg.args])
+            return Expr(OP_AND, *[push_neg(Expr(OP_NOT, x)) for x in arg.args])
         elif arg.op == OP_IMPLIES: # p -> q
             p, q = arg.args[0], arg.args[1]
-            return (nnf(p) & nnf(~(q)))
+            return ~(push_neg(p) >> push_neg(q))
         elif arg.op == OP_IMPLIED_BY: # p <- q
             p, q = arg.args[0], arg.args[1]
-            return (nnf(~p) & nnf(q))
+            return ~(push_neg(p) << push_neg(q))
         elif arg.op == OP_EQUIVALENT: # p <-> q
             p, q = arg.args[0], arg.args[1]
-            return ((nnf(p) & nnf(~q)) | (nnf(~p) & nnf(q)))
+            return ~(push_neg(p) ** push_neg(q))
         elif arg.op == OP_FORALL:
             return Quantifier(OP_EXISTS, arg.vars,
-                              nnf(Expr(OP_NOT, arg.args[0])))
+                              push_neg(Expr(OP_NOT, arg.args[0])))
         elif arg.op == OP_EXISTS:
             return Quantifier(OP_FORALL, arg.vars,
-                              nnf(Expr(OP_NOT, arg.args[0])))
+                              push_neg(Expr(OP_NOT, arg.args[0])))
         else:
             return f
     elif f.op == OP_AND or f.op == OP_OR:
-        if len(f.args) > 2:
-            return Expr(f.op,
-                        nnf(f.args[0]),
-                        nnf(Expr(f.op, *[nnf(x) for x in f.args[1:]])))
-        else:
-            return Expr(f.op, *[nnf(x) for x in f.args])
+            return Expr(f.op, *[push_neg(x) for x in f.args])
     elif f.op == OP_IMPLIES:
         p, q = f.args[0], f.args[1]
-        return (nnf(~p) | nnf(q))
+        return (push_neg(p) >> push_neg(q))
     elif f.op == OP_IMPLIED_BY:
         p, q = f.args[0], f.args[1]
-        return (nnf(p) | nnf(~q))
+        return (push_neg(p) << push_neg(q))
     elif f.op == OP_EQUIVALENT:
         p, q = f.args[0], f.args[1]
-        return (nnf(p) & nnf(q)) | (nnf(~p) & nnf(~q))
+        return (push_neg(p) ** push_neg(q))
     elif is_quantified(f):
-        if len(f.vars) > 1:
-            return Quantifier(f.op, f.vars[0],
-                              nnf(Quantifier(f.op, f.vars[1:],
-                                  *[nnf(x) for x in f.args])))
-        else:
-            return Quantifier(f.op, f.vars, *[nnf(x) for x in f.args])
+        return Quantifier(f.op, f.vars, push_neg(f.args[0]))
     else:
         return f
+        
+
+def nnf(f):
+    """ Create a Negated Normal Form """
+    return push_neg(remove_conditionals(simplify(f)))
 
 
 def unique_vars(f):
@@ -540,11 +615,11 @@ def unique_vars(f):
     return helper(f, set(), {})
 
 
-def pullquants(f):
+def pull_quants(f):
     """ Pull out quantifiers to the front of the formula f.
     The function assumes that all operators have at most two arguments 
-    and all quantifiers have at most one variable (this can be achieved using
-    the function nnf(), which converts a formula into a negated normal form).
+    and all quantifiers have at most one variable 
+    (this can be achieved using the function deepen()).
     Also, each variabl name can be used only once per formula.
     
     """
@@ -566,164 +641,184 @@ def pullquants(f):
             a2 = arg2
         return Quantifier(quant, new_var, pullquants(Expr(f.op, a1 , a2)))
 
-#    print('pullquants({0})'.format(str(f)))
-    if f.op == OP_AND:
-        arg1 = pullquants(f.args[0])
-        arg2 = pullquants(f.args[1])
-        if arg1.op == OP_FORALL and arg2.op == OP_FORALL:
-            return rename_and_pull(f, OP_FORALL,
-                                   arg1.vars[0], arg2.vars[0],
-                                   arg1.args[0], arg2.args[0])
-        elif is_quantified(arg1):
-            return rename_and_pull(f, arg1.op,
-                                   arg1.vars[0], None,
-                                   arg1.args[0], arg2)
-        elif is_quantified(arg2):
-            return rename_and_pull(f, arg2.op,
-                                   None, arg2.vars[0],
-                                   arg1, arg2.args[0])
+    def pullquants(f):
+    #    print('pullquants({0})'.format(str(f)))
+        if f.op == OP_AND:
+            arg1 = pullquants(f.args[0])
+            arg2 = pullquants(f.args[1])
+            if arg1.op == OP_FORALL and arg2.op == OP_FORALL:
+                return rename_and_pull(f, OP_FORALL,
+                                       arg1.vars[0], arg2.vars[0],
+                                       arg1.args[0], arg2.args[0])
+            elif is_quantified(arg1):
+                return rename_and_pull(f, arg1.op,
+                                       arg1.vars[0], None,
+                                       arg1.args[0], arg2)
+            elif is_quantified(arg2):
+                return rename_and_pull(f, arg2.op,
+                                       None, arg2.vars[0],
+                                       arg1, arg2.args[0])
+            else:
+                return (arg1 & arg2)
+        elif f.op == OP_OR:
+            arg1 = pullquants(f.args[0])
+            arg2 = pullquants(f.args[1])
+            if arg1.op == OP_EXISTS and arg2.op == OP_EXISTS:
+                return rename_and_pull(f, OP_EXISTS,
+                                       arg1.vars[0], arg2.vars[0],
+                                       arg1.args[0], arg2.args[0])
+            elif is_quantified(arg1):
+                return rename_and_pull(f, arg1.op,
+                                       arg1.vars[0], None,
+                                       arg1.args[0], arg2)
+            elif is_quantified(arg2):
+                return rename_and_pull(f, arg2.op,
+                                       None, arg2.vars[0],
+                                       arg1, arg2.args[0])
+            else:
+                return (arg1 | arg2)
+        elif f.op == OP_IMPLIES:
+            arg1 = pullquants(f.args[0])
+            arg2 = pullquants(f.args[1])
+            if is_quantified(arg1):
+                return rename_and_pull(f, opposite(arg1.op),
+                                       arg1.vars[0], None,
+                                       arg1.args[0], arg2)
+            elif is_quantified(arg2):
+                return rename_and_pull(f, arg2.op,
+                                       None, arg2.vars[0],
+                                       arg1, arg2.args[0])
+            else:
+                return (arg1 >> arg2)
+        elif f.op == OP_IMPLIED_BY:
+            arg1 = pullquants(f.args[0])
+            arg2 = pullquants(f.args[1])
+            if is_quantified(arg1):
+                return rename_and_pull(f, arg1.op,
+                                       arg1.vars[0], None,
+                                       arg1.args[0], arg2)
+            elif is_quantified(arg2):
+                return rename_and_pull(f, opposite(arg2.op),
+                                       None, arg2.vars[0],
+                                       arg1, arg2.args[0])
+            else:
+                return (arg1 << arg2)
+        elif f.op == OP_EQUIVALENT:
+            arg1 = pullquants(f.args[0])
+            arg2 = pullquants(f.args[1])
+            return pullquants((arg1 >> arg2) & (arg1 << arg2))
+        elif f.op == OP_NOT:
+            arg = pullquants(f.args[0])
+            if is_quantified(arg):
+                return Quantifier(opposite(arg.op), f.vars, ~(arg.args[0]))
+            else:
+                return (~arg)
         else:
-            return (arg1 & arg2)
-    elif f.op == OP_OR:
-        arg1 = pullquants(f.args[0])
-        arg2 = pullquants(f.args[1])
-        if arg1.op == OP_EXISTS and arg2.op == OP_EXISTS:
-            return rename_and_pull(f, OP_EXISTS,
-                                   arg1.vars[0], arg2.vars[0],
-                                   arg1.args[0], arg2.args[0])
-        elif is_quantified(arg1):
-            return rename_and_pull(f, arg1.op,
-                                   arg1.vars[0], None,
-                                   arg1.args[0], arg2)
-        elif is_quantified(arg2):
-            return rename_and_pull(f, arg2.op,
-                                   None, arg2.vars[0],
-                                   arg1, arg2.args[0])
-        else:
-            return (arg1 | arg2)
-    elif f.op == OP_IMPLIES:
-        arg1 = pullquants(f.args[0])
-        arg2 = pullquants(f.args[1])
-        if is_quantified(arg1):
-            return rename_and_pull(f, opposite(arg1.op),
-                                   arg1.vars[0], None,
-                                   arg1.args[0], arg2)
-        elif is_quantified(arg2):
-            return rename_and_pull(f, arg2.op,
-                                   None, arg2.vars[0],
-                                   arg1, arg2.args[0])
-        else:
-            return (arg1 >> arg2)
-    elif f.op == OP_IMPLIED_BY:
-        arg1 = pullquants(f.args[0])
-        arg2 = pullquants(f.args[1])
-        if is_quantified(arg1):
-            return rename_and_pull(f, arg1.op,
-                                   arg1.vars[0], None,
-                                   arg1.args[0], arg2)
-        elif is_quantified(arg2):
-            return rename_and_pull(f, opposite(arg2.op),
-                                   None, arg2.vars[0],
-                                   arg1, arg2.args[0])
-        else:
-            return (arg1 << arg2)
-    elif f.op == OP_EQUIVALENT:
-        arg1 = pullquants(f.args[0])
-        arg2 = pullquants(f.args[1])
-        return pullquants((arg1 >> arg2) & (arg1 << arg2))
-    elif f.op == OP_NOT:
-        arg = pullquants(f.args[0])
-        if is_quantified(arg):
-            return Quantifier(opposite(arg.op), f.vars, ~(arg.args[0]))
-        else:
-            return (~arg)
-    else:
-        return f
+            return f
+
+    return flatten(pullquants(unique_vars(deepen(f))))
 
 
 def pnf(f):
-    """ Return formula f in a Prenex Normal Form. """
-    return pullquants(nnf(simplify(f)))
+    """ Return a copy of formula f in a Prenex Normal Form. """
+    return flatten(pull_quants(nnf(f)))
 
 
-def pushquants(f):
+def push_quants(f):
     """Return formula f' equivalent to f in which quantifiers have the smallest
-    possible scope.
+    possible scope. Function assumes that each quantifier has only one variable
+    and each operator has at most two arguments. Use deepen() to do that.
     
     """
-    def binops():
-        return [OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
-
-    if is_quantified(f):
-        arg = f.args[0]
-        if arg.op == OP_NOT:
-            return ~pushquants(Quantifier(opposite(f.op), f.vars, arg.args[0]))
-        elif is_quantified(arg):
-            arg1 = pushquants(arg)
-            if arg1 == arg:
-                arg2 = Quantifier(f.op, f.vars, arg.args[0])
-                arg2_ = pushquants(arg2)
-                if arg2 == arg2_:
-                    return f
+    def pushquants(f):
+    #    print('pushquant({0})'.format(f))
+        if is_quantified(f):
+            arg = f.args[0]
+            if arg.op == OP_NOT:
+                return ~pushquants(Quantifier(opposite(f.op), f.vars, arg.args[0]))
+            elif is_quantified(arg):
+                arg1 = pushquants(arg)
+                # did pushquants have any effect?
+                if arg1 == arg:
+                    # if no, see if changing the order of the quants has an effect
+                    arg2 = Quantifier(f.op, f.vars, arg.args[0])
+                    arg2_ = pushquants(arg2)
+                    if arg2 == arg2_:
+                        return Quantifier(f.op, f.vars, arg1)
+                    else:
+                        return Quantifier(arg.op, arg.vars, arg2_)
                 else:
-                    return Quantifier(arg.op, arg.vars, arg2_)
-            else:
-                return pushquants(Quantifier(f.op, f.vars, arg1))
-        elif arg.op in [OP_AND, OP_OR]:
-            arg1 = arg.args[0]
-            arg2 = arg.args[1]
-            variable = f.vars[0]
-            if variable in fvars(arg1) and variable in fvars(arg2):
-                return Expr(arg.op,
-                            Quantifier(f.op, f.vars, pushquants(arg1)),
-                            Quantifier(f.op, f.vars, pushquants(arg2)))
-            if variable in fvars(arg1):
-                return Expr(arg.op,
-                            Quantifier(f.op, f.vars, pushquants(arg1)),
+                    return pushquants(Quantifier(f.op, f.vars, arg1))
+            elif arg.op in [OP_AND, OP_OR]:
+                arg1 = arg.args[0]
+                arg2 = arg.args[1]
+                variable = f.vars[0]
+                if variable in fvars(arg1) and variable in fvars(arg2):
+                    if ((arg.op == OP_AND and f.op == OP_FORALL) or
+                        (arg.op == OP_OR and f.op == OP_EXISTS)):
+                        return pushquants(Expr(arg.op,
+                                          Quantifier(f.op, f.vars, arg1),
+                                          Quantifier(f.op, f.vars, arg2)))
+                    else:
+                        return Quantifier(f.op, f.vars, pushquants(arg))
+                if variable in fvars(arg1):
+                    return pushquants(Expr(arg.op,
+                                      Quantifier(f.op, f.vars, arg1), arg2))
+                if variable in fvars(arg2):
+                    return pushquants(Expr(arg.op, arg1,
+                                           Quantifier(f.op, f.vars, arg2)))
+                else:
+                    get_log().warning('Dropped quantifier "{0} : {1}" from "{2}"'
+                                      .format(f.op, f.vars, f))
+                    return arg
+            elif arg.op == OP_IMPLIES:
+                arg1 = arg.args[0]
+                arg2 = arg.args[1]
+                variable = f.vars[0]
+                if variable in fvars(arg1) and variable in fvars(arg2):
+                    return Quantifier(f.op, f.vars, pushquants(arg))
+                elif variable in fvars(arg1):
+                    quant = opposite(f.op)
+                    return (pushquants(Quantifier(quant, variable, arg1)) >>
                             pushquants(arg2))
-            if variable in fvars(arg2):
-                return Expr(arg.op,
-                            pushquants(arg1),
-                            Quantifier(f.op, f.vars, pushquants(arg2)))
+                elif variable in fvars(arg2):
+                    return (pushquants(arg1) >>
+                            pushquants(Quantifier(f.op, variable, arg2)))
+                else:
+                    get_log().warning('Dropped quantifier "{0} : {1}" from "{2}"'
+                                      .format(f.op, f.vars, f))
+                    return (pushquants(arg1) >> pushquants(arg2))
+            elif arg.op == OP_IMPLIED_BY:
+                arg1 = arg.args[0]
+                arg2 = arg.args[1]
+                variable = f.vars[0]
+                if variable in fvars(arg1) and variable in fvars(arg2):
+                    return Quantifier(f.op, f.vars, pushquants(arg))
+                elif variable in fvars(arg1):
+                    return (pushquants(Quantifier(f.op, variable, arg1)) <<
+                            pushquants(arg2))
+                elif variable in fvars(arg2):
+                    quant = opposite(f.op)
+                    return (pushquants(arg1) <<
+                            pushquants(Quantifier(quant, variable, arg2)))
+                else:
+                    get_log().warning('Dropped quantifier "{0} : {1}" from "{2}"'
+                                      .format(f.op, f.vars, f))
+                    return (pushquants(arg1) << pushquants(arg2))
             else:
-                # TODO: check we can drop quantifier
-                return arg
-        elif arg.op == OP_IMPLIES:
-            arg1 = arg.args[0]
-            arg2 = arg.args[1]
-            variable = f.vars[0]
-            if variable in fvars(arg1):
-                quant = opposite(f.op)
-                return (pushquants(Quantifier(quant, variable, arg1)) >>
-                        pushquants(arg2))
-            elif variable in fvars(arg2):
-                return (pushquants(arg1) >>
-                        pushquants(Quantifier(f.op, variable, arg2)))
-            else:
-                return (pushquants(arg1) >> pushquants(arg2))
-        elif arg.op == OP_IMPLIED_BY:
-            arg1 = arg.args[0]
-            arg2 = arg.args[1]
-            variable = f.vars[0]
-            if variable in fvars(arg1):
-                return (pushquants(arg1) >>
-                        pushquants(Quantifier(f.op, variable, arg2)))
-            elif variable in fvars(arg2):
-                quant = opposite(f.op)
-                return (pushquants(Quantifier(quant, variable, arg1)) >>
-                        pushquants(arg2))
-            else:
-                return (pushquants(arg1) >> pushquants(arg2))
+                return Quantifier(f.op, f.vars[0], pushquants(f.args[0]))
+        elif f.op == OP_NOT:
+            return ~pushquants(f.args[0])
+        elif f.op in BINARY_LOGIC_OPS:
+            return Expr(f.op, *[pushquants(x) for x in f.args])
         else:
-            return Quantifier(f.op, f.vars[0], pushquants(f.args[0]))
-    elif f.op == OP_NOT:
-        return ~pushquants(f.args[0])
-    elif f.op in binops():
-        return Expr(f.op, *[pushquants(x) for x in f.args])
-    else:
-        return f
+            return f
 
+    return pushquants(deepen(f))
 
+def miniscope(f):
+    """ Return a normalised copy of f with the minimu scope of quantifiers. """
+    return flatten(push_quants(nnf(f)))
 
 
 # #############################  PARSING  ################################### #

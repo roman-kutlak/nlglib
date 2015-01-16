@@ -1,8 +1,4 @@
-add functions "flatten" that converts (p & q & r) to (p & (q & r))
-add functions "deepen" that converts (p & (q & r)) to (p & q & r)
-add function pushquant
-add miniscope function
-take out pushing negations from nnf and put it in a separate function
+Issue: The parser can't cope with more than 5 quantifiers in a formula.
 
 add FOL to NLG elements
 add variable context for FOL to NLG
