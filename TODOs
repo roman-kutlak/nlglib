@@ -1,8 +1,5 @@
-fix bug in parsing (extra parenthesis not accepted)
-
 add functions "flatten" that converts (p & q & r) to (p & (q & r))
 add functions "deepen" that converts (p & (q & r)) to (p & q & r)
-add conditionals to pullquant
 add function pushquant
 add miniscope function
 take out pushing negations from nnf and put it in a separate function
@@ -10,3 +7,5 @@ take out pushing negations from nnf and put it in a separate function
 add FOL to NLG elements
 add variable context for FOL to NLG
 add REG context
+
+allow latex formulas?

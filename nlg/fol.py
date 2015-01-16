@@ -2,7 +2,7 @@ import numbers
 from pyparsing import (nums, alphas, alphanums, restOfLine, Word,
                        Group, Optional, Keyword, Literal, CaselessKeyword,
                        Combine, Forward, Suppress, opAssoc, operatorPrecedence,
-                       delimitedList, ParserElement,
+                       delimitedList, oneOf, ParserElement,
                        ParseException, ParseSyntaxException)
 import logging
 
@@ -201,6 +201,16 @@ class Quantifier(Expr):
     def __hash__(self):
         "Need a hash method so Exprs can live in dicts."
         return hash(self.op) ^ hash(tuple(self.vars)) ^ hash(tuple(self.args))
+
+
+def opposite(quant):
+    """ Return opposite quantifier (forall -> exists; exists -> forall) """
+    if quant == OP_EXISTS:
+        return OP_FORALL
+    if quant == OP_FORALL:
+        return OP_EXISTS
+    assert False, 'Unknown quantifier "{0}"'.format(quant)
+
 
 # TODO: split into is_symbol and is_number?
 def is_symbol(s):
@@ -538,61 +548,95 @@ def pullquants(f):
     Also, each variabl name can be used only once per formula.
     
     """
+    def rename_and_pull(f, quant, old_var1, old_var2, arg1, arg2):
+        """ Helper function that renames given variable in a formula. """
+        # when both variables are to be renamed, re-use the variable name
+        # eg. (forall x: P(x) & forall y: Q(y)) <-> (forall x: P(x) & Q(x))
+        new_var = None
+        if old_var1: # rename left?
+            new_var = variant(old_var1, fvars(f))
+            a1 = subst({old_var1: new_var}, arg1)
+        else:
+            a1 = arg1
+        if old_var2: # rename right?
+            if not new_var:
+                new_var = variant(old_var2, fvars(f))
+            a2 = subst({old_var2: new_var}, arg2)
+        else:
+            a2 = arg2
+        return Quantifier(quant, new_var, pullquants(Expr(f.op, a1 , a2)))
+
 #    print('pullquants({0})'.format(str(f)))
     if f.op == OP_AND:
         arg1 = pullquants(f.args[0])
         arg2 = pullquants(f.args[1])
         if arg1.op == OP_FORALL and arg2.op == OP_FORALL:
-            # when both conjuncts are forall, we can re-use the variable name
-            # eg. (forall x: P(x) & forall y: Q(y)) <-> (forall x: P(x) & Q(x))
-            old_var = arg1.vars[0]
-            new_var = variant(arg1.vars[0], fvars(f))
-            a1 = subst({arg1.vars[0]: new_var}, arg1.args[0])
-            a2 = subst({arg2.vars[0]: new_var}, arg2.args[0])
-            return Quantifier(OP_FORALL, [new_var], pullquants(a1 & a2))
-        elif arg1.op == OP_EXISTS and arg2.op == OP_EXISTS:
-            return f
+            return rename_and_pull(f, OP_FORALL,
+                                   arg1.vars[0], arg2.vars[0],
+                                   arg1.args[0], arg2.args[0])
         elif is_quantified(arg1):
-            old_var = arg1.vars[0]
-            new_var = variant(old_var, fvars(f))
-            a1 = subst({old_var: new_var}, arg1.args[0])
-            a2 = arg2 #subst({old_var: new_var}, arg2)
-            return Quantifier(arg1.op, [new_var], pullquants(a1 & a2))
+            return rename_and_pull(f, arg1.op,
+                                   arg1.vars[0], None,
+                                   arg1.args[0], arg2)
         elif is_quantified(arg2):
-            old_var = arg2.vars[0]
-            new_var = variant(old_var, fvars(f))
-            a1 = arg1 #subst({old_var: new_var}, arg1)
-            a2 = subst({old_var: new_var}, arg2.args[0])
-            return Quantifier(arg2.op, [new_var], pullquants(a1 & a2))
+            return rename_and_pull(f, arg2.op,
+                                   None, arg2.vars[0],
+                                   arg1, arg2.args[0])
         else:
             return (arg1 & arg2)
     elif f.op == OP_OR:
         arg1 = pullquants(f.args[0])
         arg2 = pullquants(f.args[1])
         if arg1.op == OP_EXISTS and arg2.op == OP_EXISTS:
-            # when both disjuncts are exists, we can re-use the variable name
-            # eg. (exists x: P(x) | exists y: Q(y)) <-> (exists x: P(x) | Q(y))
-            new_var = variant(arg1.vars[0], fvars(f))
-            a1 = subst({arg1.vars[0]: new_var}, arg1.args[0])
-            a2 = subst({arg2.vars[0]: new_var}, arg2.args[0])
-            return Quantifier(OP_EXISTS, [new_var], pullquants(a1 | a2))
-        elif arg1.op == OP_FORALL and arg2.op == OP_FORALL:
-            return f
+            return rename_and_pull(f, OP_EXISTS,
+                                   arg1.vars[0], arg2.vars[0],
+                                   arg1.args[0], arg2.args[0])
         elif is_quantified(arg1):
-            old_var = arg1.vars[0]
-            new_var = variant(old_var, fvars(f))
-            a1 = subst({old_var: new_var}, arg1.args[0])
-            a2 = arg2 #subst({old_var: new_var}, arg2)
-            return Quantifier(arg1.op, [new_var], pullquants(a1 | a2))
+            return rename_and_pull(f, arg1.op,
+                                   arg1.vars[0], None,
+                                   arg1.args[0], arg2)
         elif is_quantified(arg2):
-            old_var = arg2.vars[0]
-            new_var = variant(old_var, fvars(f))
-            a1 = arg1 #subst({old_var: new_var}, arg1)
-            a2 = subst({old_var: new_var}, arg2.args[0])
-            return Quantifier(arg2.op, [new_var], pullquants(a1 | a2))
+            return rename_and_pull(f, arg2.op,
+                                   None, arg2.vars[0],
+                                   arg1, arg2.args[0])
         else:
             return (arg1 | arg2)
-    # TODO add conditionals (just for fun)
+    elif f.op == OP_IMPLIES:
+        arg1 = pullquants(f.args[0])
+        arg2 = pullquants(f.args[1])
+        if is_quantified(arg1):
+            return rename_and_pull(f, opposite(arg1.op),
+                                   arg1.vars[0], None,
+                                   arg1.args[0], arg2)
+        elif is_quantified(arg2):
+            return rename_and_pull(f, arg2.op,
+                                   None, arg2.vars[0],
+                                   arg1, arg2.args[0])
+        else:
+            return (arg1 >> arg2)
+    elif f.op == OP_IMPLIED_BY:
+        arg1 = pullquants(f.args[0])
+        arg2 = pullquants(f.args[1])
+        if is_quantified(arg1):
+            return rename_and_pull(f, arg1.op,
+                                   arg1.vars[0], None,
+                                   arg1.args[0], arg2)
+        elif is_quantified(arg2):
+            return rename_and_pull(f, opposite(arg2.op),
+                                   None, arg2.vars[0],
+                                   arg1, arg2.args[0])
+        else:
+            return (arg1 << arg2)
+    elif f.op == OP_EQUIVALENT:
+        arg1 = pullquants(f.args[0])
+        arg2 = pullquants(f.args[1])
+        return pullquants((arg1 >> arg2) & (arg1 << arg2))
+    elif f.op == OP_NOT:
+        arg = pullquants(f.args[0])
+        if is_quantified(arg):
+            return Quantifier(opposite(arg.op), f.vars, ~(arg.args[0]))
+        else:
+            return (~arg)
     else:
         return f
 
@@ -607,7 +651,78 @@ def pushquants(f):
     possible scope.
     
     """
-    assert False, 'Not implemented.'
+    def binops():
+        return [OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+
+    if is_quantified(f):
+        arg = f.args[0]
+        if arg.op == OP_NOT:
+            return ~pushquants(Quantifier(opposite(f.op), f.vars, arg.args[0]))
+        elif is_quantified(arg):
+            arg1 = pushquants(arg)
+            if arg1 == arg:
+                arg2 = Quantifier(f.op, f.vars, arg.args[0])
+                arg2_ = pushquants(arg2)
+                if arg2 == arg2_:
+                    return f
+                else:
+                    return Quantifier(arg.op, arg.vars, arg2_)
+            else:
+                return pushquants(Quantifier(f.op, f.vars, arg1))
+        elif arg.op in [OP_AND, OP_OR]:
+            arg1 = arg.args[0]
+            arg2 = arg.args[1]
+            variable = f.vars[0]
+            if variable in fvars(arg1) and variable in fvars(arg2):
+                return Expr(arg.op,
+                            Quantifier(f.op, f.vars, pushquants(arg1)),
+                            Quantifier(f.op, f.vars, pushquants(arg2)))
+            if variable in fvars(arg1):
+                return Expr(arg.op,
+                            Quantifier(f.op, f.vars, pushquants(arg1)),
+                            pushquants(arg2))
+            if variable in fvars(arg2):
+                return Expr(arg.op,
+                            pushquants(arg1),
+                            Quantifier(f.op, f.vars, pushquants(arg2)))
+            else:
+                # TODO: check we can drop quantifier
+                return arg
+        elif arg.op == OP_IMPLIES:
+            arg1 = arg.args[0]
+            arg2 = arg.args[1]
+            variable = f.vars[0]
+            if variable in fvars(arg1):
+                quant = opposite(f.op)
+                return (pushquants(Quantifier(quant, variable, arg1)) >>
+                        pushquants(arg2))
+            elif variable in fvars(arg2):
+                return (pushquants(arg1) >>
+                        pushquants(Quantifier(f.op, variable, arg2)))
+            else:
+                return (pushquants(arg1) >> pushquants(arg2))
+        elif arg.op == OP_IMPLIED_BY:
+            arg1 = arg.args[0]
+            arg2 = arg.args[1]
+            variable = f.vars[0]
+            if variable in fvars(arg1):
+                return (pushquants(arg1) >>
+                        pushquants(Quantifier(f.op, variable, arg2)))
+            elif variable in fvars(arg2):
+                quant = opposite(f.op)
+                return (pushquants(Quantifier(quant, variable, arg1)) >>
+                        pushquants(arg2))
+            else:
+                return (pushquants(arg1) >> pushquants(arg2))
+        else:
+            return Quantifier(f.op, f.vars[0], pushquants(f.args[0]))
+    elif f.op == OP_NOT:
+        return ~pushquants(f.args[0])
+    elif f.op in binops():
+        return Expr(f.op, *[pushquants(x) for x in f.args])
+    else:
+        return f
+
 
 
 
@@ -708,63 +823,63 @@ class FOLPred:
 # optimisation -- before creating any parsing elements
 ParserElement.enablePackrat()
 
-
-left_parenthesis, right_parenthesis = map(Suppress, '()')
-forall = Keyword('forall') | Literal('\u2200')
-exists = Keyword('exists') | Literal('\u2203')
-implies = Literal('->') | Literal('==>') | \
-          Keyword('implies') | Literal('\u2192')
-implied = Literal('<-') | Literal('<==') | \
-          Keyword('impliedby') | Literal('\u2190')
-iff = Literal('<=>') | Literal('<->') | Keyword('iff') | Literal('\u2194')
-or_  = Literal('\\/') | Literal('|') | Keyword('or') | Literal('\u2228')
-and_ = Literal('/\\') | Literal('&') | Keyword('and') | Literal('\u2227')
-not_ = Literal('~') | Keyword('not') | Literal('\u00AC')
-equals = Literal('=') | Keyword('equals')
-maths = list(map(Literal, ['^', '*', '/', '+', '-']))
-relations = list(map(Keyword, ['<', '<=', '>', '>=']))
-notequals = Literal('=/=') | Keyword('notequals') | Literal('\u2260')
-boolean = (CaselessKeyword('FALSE') | CaselessKeyword('TRUE'))
-colon = Literal(':').suppress()
-symbol = Word(alphas + '?', alphanums + "'")
-number = Combine(Optional('-') + Word(nums, nums + '.'))
-
-math_expr = Forward()
-math_expr << operatorPrecedence(number | symbol,
-                [(op, 2, opAssoc.LEFT, FOLBinOp) for op in maths])
-
-term = Forward() # definition of term will involve itself
-term << (Group(Word(alphas, alphanums) +
-               Group(left_parenthesis +
-               delimitedList(term) +
-               right_parenthesis)).setParseAction(FOLPred) |
-         math_expr)
-
 # allow python style comments
 comment = (Literal('#') + restOfLine).suppress()
+
+LP, RP , colon = map(Suppress, '():')
+forall = Keyword('forall') | Literal('\u2200')
+exists = Keyword('exists') | Literal('\u2203')
+implies = Keyword('==>') | Keyword('implies') | Literal('\u2192') | Literal('->')
+implied = Keyword('<==') | Keyword('impliedby') | Literal('\u2190') | Literal('<-')
+iff = Keyword('<=>')  | Keyword('iff') | Literal('\u2194') | Keyword('<->')
+or_  = Keyword('\\/') | Literal('|') | Keyword('or') | Literal('\u2228')
+and_ = Keyword('/\\') | Literal('&') | Keyword('and') | Literal('\u2227')
+not_ = Literal('~') | Keyword('not') | Literal('\u00AC')
+equals = Literal('=') | Keyword('equals')
+notequals = Literal('=/=') | Keyword('notequals') | Literal('\u2260')
+boolean = (CaselessKeyword('FALSE') | CaselessKeyword('TRUE'))
+
+variable = (~(and_ | or_ | not_ | forall | exists | implied | implies | iff) +
+            Combine(Optional('?') + Word(alphas, alphanums + "'")))
+constant = (~(and_ | or_ | not_ | forall | exists | implied | implies | iff) +
+            Word(alphas, alphanums + "'-_"))
+number = Combine(Optional(oneOf('+ -')) + Word(nums) +
+                 Optional(Literal('.') + Word(nums)))
+
+math_expr = operatorPrecedence(number | variable,
+                [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
+                 (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
+                 (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
+                 (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
+                 (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
+
+term = Forward() # definition of term will involve itself
+terms = delimitedList(term)
+term << (Group(constant + Group(LP + terms + RP)).setParseAction(FOLPred) |
+         math_expr)
+
 
 # main parser for FOL formula
 formula = Forward()
 formula.ignore(comment)
+
 forall_expression = Group(forall.setResultsName("quantifier") +
-                       delimitedList(symbol).setResultsName("vars") + colon +
+                       delimitedList(variable).setResultsName("vars") + colon +
                        formula.setResultsName("args")
                     ).setParseAction(FOLQuant)
 exists_expression = Group(exists.setResultsName("quantifier") +
-                      delimitedList(symbol).setResultsName("vars") + colon +
+                      delimitedList(variable).setResultsName("vars") + colon +
                       formula.setResultsName("args")).setParseAction(FOLQuant)
 
 operand = forall_expression | exists_expression | boolean | term
 
 # specify the precedence -- highest precedence first, lowest last
 operator_list = [(not_, 1, opAssoc.RIGHT, FOLUnOp)]
-
-operator_list += ([(r, 2, opAssoc.LEFT, FOLBinOp) for r in relations])
-
-operator_list += [(equals, 2, opAssoc.LEFT, FOLBinOp),
-                  (notequals, 2, opAssoc.LEFT, FOLBinOp),
-                  (and_, 2, opAssoc.LEFT, FOLBinOp),
+#
+operator_list += [(and_, 2, opAssoc.LEFT, FOLBinOp),
                   (or_, 2, opAssoc.LEFT, FOLBinOp),
+                  (equals, 2, opAssoc.RIGHT, FOLBinOp),
+                  (notequals, 2, opAssoc.RIGHT, FOLBinOp),
                   (implies, 2, opAssoc.RIGHT, FOLBinOp),
                   (implied, 2, opAssoc.RIGHT, FOLBinOp),
                   (iff, 2, opAssoc.RIGHT, FOLBinOp)]
