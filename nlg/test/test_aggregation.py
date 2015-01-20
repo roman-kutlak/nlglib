@@ -12,21 +12,21 @@ class TestAggregation(unittest.TestCase):
     def setUp(self):
         the = Word('the', 'DETERMINER')
         truck = Word("truck", "NOUN")
-        the_truck = NP(head=truck, spec=the)
+        the_truck = NounPhrase(head=truck, spec=the)
         into = Word("into", "PREPOSITION")
-        pp = PP(head=into)
+        pp = PrepositionalPhrase(head=into)
         pp.complements.append(the_truck)
         
         put = Word("put", "VERB")
-        vp = VP(head=put)
+        vp = VerbPhrase(head=put)
         
         piano = Word("piano", "NOUN")
         drum = Word("drum", "NOUN")
         vp.complements.append(pp)
         
-        obj1 = NP(piano, the)
+        obj1 = NounPhrase(piano, the)
         obj1._features["discourseFunction"] = 'OBJECT'
-        obj2 = NP(drum, the)
+        obj2 = NounPhrase(drum, the)
         obj2._features["discourseFunction"] = 'OBJECT'
         
         vp2 = deepcopy(vp)
@@ -39,10 +39,10 @@ class TestAggregation(unittest.TestCase):
         self.c2 = Clause(vp=vp2)
         self.c2._features['FORM'] = "IMPERATIVE"
         
-        self.john = NP(Word('John'))
+        self.john = NounPhrase(Word('John'))
         self.a = Word('a', 'DETERNIMER')
-        self.boy = NP(Word('boy', 'NOUN'), self.a)
-        self.tall = AdjP(Word('tall'))
+        self.boy = NounPhrase(Word('boy', 'NOUN'), self.a)
+        self.tall = AdjectivePhrase(Word('tall'))
     
     
     def tearDown(self):
@@ -60,8 +60,8 @@ class TestAggregation(unittest.TestCase):
 
     def test_s_try_aggr(self):
         re = simple_realisation
-        vp1 = VP(Word('is'), self.boy)
-        vp2 = VP(Word('is'), self.tall)
+        vp1 = VerbPhrase(Word('is'), self.boy)
+        vp2 = VerbPhrase(Word('is'), self.tall)
         
         c1 = Clause(self.john, vp1)
         c2 = Clause(self.john, vp2)
@@ -71,10 +71,10 @@ class TestAggregation(unittest.TestCase):
         c3 = try_to_aggregate(c1, c2)
         self.assertEqual('John is a boy and tall', re(c3))
 
-        article = NP(Word('article'), Word('an'))
-        vp = VP(Word('wrote'), article)
+        article = NounPhrase(Word('article'), Word('an'))
+        vp = VerbPhrase(Word('wrote'), article)
         c1 = Clause(self.john, deepcopy(vp))
-        c2 = Clause(NP(Word('Mary')), vp)
+        c2 = Clause(NounPhrase(Word('Mary')), vp)
         self.assertEqual('John wrote an article', re(c1))
         self.assertEqual('Mary wrote an article', re(c2))
         c3 = try_to_aggregate(c1, c2)

@@ -20,15 +20,15 @@ def add_elements(e1, e2, conj='and'):
     if (not isinstance(e1, Element) or not isinstance(e2, Element)):
         raise ElementError("To add elements they have to be NLGElements")
 
-    cc = CC()
+    cc = Coordination()
 
-    if (isinstance(e1, CC)):
+    if (isinstance(e1, Coordination)):
         cc = deepcopy(e1)
         cc.coords.append(deepcopy(e2))
         if 'discourseFunction' in e2._features:
             cc._features['discourseFunction'] = e2._features['discourseFunction']
 
-    elif (isinstance(e2, CC)):
+    elif (isinstance(e2, Coordination)):
         cc = deepcopy(e2)
         cc.coords.append(deepcopy(e1))
         if 'discourseFunction' in e1._features:
@@ -139,7 +139,7 @@ def _can_aggregate(message, max):
     """
     if message is None: return False
     for part in sentence_iterator(message):
-        if not isinstance(part, CC):
+        if not isinstance(part, Coordination):
             continue
         else:
             return (len(part.coords) < max)

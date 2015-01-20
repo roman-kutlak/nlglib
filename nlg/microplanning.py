@@ -28,6 +28,9 @@ def adverb(word):
 def pronoun(word):
     return Word(word, 'PRONOUN')
 
+def numeral(word):
+    return Word(word, POS_NUMERAL)
+
 def preposition(word):
     return Word(word, 'PREPOSITION')
 
@@ -50,22 +53,53 @@ def exclamation(word):
 #14.	NNP     Proper noun, singular
 #15.	NNPS	Proper noun, plural
 
-def np(spec, head, features=None):
-    return NP(noun(head), determiner(spec), features)
-
-def nn(word):
+def NN(word):
     return noun(word)
 
-def nns(word):
+def NNS(word):
     o = noun(word)
     o.set_feature('NUMBER', 'PLURAL')
     return o
 
-def nnp(name):
+def NNP(name):
     o = noun(name)
     o.set_feature('PROPER', 'true')
     return o
 
+# phrases
+
+
+def NP(spec, *mods_and_head, features=None, postmods=[]):
+    """ Create a complex noun phrase where the first arg is determiner, then
+    modifiers and head is last. Determiner can be None.
+    NP('the', 'brown', 'wooden', 'table')
+
+    """
+    assert(len(mods_and_head) > 0)
+    words = list(mods_and_head)
+    if spec is None:
+        NounPhrase(noun(words[-1]), features=features,
+           pre_modifiers=[adjective(x) for x in words[:-1]])
+    else:
+        return NounPhrase(noun(words[-1]), determiner(spec), features=features,
+                  pre_modifiers=[adjective(x) for x in words[:-1]])
+
+
+def VP(head, *complements, features=None):
+    return VerbPhrase(verb(head), *complements, features=features)
+
+
+def PP(head, *complements, features=None):
+    return PrepositionalPhrase(preposition(head),
+                               *complements, features=features)
+
+
+def AdjP(head, *complements, features=None):
+    return AdjectivePhrase(adjective(head), *complements, features=features)
+
+
+def AdvP(head, *complements, features=None):
+    return AdverbPhrase(adverb(head), *complements, features=features)
 
 
 def template(word, lexicon, pos=POS_ANY):
@@ -288,21 +322,19 @@ class ReprVisitor(PrintVisitor):
         if len(attr) == 0: return
         self.data += ',\n'
         if self.do_indent: self.data += self.indent
-        self.indent += ' ' * len(name + '=[')
+#        self.indent += ' ' * len(name + '=[')
         self.data += name + '=['
-        self.do_indent = False
-        # don't print last comma
-        i = len(attr) - 1
-        for o in attr:
-            i -= 1
-            o.accept(self)
-            self.do_indent = True
-            if i > 0:
-                self.data += ','
+        def fn(x):
+            r = ReprVisitor()
+            x.accept(r)
+            return str(x)
+        tmp = map(fn, attr)
+        tmp_no_whites = [' '.join(x.split()) for x in tmp]
+        self.data += ', '.join(tmp_no_whites)
         self.data += ']'
         # restore the indent
-        self.indent = self.indent[:-len(name + '=(')]
-            
+#        self.indent = self.indent[:-len(name + '=(')]
+
     def visit_element(self, node):
         pass
     
@@ -322,7 +354,7 @@ class ReprVisitor(PrintVisitor):
 
     def visit_placeholder(self, node):
         if self.do_indent: self.data += self.indent
-        if node.value == Element():
+        if not node.value:
             self.data += 'PlaceHolder({0}'.format(repr(node.id))
         else:
             self.data += 'PlaceHolder({0}, {1}'.format(repr(node.id),
@@ -333,8 +365,8 @@ class ReprVisitor(PrintVisitor):
 
     def visit_np(self, node):
         if self.do_indent: self.data += self.indent
-        self.data += 'NP('
-        self.indent += ' ' * len('NP(')
+        self.data += 'NounPhrase('
+        self.indent += ' ' * len('NounPhrase(')
         self.do_indent = False
         node.head.accept(self)
         if node.spec != Element():
@@ -348,21 +380,25 @@ class ReprVisitor(PrintVisitor):
         self._process_elements(node, 'complements')
         self._process_elements(node, 'post_modifiers')
         self.data += ')'
-        self.indent = self.indent[:-len('NP(')]
+        self.indent = self.indent[:-len('NounPhrase(')]
     
     def visit_phrase(self, node, name=''):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
         self.data += name + '('
-        self.do_indent = False
-        node.head.accept(self)
-        self.do_indent = True
+        if node.head:
+            self.do_indent = False
+            node.head.accept(self)
+            self.do_indent = True
+        else:
+            self.do_indent = False
         i = len(node.complements)
         for c in node.complements:
             if i > 0:
                 self.data += ',\n'
             i -= 1
             c.accept(self)
+            self.do_indent = True
         if node._features != dict():
             self.data += ',\n'
             self.data += self.indent + 'features=' + repr(node._features)
@@ -373,19 +409,19 @@ class ReprVisitor(PrintVisitor):
         self.indent = self.indent[:-len(name + '(')]
 
     def visit_vp(self, node):
-        self.visit_phrase(node, 'VP')
+        self.visit_phrase(node, 'VerbPhrase')
 
     def visit_pp(self, node):
-        self.visit_phrase(node, 'PP')
+        self.visit_phrase(node, 'PrepositionalPhrase')
     
     def visit_adjp(self, node):
-        self.visit_phrase(node, 'AdjP')
+        self.visit_phrase(node, 'AdjectivePhrase')
 
     def visit_advp(self, node):
-        self.visit_phrase(node, 'AdvP')
+        self.visit_phrase(node, 'AdverbPhrase')
     
     def visit_clause(self, node):
-        self.data += self.indent
+        if self.do_indent: self.data += self.indent
         self.data += 'Clause('
         self.do_indent = False
         node.subj.accept(self)
@@ -422,6 +458,10 @@ class ReprVisitor(PrintVisitor):
 
     def clear(self):
         self.data = ''
+    
+    def not_indented_str(self):
+        """ Return the representation on a single line instead of indented. """
+        return ' '.join(str(self).split())
 
     def __str__(self):
         return self.data.strip()
@@ -462,8 +502,8 @@ class StrVisitor(PrintVisitor):
 
     def visit_np(self, node):
         if self.do_indent: self.data += self.indent
-        self.data += 'NP('
-        self.indent += ' ' * len('NP(')
+        self.data += 'NounPhrase('
+        self.indent += ' ' * len('NounPhrase(')
         self.do_indent = False
         node.head.accept(self)
         if node.spec != Element():
@@ -471,35 +511,39 @@ class StrVisitor(PrintVisitor):
             node.spec.accept(self)
         self.data += ')'
         self.do_indent = True
-        self.indent = self.indent[:-len('NP(')]
+        self.indent = self.indent[:-len('NounPhrase(')]
     
     def visit_phrase(self, node, name=''):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
         self.data += name + '('
-        self.do_indent = False
-        node.head.accept(self)
-        self.do_indent = True
+        if node.head:
+            self.do_indent = False
+            node.head.accept(self)
+            self.do_indent = True
+        else:
+            self.do_indent = False
         i = len(node.complements)
         for c in node.complements:
             if i > 0:
                 self.data += ',\n'
             i -= 1
             c.accept(self)
+            self.do_indent = True
         self.data += ')'
         self.indent = self.indent[:-len(name + '(')]
 
     def visit_vp(self, node):
-        self.visit_phrase(node, 'VP')
+        self.visit_phrase(node, 'VerbPhrase')
 
     def visit_pp(self, node):
-        self.visit_phrase(node, 'PP')
+        self.visit_phrase(node, 'PrepositionalPhrase')
     
     def visit_adjp(self, node):
-        self.visit_phrase(node, 'AdjP')
+        self.visit_phrase(node, 'AdjectivePhrase')
 
     def visit_advp(self, node):
-        self.visit_phrase(node, 'AdvP')
+        self.visit_phrase(node, 'AdverbPhrase')
     
     def visit_clause(self, node):
         self.data += self.indent
@@ -658,9 +702,6 @@ class ConstituentVisitor:
         self._process_elements(node, 'coords')
 
 
-# FIXME: no idea if the code below is used at all
-
-
 def sentence_iterator(sent):
     if isinstance(sent, Clause):
         for x in sentence_iterator(sent.vp):
@@ -687,7 +728,7 @@ def sentence_iterator(sent):
             for x in sentence_iterator(o):
                 yield x
 
-        if isinstance(sent, NP):
+        if isinstance(sent, NounPhrase):
             for x in sentence_iterator(sent.spec):
                 yield x
 
@@ -727,7 +768,6 @@ def aggregation_sentence_iterator(sent):
         yield (sent)
 
 
-# unused
 def replace_element(sent, elt, replacement=None):
     if sent == elt:
         return True
@@ -748,7 +788,7 @@ def replace_element(sent, elt, replacement=None):
             if replace_element(sent.vp, elt, replacement):
                 return True;
 
-    if isinstance(sent, CC):
+    if isinstance(sent, Coordination):
         for i, o in list(enumerate(sent.coords)):
             if (o == elt):
                 if replacement is None:
@@ -793,7 +833,7 @@ def replace_element(sent, elt, replacement=None):
                 if replace_element(o, elt, replacement):
                     return True
 
-        if isinstance(sent, NP):
+        if isinstance(sent, NounPhrase):
             if sent.spec == elt:
                 sent.spec = replacement
                 return True
@@ -816,7 +856,7 @@ def replace_element(sent, elt, replacement=None):
 
 
 #Number Tag    Description
-#1.     CC      Coordinating conjunction
+#1.     Coordination      Coordinating conjunction
 #2.     CD      Cardinal number
 #3.     DT      Determiner
 #4.     EX      Existential there

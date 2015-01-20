@@ -1,12 +1,13 @@
-
 from copy import deepcopy
 import re
 import sys
 import traceback
 import logging
+import numbers
 
 from nlg.structures import *
 from nlg.aggregation import *
+from nlg.microplanning import *
 
 def get_log():
     return logging.getLogger(__name__)
@@ -18,6 +19,8 @@ def lexicalise(msg):
     """ Perform lexicalisation on the message depending on the type. """
     if msg is None:
         return None
+    elif isinstance(msg, numbers.Number):
+        return numeral(msg)
     elif isinstance(msg, str):
         return String(msg)
     elif isinstance(msg, Element):
@@ -43,7 +46,7 @@ def lexicalise_message_spec(msg):
     and logs the error.
 
     """
-    get_log().debug('Lexicalising message specs')
+    get_log().debug('Lexicalising message specs: {0}'.format(repr(msg)))
     template = templates.template(msg.name)
     if template is None:
         get_log().warning('No sentence template for "%s"' % msg.name)
@@ -51,16 +54,19 @@ def lexicalise_message_spec(msg):
         result.add_features(msg._features)
         return result
     if isinstance(template, str):
-        return String(template)
+        result = String(template)
+        result.add_features(msg._features)
+        return result
     template.add_features(msg._features)
     # find arguments
     args = template.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
-        get_log().debug('Replacing %s in %s. ' % (str(arg), str(template)))
+        get_log().debug('Replacing\n{0} in \n{1}.'
+                        .format(str(arg), repr(template)))
         val = msg.value_for(arg.id)
-        get_log().debug(' val = %s' % repr(val))
-        template.replace(arg, val)
+        get_log().debug(' val = {0}'.format(repr(val)))
+        template.replace(arg, lexicalise(val))
     return template
 
 
@@ -78,7 +84,7 @@ def lexicalise_message(msg):
     # stick each message into a clause
     result = None
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
-        result = CC(*satelites, conj=msg.marker)
+        result = Coordination(*satelites, conj=msg.marker)
     elif msg.rst == 'Imply':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication; got '
@@ -95,8 +101,9 @@ def lexicalise_message(msg):
         result = Phrase()
         result.set_head(nucleus)
         result.add_complement(*satelites)
-        result.add_front_modifier('if and only if')
-        result.set_feature('COMPLEMENTISER', 'then')
+#        result.add_front_modifier('if and only if')
+#        result.set_feature('COMPLEMENTISER', 'then')
+        result.set_feature('COMPLEMENTISER', 'if and only if')
     elif msg.rst == 'ImpliedBy':
         if (len(satelites) != 1):
             get_log().error('expected only one satelite in implication by; got '
@@ -128,10 +135,10 @@ def lexicalise_message(msg):
                             + str(satelites))
         result = Phrase()
         if len(nucleus) == 1:
-            np = NP(nucleus[0], String(msg.marker))
+            np = NounPhrase(nucleus[0], String(msg.marker))
         else:
-            cc = CC(*nucleus, conj='and')
-            np = NP(cc, String(msg.marker))
+            cc = Coordination(*nucleus, conj='and')
+            np = NounPhrase(cc, String(msg.marker))
         if (msg.marker.startswith('there exist')):
             np.add_complement('such that')
         np.add_post_modifier('(')
@@ -141,7 +148,7 @@ def lexicalise_message(msg):
         result.add_post_modifier(')')
     elif msg.rst == 'Negation':
         result = Phrase()
-        np = NP(nucleus, String(msg.marker))
+        np = NounPhrase(nucleus, String(msg.marker))
         np.add_pre_modifier('(')
         result.set_head(np)
         result.add_complement(*satelites)
@@ -150,6 +157,7 @@ def lexicalise_message(msg):
         get_log().debug('RST is: ' + repr(msg.rst))
         result = Message(msg.rst, nucleus, *satelites)
         result.marker = msg.marker
+    result.add_features(msg._features)
     return result
 
 def lexicalise_paragraph(msg):
@@ -200,97 +208,97 @@ to = Word('to', 'PREPOSITION')
 
 you = None # Word('you', 'PRONOUN')
 
-load_truck = Clause(you, VP(put, PlaceHolder(0), PP(into, PlaceHolder(1))))
-drive_truck = Clause(you, VP(drive, PlaceHolder(0),
-                                     PP(from_, PlaceHolder(1)),
-                                     PP(to, PlaceHolder(2))))
-unload_truck = Clause(you, VP(unload, PlaceHolder(0),
-                                       PP(from_, PlaceHolder(1))))
-load_airplane = Clause(you, VP(put, PlaceHolder(0),
-                                      PP(into, PlaceHolder(1))))
+load_truck = Clause(you, VerbPhrase(put, PlaceHolder(0), PrepositionalPhrase(into, PlaceHolder(1))))
+drive_truck = Clause(you, VerbPhrase(drive, PlaceHolder(0),
+                                     PrepositionalPhrase(from_, PlaceHolder(1)),
+                                     PrepositionalPhrase(to, PlaceHolder(2))))
+unload_truck = Clause(you, VerbPhrase(unload, PlaceHolder(0),
+                                       PrepositionalPhrase(from_, PlaceHolder(1))))
+load_airplane = Clause(you, VerbPhrase(put, PlaceHolder(0),
+                                      PrepositionalPhrase(into, PlaceHolder(1))))
 
 fly_airplane = deepcopy(drive_truck)
 fly_airplane.vp.head = fly
 unload_airplane = unload_truck
 
-move = Clause(you, VP(move, [PlaceHolder(0),
-                             PP(from_, PlaceHolder(1)),
-                             PP(to, PlaceHolder(2)),
-                             VP(using, PlaceHolder(3))]))
+move = Clause(you, VerbPhrase(move, [PlaceHolder(0),
+                             PrepositionalPhrase(from_, PlaceHolder(1)),
+                             PrepositionalPhrase(to, PlaceHolder(2)),
+                             VerbPhrase(using, PlaceHolder(3))]))
 
-start = Clause(you, VP(Word('start', 'VERB')))
-finish = Clause(you, VP(Word('finish', 'VERB')))
+start = Clause(you, VerbPhrase(Word('start', 'VERB')))
+finish = Clause(you, VerbPhrase(Word('finish', 'VERB')))
 
 
 # UAV domain
 
 uav = Word('UAV', 'NOUN')
-takeOff = Clause(uav, VP(Word('is', 'VERB'), Word('taking off', 'VERB')))
-flyToTargetArea = Clause(uav, VP(Word('is', 'VERB'), Word('flying to the target area', 'VERB')))
-takePhotos = Clause(uav, VP(Word('is', 'VERB'), Word('taking photos', 'VERB')))
-selectLandingSite = Clause(uav, VP(Word('is', 'VERB'), Word('selecting landing site', 'VERB')))
-flyToAirfieldA = Clause(uav, VP(Word('is', 'VERB'), Word('flying to airfield A', 'VERB')))
-flyToAirfieldB = Clause(uav, VP(Word('is', 'VERB'), Word('flying to airfield B', 'VERB')))
-flyToBase = Clause(uav, VP(Word('is', 'VERB'), Word('flying to the base', 'VERB')))
-Land = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB')))
-SelectRunway = Clause(uav, VP(Word('is', 'VERB'), 'selecting a runway'))
-LandOnLongRunway = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB'), PP('on', 'a long runway')))
-LandOnShortRunway = Clause(uav, VP(Word('is', 'VERB'), Word('landing', 'VERB'), PP('on', 'a short runway')))
+takeOff = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('taking off', 'VERB')))
+flyToTargetArea = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('flying to the target area', 'VERB')))
+takePhotos = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('taking photos', 'VERB')))
+selectLandingSite = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('selecting landing site', 'VERB')))
+flyToAirfieldA = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('flying to airfield A', 'VERB')))
+flyToAirfieldB = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('flying to airfield B', 'VERB')))
+flyToBase = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('flying to the base', 'VERB')))
+Land = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('landing', 'VERB')))
+SelectRunway = Clause(uav, VerbPhrase(Word('is', 'VERB'), 'selecting a runway'))
+LandOnLongRunway = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('landing', 'VERB'), PrepositionalPhrase('on', 'a long runway')))
+LandOnShortRunway = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('landing', 'VERB'), PrepositionalPhrase('on', 'a short runway')))
 
 # Workflow summary phrase specifications
-the_workflow = NP(spec='the', head='workflow')
+the_workflow = NounPhrase(spec='the', head='workflow')
 SummariseNumTasks = Clause(the_workflow,
-                        VP('has', PlaceHolder('arg_num_steps'), 'tasks'))
+                        VerbPhrase('has', PlaceHolder('arg_num_steps'), 'tasks'))
 SummariseNumChoices = Clause(the_workflow,
-                        VP('has', PlaceHolder('arg_num_choices'), 'choices'))
+                        VerbPhrase('has', PlaceHolder('arg_num_choices'), 'choices'))
 
 
 # KickDetection
-Drill = VP('drill')
-Trip = VP('perform', 'tripping')
-AdjustHSP = VP('adjust', 'HSP')
-Monitor = VP('check', 'sensors')
-SoftShutIn = VP('perform', 'soft', 'shut-in')
-HardShutIn = VP('perform', 'hard', 'shut-in')
+Drill = VerbPhrase('drill')
+Trip = VerbPhrase('perform', 'tripping')
+AdjustHSP = VerbPhrase('adjust', 'HSP')
+Monitor = VerbPhrase('check', 'sensors')
+SoftShutIn = VerbPhrase('perform', 'soft', 'shut-in')
+HardShutIn = VerbPhrase('perform', 'hard', 'shut-in')
 
 RecordData = Message('Elaboration',
-                     VP('record', 'data', 'using the kill sheet'),
-                     None)#PP('on', 'success', VP('assert', 'well_shut')))
+                     VerbPhrase('record', 'data', 'using the kill sheet'),
+                     None)#PrepositionalPhrase('on', 'success', VerbPhrase('assert', 'well_shut')))
 
-sat = None#PP('on', 'success', VP('assert', 'kick_killed'))
+sat = None#PrepositionalPhrase('on', 'success', VerbPhrase('assert', 'kick_killed'))
 
 WaitAndWeight = Message('Ellaboration',
-    VP('kill', 'the kick', 'using the Wait and Weight method'), sat)
+    VerbPhrase('kill', 'the kick', 'using the Wait and Weight method'), sat)
 DrillersMethod = Message('Ellaboration',
-    VP('kill', 'the kick', 'using the Driller\'s method'), sat)
+    VerbPhrase('kill', 'the kick', 'using the Driller\'s method'), sat)
 ReverseCirculation = Message('Ellaboration',
-    VP('kill', 'the kick', 'using Reverse Circulation'), sat)
+    VerbPhrase('kill', 'the kick', 'using Reverse Circulation'), sat)
 Bullheading = Message('Ellaboration',
-    VP('kill', 'the kick', 'using Bullheading'), sat)
+    VerbPhrase('kill', 'the kick', 'using Bullheading'), sat)
 
-RecordData = VP('record', 'data', 'using the kill sheet')
-#PP('on', 'success', VP('assert', 'well_shut')))
+RecordData = VerbPhrase('record', 'data', 'using the kill sheet')
+#PrepositionalPhrase('on', 'success', VerbPhrase('assert', 'well_shut')))
 
-sat = None#PP('on', 'success', VP('assert', 'kick_killed'))
+sat = None#PrepositionalPhrase('on', 'success', VerbPhrase('assert', 'kick_killed'))
 
-WaitAndWeight = VP('kill', 'the kick', 'using the Wait and Weight method')
-DrillersMethod = VP('kill', 'the kick', 'using the Driller\'s method')
-ReverseCirculation = VP('kill', 'the kick', 'using Reverse Circulation')
-Bullheading = VP('kill', 'the kick', 'using Bullheading')
+WaitAndWeight = VerbPhrase('kill', 'the kick', 'using the Wait and Weight method')
+DrillersMethod = VerbPhrase('kill', 'the kick', 'using the Driller\'s method')
+ReverseCirculation = VerbPhrase('kill', 'the kick', 'using Reverse Circulation')
+Bullheading = VerbPhrase('kill', 'the kick', 'using Bullheading')
 
-ReopenWell = VP('reopen', 'the well')
+ReopenWell = VerbPhrase('reopen', 'the well')
 
-SealWell = VP('seal', 'the well')
-PlugWell = VP('plug', 'the well')
+SealWell = VerbPhrase('seal', 'the well')
+PlugWell = VerbPhrase('plug', 'the well')
 
-EmergencyTask = NP('emergency taks')
-NormalTask = NP('task')
+EmergencyTask = NounPhrase('emergency taks')
+NormalTask = NounPhrase('task')
 
-Need_speed = Clause(NP('the well'), VP('has to be shut quickly'))
+Need_speed = Clause(NounPhrase('the well'), VerbPhrase('has to be shut quickly'))
 
-kick = Clause(NP('a kick'), VP('was detected'))
+kick = Clause(NounPhrase('a kick'), VerbPhrase('was detected'))
 
-shallow_depth = Clause(NP('the well'), VP('is in shallow depth'))
+shallow_depth = Clause(NounPhrase('the well'), VerbPhrase('is in shallow depth'))
 
 
 class SentenceTemplates:
@@ -303,7 +311,7 @@ class SentenceTemplates:
         self.templates = dict()
         self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
 
-        self.templates['string'] = Clause(None, VP(PlaceHolder('val')))
+        self.templates['string'] = Clause(None, VerbPhrase(PlaceHolder('val')))
         self.templates['conjunction'] = None
         self.templates['inputCondition'] = start
         self.templates['outputCondition'] = finish
@@ -364,19 +372,19 @@ class SentenceTemplates:
         self.templates['EmergencyTask'] = EmergencyTask
         self.templates['NormalTask'] = NormalTask
         # Logistics
-        self.templates['Edinburgh'] = Clause(you, VP('drive to', 'Edinburgh'))
-        self.templates['Perth'] = Clause(you, VP('drive to', 'Perth'))
-        self.templates['Kincardine'] = Clause(you, VP('drive to', 'Kincardine'))
-        self.templates['Stirling'] = Clause(you, VP('drive to', 'Stirling'))
-        self.templates['Inverness'] = Clause(you, VP('drive to', 'Inverness'))
-        self.templates['Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
+        self.templates['Edinburgh'] = Clause(you, VerbPhrase('drive to', 'Edinburgh'))
+        self.templates['Perth'] = Clause(you, VerbPhrase('drive to', 'Perth'))
+        self.templates['Kincardine'] = Clause(you, VerbPhrase('drive to', 'Kincardine'))
+        self.templates['Stirling'] = Clause(you, VerbPhrase('drive to', 'Stirling'))
+        self.templates['Inverness'] = Clause(you, VerbPhrase('drive to', 'Inverness'))
+        self.templates['Aberdeen'] = Clause(you, VerbPhrase('drive to', 'Aberdeen'))
 
-        self.templates['drive_to_Edinburgh'] = Clause(you, VP('drive to', 'Edinburgh'))
-        self.templates['drive_to_Perth'] = Clause(you, VP('drive to', 'Perth'))
-        self.templates['drive_to_Kincardine'] = Clause(you, VP('drive to', 'Kincardine'))
-        self.templates['drive_to_Stirling'] = Clause(you, VP('drive to', 'Stirling'))
-        self.templates['drive_to_Inverness'] = Clause(you, VP('drive to', 'Inverness'))
-        self.templates['drive_to_Aberdeen'] = Clause(you, VP('drive to', 'Aberdeen'))
+        self.templates['drive_to_Edinburgh'] = Clause(you, VerbPhrase('drive to', 'Edinburgh'))
+        self.templates['drive_to_Perth'] = Clause(you, VerbPhrase('drive to', 'Perth'))
+        self.templates['drive_to_Kincardine'] = Clause(you, VerbPhrase('drive to', 'Kincardine'))
+        self.templates['drive_to_Stirling'] = Clause(you, VerbPhrase('drive to', 'Stirling'))
+        self.templates['drive_to_Inverness'] = Clause(you, VerbPhrase('drive to', 'Inverness'))
+        self.templates['drive_to_Aberdeen'] = Clause(you, VerbPhrase('drive to', 'Aberdeen'))
 
         self.templates['edinburgh_bridge_closed'] = \
             'Forth Road Bridge outside Edinburgh is closed'
@@ -396,7 +404,7 @@ class SentenceTemplates:
             'the weather forecast indicates high snow fall'
         self.templates['accident'] = \
             'an accident'
-        # TODO: fix the cheet with the preposition: eg. if template is NP, add 'of'
+        # TODO: fix the cheet with the preposition: eg. if template is NounPhrase, add 'of'
         self.templates['accident_on_bridge'] = \
             'of an accident on the bridge'
         self.templates['stirling_faster'] = \
@@ -519,31 +527,31 @@ class SentenceTemplates:
         self.templates['HSP_very_low'] = 'HSP is very low'
 
         self.templates['OpenChokeLine'] =\
-            Clause(NP('you'), VP('open choke line'))
+            Clause(NounPhrase('you'), VerbPhrase('open choke line'))
         self.templates['CollarsInBOP'] =\
-            Clause(NP('you'), VP('collars in bop'))
+            Clause(NounPhrase('you'), VerbPhrase('collars in bop'))
         self.templates['InstallKillAssemblyAndTest'] =\
-            Clause(NP('you'), VP('install kill assembly and test'))
+            Clause(NounPhrase('you'), VerbPhrase('install kill assembly and test'))
         self.templates['CheckSpaceOut'] =\
-            Clause(NP('you'), VP('check space out'))
+            Clause(NounPhrase('you'), VerbPhrase('check space out'))
         self.templates['ClosePipeRams'] =\
-            Clause(NP('you'), VP('close pipe rams'))
+            Clause(NounPhrase('you'), VerbPhrase('close pipe rams'))
         self.templates['LandStringAndClosePosilocks'] =\
-            Clause(NP('you'), VP('land string and close posilocks'))
+            Clause(NounPhrase('you'), VerbPhrase('land string and close posilocks'))
         self.templates['OpenKellyCock'] =\
-            Clause(NP('you'), VP('open kelly cock'))
+            Clause(NounPhrase('you'), VerbPhrase('open kelly cock'))
         self.templates['CheckSurfacePressures'] =\
-            Clause(NP('you'), VP('check surface pressures'))
+            Clause(NounPhrase('you'), VerbPhrase('check surface pressures'))
         self.templates['CheckUpwardForce'] =\
-            Clause(NP('you'), VP('check upward force'))
+            Clause(NounPhrase('you'), VerbPhrase('check upward force'))
         self.templates['DropStringThenCloseShearRams'] =\
-            Clause(NP('you'), VP('drop string then close shear rams'))
+            Clause(NounPhrase('you'), VerbPhrase('drop string then close shear rams'))
         self.templates['ObserveWell'] =\
-            Clause(NP('you'), VP('observe well'))
+            Clause(NounPhrase('you'), VerbPhrase('observe well'))
         self.templates['MusterAllCrewsForInformation'] =\
-            Clause(NP('you'), VP('muster all crews for information'))
+            Clause(NounPhrase('you'), VerbPhrase('muster all crews for information'))
         self.templates['PrepareToKillWell'] =\
-            Clause(NP('you'), VP('prepare to kill well'))
+            Clause(NounPhrase('you'), VerbPhrase('prepare to kill well'))
 
     def template(self, action):
         if action in self.templates:

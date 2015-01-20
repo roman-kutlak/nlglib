@@ -656,13 +656,13 @@ class TestNP(unittest.TestCase):
 
     def test_constituents(self):
         """ Test iterating through constituents. """
-        p = NP(spec='the', head='Simpsons')
+        p = NounPhrase(spec='the', head='Simpsons')
         expected = [String('the'), String('Simpsons')]
         self.assertEqual(expected, list(p.constituents()))
 
     def test_replace(self):
         """ Test replacing an element. """
-        p = NP(spec='', head='Simpsons')
+        p = NounPhrase(spec='', head='Simpsons')
         expected = [String('the'), String('Simpsons')]
         p.replace(String(''), String('the'))
         self.assertEqual(expected, list(p.constituents()))
@@ -673,13 +673,13 @@ class TestVP(unittest.TestCase):
 
     def test_constituents(self):
         """ Test iterating through constituents. """
-        p = VP('give', 'the book', 'to the cook')
+        p = VerbPhrase('give', 'the book', 'to the cook')
         expected = [String('give'), String('the book'), String('to the cook')]
         self.assertEqual(expected, list(p.constituents()))
 
     def test_replace(self):
         """ Test replacing an element. """
-        p = VP('give', 'the book', 'to the cook')
+        p = VerbPhrase('give', 'the book', 'to the cook')
         expected = [String('give'), String('the book'), String('to the cook')]
         self.assertEqual(expected, list(p.constituents()))
         p.replace(String('to the cook'), String('to the cheff'))
@@ -688,16 +688,16 @@ class TestVP(unittest.TestCase):
 
     def test_arguments(self):
         """ Test replacing arguments. """
-        p = VP('give', PlaceHolder('arg_obj'), PP('to', PlaceHolder('arg_rec')))
+        p = VerbPhrase('give', PlaceHolder('arg_obj'), PrepositionalPhrase('to', PlaceHolder('arg_rec')))
         expected = [PlaceHolder('arg_obj'), PlaceHolder('arg_rec')]
         self.assertEqual(expected, list(p.arguments()))
 
-        obj = NP(spec='the', head='candy')
-        rec = NP(head='Roman')
+        obj = NounPhrase(spec='the', head='candy')
+        rec = NounPhrase(head='Roman')
         p.replace_arguments(arg_obj=obj, arg_rec=rec)
         self.assertEqual([], list(p.arguments()))
         expected = [String('give'), String('the'), String('candy'),
-                    String('to'), NP('Roman')]
+                    String('to'), NounPhrase('Roman')]
 
 
 class TestCC(unittest.TestCase):
@@ -705,13 +705,13 @@ class TestCC(unittest.TestCase):
 
     def test_constituents(self):
         """ Test iterating through constituents. """
-        p = CC('apple', 'banana', 'pear')
+        p = Coordination('apple', 'banana', 'pear')
         expected = [String('apple'), String('banana'), String('pear')]
         self.assertEqual(expected, list(p.constituents()))
 
     def test_replace(self):
         """ Test replacing an element. """
-        p = CC('apple', 'banana', 'pear')
+        p = Coordination('apple', 'banana', 'pear')
         expected = [String('apple'), String('banana'), String('pear')]
         self.assertEqual(expected, list(p.constituents()))
 

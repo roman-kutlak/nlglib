@@ -1,6 +1,6 @@
 Issue: The parser can't cope with more than 5 quantifiers in a formula.
 
-add FOL to NLG elements
+add type of expression to Expr and deduce the type from syntax (EXPR_TERM, ...)
 add variable context for FOL to NLG
 add REG context
 

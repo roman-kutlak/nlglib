@@ -10,8 +10,8 @@ from nlg.realisation import RealisationVisitor
 
 
 def get_clause():
-    clause = Clause(NP(Word('you', 'NOUN')),
-                    VP(Word('say', 'VERB'), String('hello')))
+    clause = Clause(NounPhrase(Word('you', 'NOUN')),
+                    VerbPhrase(Word('say', 'VERB'), String('hello')))
     return clause
 
 
@@ -155,7 +155,7 @@ class TestStringRealisation(unittest.TestCase):
 
     def test_np(self):
         v = RealisationVisitor()
-        c = NP(Word('house', 'NOUN'),
+        c = NounPhrase(Word('house', 'NOUN'),
                Word('this', 'DETERMINER'))
         expected = 'this house'
         c.accept(v)
@@ -163,7 +163,7 @@ class TestStringRealisation(unittest.TestCase):
         self.assertEqual(expected, actual)
         
         v = RealisationVisitor()
-        c = NP(Word('house', 'NOUN'),
+        c = NounPhrase(Word('house', 'NOUN'),
                Word('this', 'DETERMINER'),
                pre_modifiers=['tall', 'yellow'],
                post_modifiers=['that we lived in'])
@@ -174,7 +174,7 @@ class TestStringRealisation(unittest.TestCase):
 
     def test_vp(self):
         v = RealisationVisitor()
-        c = VP(Word('hit', 'VERB'),
+        c = VerbPhrase(Word('hit', 'VERB'),
                String('the ball'),
                String('with the bat'))
         expected = 'hit the ball with the bat'
@@ -183,8 +183,8 @@ class TestStringRealisation(unittest.TestCase):
         self.assertEqual(expected, actual)
         
         v = RealisationVisitor()
-        c = VP(Word('hit', 'VERB'),
-               NP(Word('ball', 'NOUN'), 'the'),
+        c = VerbPhrase(Word('hit', 'VERB'),
+               NounPhrase(Word('ball', 'NOUN'), 'the'),
                String('with the bat'))
         expected = 'hit the ball with the bat'
         c.accept(v)
@@ -193,7 +193,7 @@ class TestStringRealisation(unittest.TestCase):
 
     def test_pp(self):
         v = RealisationVisitor()
-        c = PP(Word('in', 'PREPOSITION'),
+        c = PrepositionalPhrase(Word('in', 'PREPOSITION'),
                String('the house'))
         expected = 'in the house'
         c.accept(v)
@@ -201,8 +201,8 @@ class TestStringRealisation(unittest.TestCase):
         self.assertEqual(expected, actual)
         
         v = RealisationVisitor()
-        c = PP(Word('in', 'PREPOSITION'),
-               NP(Word('house', 'NOUN'), Word('the', 'DETERMINER')))
+        c = PrepositionalPhrase(Word('in', 'PREPOSITION'),
+               NounPhrase(Word('house', 'NOUN'), Word('the', 'DETERMINER')))
         expected = 'in the house'
         c.accept(v)
         actual = str(v)
@@ -210,7 +210,7 @@ class TestStringRealisation(unittest.TestCase):
 
     def test_adjp(self):
         v = RealisationVisitor()
-        c = AdjP(Word('green', 'ADJECTIVE'))
+        c = AdjectivePhrase(Word('green', 'ADJECTIVE'))
         expected = 'green'
         c.accept(v)
         actual = str(v)
@@ -218,17 +218,17 @@ class TestStringRealisation(unittest.TestCase):
 
     def test_advp(self):
         v = RealisationVisitor()
-        c = AdvP(Word('rarely', 'ADVERB'))
+        c = AdverbPhrase(Word('rarely', 'ADVERB'))
         expected = 'rarely'
         c.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
 
     def test_complex(self):
-        house = NP('house', 'the')
-        shopping = NP('shopping', 'the')
-        put = VP('put', shopping, PP('in', house))
-        s = Clause(NP('Peter'), put)
+        house = NounPhrase('house', 'the')
+        shopping = NounPhrase('shopping', 'the')
+        put = VerbPhrase('put', shopping, PrepositionalPhrase('in', house))
+        s = Clause(NounPhrase('Peter'), put)
         expected = 'Peter put the shopping in the house'
         v = RealisationVisitor()
         s.accept(v)

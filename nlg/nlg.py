@@ -11,7 +11,7 @@ import nlg.reg as reg
 import nlg.realisation as realisation
 import nlg.format as format
 from nlg.utils import Settings
-
+from nlg.reg import Context
 
 def get_log():
     return logging.getLogger(__name__)
@@ -28,20 +28,21 @@ class Nlg:
         pass
 
     def process_nlg_doc(self, doc, ontology, context=None):
+        if context is None: context = Context(ontology)
         get_log().debug('Processing document.')
         if context is None:
             get_log().debug('Creating new context for REG')
             context = reg.Context(ontology)
         summary = self.lexicalise(doc)
-        get_log().debug('After lex: %s' % str(summary))
+        get_log().debug('After lex:\n%s' % repr(summary))
         summary = self.aggregate(summary, 3)
-        get_log().debug('After aggr: %s' % str(summary))
+        get_log().debug('After aggr:\n%s' % repr(summary))
         summary = self.generate_re(summary, context)
-        get_log().debug('After REG: %s' % str(summary))
+        get_log().debug('After REG:\n%s' % repr(summary))
         summary = self.realise(summary)
-        get_log().debug('After realisation: %s' % str(summary))
+        get_log().debug('After realisation:\n%s' % repr(summary))
         summary = self.format(summary)
-        get_log().debug('After formatting: %s' % str(summary))
+        get_log().debug('After formatting:\n%s' % repr(summary))
         return summary
 
     def process_nlg_doc2(self, doc, ontology, context=None):

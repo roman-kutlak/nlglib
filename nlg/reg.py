@@ -4,7 +4,7 @@ from copy import deepcopy
 import logging
 
 from nlg.structures import *
-
+from nlg.microplanning import replace_element
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -93,7 +93,8 @@ def generate_re_document(doc, context):
 def _replace_placeholders_with_nps(message, context):
     get_log().debug('Replacing placeholders.')
     for arg in message.arguments():
-        refexp = generate_ref_exp(str(arg.value), context)
+        ref = arg.value or arg.id
+        refexp = generate_ref_exp(ref, context)
         replace_element(message, arg, refexp)
 
 
@@ -103,11 +104,14 @@ def generate_ref_exp(referent, context):
     # can we use a pronoun?
     # actually, using a pronoun for the last ref can still be ambiguous :-)
 #        if referent == context.last_referent:
-#            return NP(Word('it', 'PRONOUN'))
+#            return NounPhrase(Word('it', 'PRONOUN'))
 
     result = None
 
-    get_log().debug('GRE for %s:' % str(referent))
+    get_log().debug('GRE for "{0}"'.format(referent))
+    
+    if isinstance(referent, String): referent = referent.val
+    
     if referent in context.referents:
         result = _do_repeated_reference(referent, context)
     else:
@@ -121,11 +125,12 @@ def _do_initial_reference(referent, context):
     try:
         onto = context.ontology
         if onto is None:
-            get_log().warning('GRE does not have ontology!')
+            get_log().error('GRE does not have ontology!')
+            return String(str(referent))
 
         entity_type = onto.best_entity_type(':' + referent)
         entity_type = entity_type.rpartition(':')[2] # strip the ':' at the beginning
-        result = NP(Word(entity_type, 'NOUN'))
+        result = NounPhrase(Word(entity_type, 'NOUN'))
         get_log().debug('\t%s: type "%s"' % (referent, entity_type))
         # if the object is the only one in the domain, add 'the'
         same_type = set([x.rpartition(':')[2] for x in
@@ -160,7 +165,7 @@ def _do_initial_reference(referent, context):
     except Exception as msg:
         get_log().exception(msg)
         # if we have no info, assume referent is not unique
-        result = NP(Word(referent, 'NOUN'))
+        result = NounPhrase(Word(referent, 'NOUN'))
         context.referents[referent] = (False, result)
         get_log().debug('GRE for "%s" failed : "%s"' % (referent, str(msg)))
 

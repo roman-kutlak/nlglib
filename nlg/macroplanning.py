@@ -3,7 +3,7 @@ from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
 from nlg.fol import OP_EXISTS, OP_FORALL
 from nlg.fol import is_prop_symbol
 
-from nlg.structures import Message, MsgSpec, Word
+from nlg.structures import Message, MsgSpec, Word, PlaceHolder
 from nlg.structures import DiscourseContext, OperatorContext
 
 import logging
@@ -111,7 +111,7 @@ class PredicateMsg(MsgSpec):
             'number of variables in predicate "' + str(self.predicate) + '"'
             raise SignatureError(msg)
 
-        return self.args.args[idx]
+        return self.args[idx]
 
 
 class StringMsgSpec(MsgSpec):
@@ -182,8 +182,9 @@ def formula_to_rst(f):
             m.marker = 'there exist'
         return m
     if f.op[0] == OP_NOT and is_prop_symbol(f.args[0].op):
-        get_log().debug('negated proposition: ' + str(f))
-        m = PredicateMsgSpec(f.args[0])
+        get_log().debug('negated predicate: ' + str(f))
+        arg = f.args[0]
+        m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
         m._features = {'NEGATION': 'TRUE'}
         return m
     if f.op[0] == OP_NOT:
@@ -194,7 +195,7 @@ def formula_to_rst(f):
         return m
     if is_prop_symbol(f.op):
         get_log().debug('predicate: ' + str(f))
-        return PredicateMsgSpec(f)
+        return PredicateMsg(f, *[formula_to_rst(x) for x in f.args])
     else:
         get_log().debug('None: ' + repr(f))
         return PlaceHolder(f.op)

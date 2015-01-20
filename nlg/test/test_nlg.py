@@ -39,8 +39,8 @@ from nlg.structures import *
 #        pass
 
 def get_clause():
-    clause = Clause(NP(Word('you', 'NOUN')),
-                    VP(Word('say', 'VERB'), String('hello')))
+    clause = Clause(NounPhrase(Word('you', 'NOUN')),
+                    VerbPhrase(Word('say', 'VERB'), String('hello')))
     clause._features['FORM'] = "IMPERATIVE"
     return clause
 

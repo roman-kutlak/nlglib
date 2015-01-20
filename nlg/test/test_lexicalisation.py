@@ -1,7 +1,7 @@
 import unittest
 
 from nlg.structures import MsgSpec, Message, Paragraph, Section, Document
-from nlg.structures import String, PlaceHolder, Clause, NP, VP, StringMsgSpec
+from nlg.structures import String, PlaceHolder, Clause, NounPhrase, VerbPhrase, StringMsgSpec
 
 from nlg.lexicalisation import templates
 from nlg.lexicalisation import lexicalise_message_spec
@@ -18,11 +18,11 @@ class DummyMsg(MsgSpec):
         super().__init__('dummy')
 
     def arg_subject(self):
-        return NP('Boris')
+        return NounPhrase('Boris')
 
 # add a template for the message spec.
 templates.templates['dummy'] = Clause(
-            PlaceHolder('arg_subject'), VP('is', 'fast'))
+            PlaceHolder('arg_subject'), VerbPhrase('is', 'fast'))
 
 class TestLexicalisation(unittest.TestCase):
     """ Tests for converting a MsgSpec into an NLG Element. """

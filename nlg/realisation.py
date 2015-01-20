@@ -125,7 +125,7 @@ def realise(msg):
 
 def realise_element(elt):
     """ Realise NLG element. """
-    get_log().debug('Realising element %s' % str(elt))
+    get_log().debug('Realising element:\n{0}'.format(repr(elt)))
     v = RealisationVisitor()
     elt.accept(v)
     result = str(v)
@@ -134,13 +134,13 @@ def realise_element(elt):
 
 def realise_message_spec(msg):
     """ Realise message specification - this should not happen """
-    get_log().debug('Realising message spec.')
+    get_log().debug('Realising message spec:\n{0}'.format(repr(msg)))
     return str(msg).strip()
 
 
 def realise_message(msg):
     """ Return a copy of Message with strings. """
-    get_log().debug('Realising message.')
+    get_log().debug('Realising message:\n{0}'.format(repr(msg)))
     if msg is None: return None
     nucl = realise(msg.nucleus)
     sats = [realise(x) for x in msg.satelites if x is not None]
@@ -230,6 +230,14 @@ class RealisationVisitor:
         self.text += ' '
 
     def visit_clause(self, node):
+        # do a bit of coordination
+        node.vp.add_features(node._features)
+        if node.subj.has_feature('NUMBER'):
+            node.vp.add_feature(node.subj.get_feature('NUMBER'))
+        if node.subj.has_feature('GENDER'):
+            node.vp.add_feature(node.subj.get_feature('GENDER'))
+        if node.subj.has_feature('CASE'):
+            node.vp.add_feature(node.subj.get_feature('CASE'))
         for o in node.pre_modifiers: o.accept(self)
         node.subj.accept(self)
         node.vp.accept(self)
@@ -252,8 +260,6 @@ class RealisationVisitor:
     # FIXME: implement
     def visit_subordination(self, node):
         assert False, 'not implemented'
-        if node.has_feature('COMPLEMENTISER'):
-            self.text += ' ' + node.get_feature('COMPLEMENTISER')
 
     def visit_np(self, node):
         for c in node.front_modifiers: c.accept(self)
@@ -292,6 +298,8 @@ class RealisationVisitor:
         for c in node.front_modifiers: c.accept(self)
         for c in node.pre_modifiers: c.accept(self)
         node.head.accept(self)
+        if node.has_feature('COMPLEMENTISER'):
+            self.text += ' {0} '.format(node.get_feature('COMPLEMENTISER'))
         for c in node.complements: c.accept(self)
         for c in node.post_modifiers: c.accept(self)
 

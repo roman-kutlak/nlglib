@@ -139,7 +139,7 @@ class Message:
         by an RST (Rhetorical Structure Theory) relation.
 
     """
-    def __init__(self, rel, nucleus, *satelites):
+    def __init__(self, rel, nucleus, *satelites, features=None):
         """ Create a new Message with given relation between the nucleus
             and zero or more satelites.
 
@@ -148,6 +148,7 @@ class Message:
         self.nucleus = nucleus
         self.satelites = [s for s in satelites if s is not None]
         self.marker = ''
+        self._features = features or {}
 
     def __repr__(self):
         descr = ' '.join([repr(x) for x in
@@ -243,12 +244,12 @@ class MsgSpec:
     in turn calls self.foo(). This should return the value for the key 'foo'.
 
     """
-    def __init__(self, name):
+    def __init__(self, name, features=None):
         self.name = name
-        self._features = dict()
+        self._features = features or {}
 
     def __repr__(self):
-        return 'MsgSpec: %s' % str(self)
+        return 'MsgSpec({0}, {1})'.format(self.name, self._features)
 
     def __str__(self):
         return str(self.name)
@@ -322,18 +323,18 @@ class ElemntCoder(json.JSONEncoder):
                 return Phrase.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlg.structures.Clause'>":
                 return Clause.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.NP'>":
-                return NP.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.VP'>":
-                return VP.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.PP'>":
-                return PP.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.AdjP'>":
-                return AdjP.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.AdvP'>":
-                return AdvP.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.CC'>":
-                return CC.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.NounPhrase'>":
+                return NounPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.VerbPhrase'>":
+                return VerbPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.PrepositionalPhrase'>":
+                return PrepositionalPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.AdjectivePhrase'>":
+                return AdjectivePhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.AdverbPhrase'>":
+                return AdverbPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlg.structures.Coordination'>":
+                return Coordination.from_dict(json_object['__value__'])
 
         return json_object
 
@@ -388,7 +389,7 @@ def is_phrase_t(o):
     
     """
     return (is_element_t(o) and
-            (o._type in {PHRASE, NP, VP, PP, ADJPHRASE, ADVPHRASE} or
+            (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJPHRASE, ADVPHRASE} or
              (o._type == COORDINATION and
              (o.coord == [] or is_phrase_t(o.coord[0])))))
 
@@ -425,7 +426,12 @@ class Element:
         self._visitor_name = VisitorNames[type]
         self._features = features or dict()
 
+    def __bool__(self):
+        """ Because Element is abstract, it will evaluate to false. """
+        return False
+
     def __eq__(self, other):
+        if not is_element_t(other): return False
         if not self._type is other._type: return False
         return (self.id == other.id and
                 self._features == other._features)
@@ -451,7 +457,7 @@ class Element:
         self.accept(v)
         return str(v)
 
-    def accept(self, visitor, element='child'):
+    def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
         if self._visitor_name == None:
             raise ValueError('Error: visit method of uninitialized visitor '
@@ -518,7 +524,7 @@ class Element:
 
     def add_features(self, features):
         """ Add the given features (dict) to the existing features. """
-        for k, v in features:
+        for k, v in features.items():
             self._features[k] = v
 
     def constituents(self):
@@ -582,6 +588,10 @@ class String(Element):
         super().__init__(STRING, features)
         self.val = val
 
+    def __bool__(self):
+        """ Return True if the string is non-empty. """
+        return len(self.val) > 0
+    
     def __eq__(self, other):
         if (not isinstance(other, String)):
             return False
@@ -600,6 +610,10 @@ class Word(Element):
         self.pos = pos
         self.base = base or word
         self.do_inflection = False
+    
+    def __bool__(self):
+        """ Return True """
+        return True
 
     def __eq__(self, other):
         if (not isinstance(other, Word)):
@@ -622,11 +636,15 @@ class PlaceHolder(Element):
                 move (the block) from (the table) to (the green block)
 
     """
-    def __init__(self, id=None, obj=Element(), features=None):
+    def __init__(self, id=None, obj=None, features=None):
         super().__init__(PLACEHOLDER, features)
         self.id = id
         self.set_value(obj)
-        
+    
+    def __bool__(self):
+        """ Return True """
+        return True
+
     def __eq__(self, other):
         if (not isinstance(other, PlaceHolder)):
             return False
@@ -639,6 +657,7 @@ class PlaceHolder(Element):
         return [self]
 
     def set_value(self, val):
+        if val is None: val = self.id
         self.value = String(val) if isinstance(val, str) else val
 
 
@@ -651,6 +670,10 @@ class Coordination(Element):
         self.add_coordinate(*coords)
         self.set_feature('conj', conj)
         self.conj = conj
+
+    def __bool__(self):
+        """ Return True """
+        return True
 
     def __eq__(self, other):
         if (not isinstance(other, Coordination)):
@@ -680,14 +703,14 @@ class Coordination(Element):
         """
         for i, o in enumerate(self.coords):
             if o == one:
-                if another is not None: self.coords[i] = another
+                if another: self.coords[i] = another
                 else: del self.coords[i]
                 return True
         return False
 
 
-# CC is a synonym for coordination
-class CC(Coordination): pass
+# Coordination is a synonym for coordination
+class Coordination(Coordination): pass
 
 
 # FIXME: incomplete implementation -- who is parent and who is subord child?
@@ -698,6 +721,10 @@ class Subordination(Element):
         super().__init__(SUBORDINATION, features)
         self.main = main
         self.subordinate = subordinate
+
+    def __bool__(self):
+        """ Return True """
+        return True
 
     def __eq__(self, other):
         if not isinstance(other, Subordination):
@@ -735,6 +762,10 @@ class Phrase(Element):
         if 'post_modifiers' in kwargs:
             self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
 
+    def __bool__(self):
+        """ Return True """
+        return True
+
     def __eq__(self, other):
         if (not isinstance(other, Phrase)):
             return False
@@ -745,6 +776,9 @@ class Phrase(Element):
                 self.complements == other.complements and
                 self.post_modifiers == other.post_modifiers and
                 super().__eq__(other))
+
+    def accept(self, visitor, element='Phrase'):
+        return super().accept(visitor, element)
 
     def set_front_modifiers(self, *mods):
         """ Set front-modifiers to the passed parameters. """
@@ -896,7 +930,7 @@ class Phrase(Element):
         return False
 
 
-class NP(Phrase):
+class NounPhrase(Phrase):
     """
      * <UL>
      * <li>FrontModifier (eg, "some of")</LI>
@@ -912,14 +946,14 @@ class NP(Phrase):
         self.set_head(head)
 
     def __eq__(self, other):
-        if (not isinstance(other, NP)):
+        if (not isinstance(other, NounPhrase)):
             return False
         return (self.spec == other.spec and
                 self.head == other.head and
                 super().__eq__(other))
 
     def set_spec(self, spec):
-        """ Set the specifier (e.g., determiner) of the NP. """
+        """ Set the specifier (e.g., determiner) of the NounPhrase. """
         if spec is None: spec = Element()
         # convert str to String if necessary
         self.spec = String(spec) if isinstance(spec, str) else spec
@@ -948,7 +982,7 @@ class NP(Phrase):
         return super().replace(one, another)
 
 
-class VP(Phrase):
+class VerbPhrase(Phrase):
     """
     * <UL>
      * <LI>PreModifier      (eg, "reluctantly")</LI>
@@ -993,21 +1027,21 @@ class VP(Phrase):
         return text
 
 
-class PP(Phrase):
+class PrepositionalPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(PREPPHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
 
 
-class AdvP(Phrase):
+class AdverbPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(ADVPHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
 
 
-class AdjP(Phrase):
+class AdjectivePhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(ADJPHRASE, features, **kwargs)
         self.set_head(head)
@@ -1020,7 +1054,7 @@ class Clause(Element):
      * <UL>
      * <li>PreModifier (eg, "Yesterday")
      * <LI>Subject (eg, "John")
-     * <LI>VP (eg, "gave Mary an apple before school")
+     * <LI>VerbPhrase (eg, "gave Mary an apple before school")
      * <LI>PostModifier (eg, ", didn't he?")
      * </UL>
 
@@ -1037,6 +1071,10 @@ class Clause(Element):
             self.pre_modifiers = str_to_elt(*kwargs['pre_modifiers'])
         if 'post_modifiers' in kwargs:
             self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
+
+    def __bool__(self):
+        """ Return True """
+        return True
 
     def __eq__(self, other):
         if (not isinstance(other, Clause)):
@@ -1057,7 +1095,7 @@ class Clause(Element):
         self.vp = String(vp) if isinstance(vp, str) else vp
 
     def set_features(self, features):
-        """ Set features on the VP. """
+        """ Set features on the VerbPhrase. """
         if self.vp:
             self.vp.set_features(features)
 
@@ -1122,6 +1160,7 @@ class Clause(Element):
         for o in self.post_modifiers:
             for x in o.constituents():
                 yield x
+
 
 #############################################################################
 #

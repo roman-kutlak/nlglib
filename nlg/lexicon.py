@@ -234,10 +234,10 @@ class Lexicon:
         features = {}
         if tag.endswith('$'):
             features['POSSESSIVE'] = 'TRUE'
-            if not tag.startswith('PP'):
+            if not tag.startswith('PrepositionalPhrase'):
                 features['CASE'] = 'GENITIVE'
         if tag.endswith('*'): features['NEGATION'] = 'TRUE'
-        if tag.startswith('NP'): features['PROPER'] = 'TRUE'
+        if tag.startswith('NounPhrase'): features['PROPER'] = 'TRUE'
         if tag.startswith('NNS'): features['NUMBER'] = 'PLURAL'
         if tag.startswith('NPS'): features['NUMBER'] = 'PLURAL'
         if tag.startswith('JJR'): features['COMPARATIVE'] = 'TRUE'
@@ -262,7 +262,7 @@ class Lexicon:
         """
         if tag.startswith('A'): return POS_DETERMINER
         if tag.startswith('B'): return POS_VERB # be, is, was, isn't, ...
-        if tag == 'CC' or tag == 'CS': return POS_CONJUNCTION
+        if tag == 'Coordination' or tag == 'CS': return POS_CONJUNCTION
         if tag.startswith('CD'): return POS_NUMERAL
         if tag.startswith('DO'): return POS_VERB # do, did, didn't, ...
         if tag.startswith('DT'): return POS_DETERMINER
@@ -276,7 +276,7 @@ class Lexicon:
         if tag.startswith('N'): return POS_NOUN
         if tag.startswith('OD'): return POS_NUMERAL
         if tag.startswith('PN'): return POS_PRONOUN
-        if tag.startswith('PP'): return POS_PRONOUN
+        if tag.startswith('PrepositionalPhrase'): return POS_PRONOUN
         if tag.startswith('Q'): return POS_DETERMINER
         if tag.startswith('R'): return POS_ADVERB
         if tag.startswith('TO'): return POS_VERB
