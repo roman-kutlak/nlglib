@@ -54,9 +54,9 @@ class Lexicon:
     """ A class that represents a lexicon. """
 
     def __init__(self):
-        # list of all words
+        # dict of all words ([id] -> Word())
         self._words = dict()
-        # mapping from word ids to Word elements (tags from NIH lexicon)
+        # mapping from word IDs to Word elements (with tags from NIH lexicon)
         self._verb = dict()
         self._aux = dict()
         self._modal = dict()
@@ -90,16 +90,19 @@ class Lexicon:
         for the given word.
         
         # assuming foo is not in lexicon
-        >>> w = lexicon.word('foo', POS_NOUN) -> None
-        >>> w = lexicon.word('foo', POS_NOUN, 'new') -> Word('foo', 'NOUN')
-        >>> w = lexicon.word('foo') -> Word('foo', X) # X determined by tagger
+        >>> w = lexicon.word('foo', POS_NOUN)
+        None
+        >>> w = lexicon.word('foo', POS_NOUN, 'new')
+        Word('foo', 'NOUN')
+        >>> w = lexicon.word('foo')
+        Word('foo', X) # X determined by tagger
         
         """
         if POS_ANY == pos:
-            ids = self._variants[string]
+            ids = list(self._variants[string])
             if len(ids) == 0: return Word(string, POS_ANY)
             elif len(ids) == 1:
-                w = deepcopy(self._words[next(iter(ids))])
+                w = deepcopy(self._words[ids[0]])
                 w.word = string
                 fs = self.features_for_variant(w, string)
                 for k, v in fs: w.set_feature(k, v)
@@ -299,8 +302,8 @@ class Lexicon:
         assert (word.pos is not None and word.pos != '')
         assert (word.id is not None and word.id != '')
         map = self._get_wordmap_for_tag(word.pos)
-        if map is None: raise Exception('Unknown POS tag: "{0}"'\
-                                        .format(word.pos))
+        if map is None: raise Exception('Unknown POS tag "{0}" for word "{1}"'\
+                                        .format(word.pos, word.word))
         map[word.id] = word
         self._words[word.id] = word
         self._variants[word.base].add(word.id)
@@ -322,6 +325,13 @@ class Lexicon:
         elif POS_NUMERAL == pos: return self._num
         elif POS_SYMBOL == pos: return self._sym
         else: return None
+
+    def template_for_noun(self, word):
+        """ Assuming word is an instance of Word() that can be used as a noun,
+        create a template with this word.
+        
+        """
+        pass
 
 
 def lexicon_from_nih_xml(path):

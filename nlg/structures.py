@@ -191,11 +191,11 @@ class RhetRep:
     or MsgSpecs.
 
     """
-    def __init__(self, relation, nucleus, satelite, marker=None):
+    def __init__(self, relation, *nuclei, satelite=None, marker=None):
         self.relation = relation
-        self.nucleus = nucleus
+        self.nucleus = list(nuclei)
         self.satelite = satelite
-        self.is_multinuclear = False
+        self.is_multinuclear = (len(nuclei) > 1)
         self.marker = marker
 
     def to_xml(self, lvl=0):
@@ -271,16 +271,6 @@ class MsgSpec:
     @classmethod
     def instantiate(Klass, data):
         return None
-
-
-class StringMsgSpec(MsgSpec):
-    """ Use this as a simple message that contains canned text. """
-    def __init__(self, text):
-        super().__init__('simple_message')
-        self.text = text
-
-    def value_for(self, param_idx):
-        return String(self.text)
 
 
 class DiscourseContext:
@@ -526,9 +516,10 @@ class Element:
             if val is not None: del self._features[feat]
             elif val == self._features[feat]: del self._features[feat]
 
-    def set_features(self, features):
-        """ Set the current features to the given features (dict). """
-        self._features = features
+    def add_features(self, features):
+        """ Add the given features (dict) to the existing features. """
+        for k, v in features:
+            self._features[k] = v
 
     def constituents(self):
         """ Return a generator representing constituents of an element. """

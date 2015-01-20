@@ -15,7 +15,7 @@ def get_log():
 class SignatureError(Exception):
     pass
     
-
+# TODO: deprecate?
 class PredicateMsgSpec(MsgSpec):
     """ This class is used for instantiating Predicate as message spec. """
 
@@ -24,7 +24,7 @@ class PredicateMsgSpec(MsgSpec):
         we can look up arguments for any variables.
         
         """
-        super().__init__(pred.op)
+        super().__init__('{0}/{1}'.format(pred.op, len(pred.args)))
         self.predicate = pred
         self._features = features or {}
 
@@ -77,9 +77,51 @@ class PredicateMsgSpec(MsgSpec):
         return result
 
 
-def fol_to_msg(f):
-    """ Convert a FOL formula to a suitable set of message specifications. """
-    pass
+class PredicateMsg(MsgSpec):
+    """ This class is used for instantiating Predicate as message spec. """
+
+    def __init__(self, pred, *arguments, features=None):
+        """ Representation of a predicate.
+        """
+        super().__init__(str(pred.op))
+        self.predicate = pred
+        self.args = list(arguments)
+        self._features = features or {}
+
+    def __str__(self):
+        """ Return a suitable string representation. """
+        p = self.predicate
+        if len(p.args) == 0:
+            return p.op
+        else:
+            neg = ''
+            if ('NEGATION' in self._features and
+                self._features['NEGATION'] == 'TRUE'):
+                    neg = 'not '
+            return(neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')')
+
+    def value_for(self, idx):
+        """ Return a replacement for a placeholder with id param.
+        The function returns the type for type_N and the name of the variable
+        for N at position N or throws SignatureError.
+
+        """
+        if idx >= len(self.args):
+            msg = 'Requested index (' + str(idx) + ') larger than '\
+            'number of variables in predicate "' + str(self.predicate) + '"'
+            raise SignatureError(msg)
+
+        return self.args.args[idx]
+
+
+class StringMsgSpec(MsgSpec):
+    """ Use this as a simple message that contains canned text. """
+    def __init__(self, text):
+        super().__init__('simple_message')
+        self.text = text
+
+    def value_for(self, _):
+        return String(self.text)
 
 
 def formula_to_rst(f):
@@ -139,7 +181,7 @@ def formula_to_rst(f):
         else:
             m.marker = 'there exist'
         return m
-    if f.op[0] == OP_NOT and len(f.args) == 1 and is_prop_symbol(f.args[0].op):
+    if f.op[0] == OP_NOT and is_prop_symbol(f.args[0].op):
         get_log().debug('negated proposition: ' + str(f))
         m = PredicateMsgSpec(f.args[0])
         m._features = {'NEGATION': 'TRUE'}
@@ -151,11 +193,17 @@ def formula_to_rst(f):
         m.marker = 'it is not the case that'
         return m
     if is_prop_symbol(f.op):
-        get_log().debug('proposition: ' + str(f))
+        get_log().debug('predicate: ' + str(f))
         return PredicateMsgSpec(f)
     else:
         get_log().debug('None: ' + repr(f))
-        return Word(str(f), 'NOUN')
+        return PlaceHolder(f.op)
+
+
+def fol_to_synt(f, do_parent=True):
+    """ FOL formula to syntactic structure. """
+    get_log().debug('fol_to_synt({0}).'.format(str(f)))
+
 
 
 

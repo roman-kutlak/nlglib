@@ -8,18 +8,6 @@
 
 /* Begin PBXFileReference section */
 		3020ECCB1A4C739A00270661 /* __init__.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = __init__.py; sourceTree = "<group>"; };
-		3020ECCD1A4C739A00270661 /* __init__.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "__init__.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECCE1A4C739A00270661 /* aggregation.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "aggregation.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECCF1A4C739A00270661 /* format.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "format.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD01A4C739A00270661 /* lexicalisation.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "lexicalisation.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD11A4C739A00270661 /* macroplanning.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "macroplanning.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD21A4C739A00270661 /* nlg.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "nlg.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD31A4C739A00270661 /* ontology.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "ontology.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD41A4C739A00270661 /* realisation.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "realisation.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD51A4C739A00270661 /* reg.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "reg.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD61A4C739A00270661 /* simplenlg.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "simplenlg.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD71A4C739A00270661 /* structures.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "structures.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECD81A4C739A00270661 /* utils.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "utils.cpython-34.pyc"; sourceTree = "<group>"; };
 		3020ECD91A4C739A00270661 /* aggregation.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = aggregation.py; sourceTree = "<group>"; };
 		3020ECDA1A4C739A00270661 /* format.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = format.py; sourceTree = "<group>"; };
 		3020ECDB1A4C739A00270661 /* lexicalisation.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = lexicalisation.py; sourceTree = "<group>"; };
@@ -35,16 +23,6 @@
 		3020ECE61A4C739A00270661 /* simplenlg.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = simplenlg.py; sourceTree = "<group>"; };
 		3020ECE71A4C739A00270661 /* structures.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = structures.py; sourceTree = "<group>"; };
 		3020ECE91A4C739A00270661 /* __init__.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = __init__.py; sourceTree = "<group>"; };
-		3020ECEB1A4C739A00270661 /* __init__.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "__init__.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECEC1A4C739A00270661 /* main.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "main.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECED1A4C739A00270661 /* test_aggregation.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_aggregation.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECEE1A4C739A00270661 /* test_lexicalisation.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_lexicalisation.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECEF1A4C739A00270661 /* test_macroplanning.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_macroplanning.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECF01A4C739A00270661 /* test_nlg.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_nlg.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECF11A4C739A00270661 /* test_ontology.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_ontology.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECF21A4C739A00270661 /* test_realisation.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_realisation.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECF31A4C739A00270661 /* test_simplenlg.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_simplenlg.cpython-34.pyc"; sourceTree = "<group>"; };
-		3020ECF41A4C739A00270661 /* test_structures.cpython-34.pyc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "test_structures.cpython-34.pyc"; sourceTree = "<group>"; };
 		3020ECF61A4C739A00270661 /* ontology.ttl */ = {isa = PBXFileReference; lastKnownFileType = text; path = ontology.ttl; sourceTree = "<group>"; };
 		3020ECF71A4C739A00270661 /* test.ttl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.ttl; sourceTree = "<group>"; };
 		3020ECF81A4C739A00270661 /* test_asserted.ttl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test_asserted.ttl; sourceTree = "<group>"; };
@@ -61,7 +39,7 @@
 		3020ED031A4C87C600270661 /* microplanning.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = microplanning.py; sourceTree = "<group>"; };
 		3020ED041A4CA24D00270661 /* test_microplanning.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = test_microplanning.py; sourceTree = "<group>"; };
 		3020ED051A4CAB7D00270661 /* test_lexicon.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = test_lexicon.py; sourceTree = "<group>"; };
-		306C41451A65E89E00C533F5 /* README */ = {isa = PBXFileReference; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		306C41451A65E89E00C533F5 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		306C41461A65E8AC00C533F5 /* TODOs */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODOs; sourceTree = "<group>"; };
 		307C1D271A609E6E005FDB07 /* nih_lexicon_extract.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = nih_lexicon_extract.xml; sourceTree = "<group>"; };
 		309ED1661A58351F006157F5 /* fol.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = fol.py; sourceTree = "<group>"; };
@@ -73,7 +51,7 @@
 			isa = PBXGroup;
 			children = (
 				306C41461A65E8AC00C533F5 /* TODOs */,
-				306C41451A65E89E00C533F5 /* README */,
+				306C41451A65E89E00C533F5 /* README.md */,
 				3020ECCA1A4C739A00270661 /* nlg */,
 			);
 			sourceTree = "<group>";
@@ -82,44 +60,24 @@
 			isa = PBXGroup;
 			children = (
 				3020ECCB1A4C739A00270661 /* __init__.py */,
-				3020ECCC1A4C739A00270661 /* __pycache__ */,
-				3020ECD91A4C739A00270661 /* aggregation.py */,
-				3020ECDA1A4C739A00270661 /* format.py */,
-				3020ECDB1A4C739A00270661 /* lexicalisation.py */,
-				3020ECDC1A4C739A00270661 /* lexicon.py */,
+				309ED1661A58351F006157F5 /* fol.py */,
+				3020ECDE1A4C739A00270661 /* nlg.py */,
+				3020ECE71A4C739A00270661 /* structures.py */,
 				3020ECDD1A4C739A00270661 /* macroplanning.py */,
 				3020ED031A4C87C600270661 /* microplanning.py */,
-				3020ECDE1A4C739A00270661 /* nlg.py */,
-				3020ECDF1A4C739A00270661 /* ontology.py */,
-				3020ECE01A4C739A00270661 /* realisation.py */,
+				3020ECDB1A4C739A00270661 /* lexicalisation.py */,
+				3020ECDC1A4C739A00270661 /* lexicon.py */,
+				3020ECD91A4C739A00270661 /* aggregation.py */,
 				3020ECE11A4C739A00270661 /* reg.py */,
-				3020ECE21A4C739A00270661 /* resources */,
+				3020ECDF1A4C739A00270661 /* ontology.py */,
 				3020ECE61A4C739A00270661 /* simplenlg.py */,
-				3020ECE71A4C739A00270661 /* structures.py */,
+				3020ECE01A4C739A00270661 /* realisation.py */,
+				3020ECDA1A4C739A00270661 /* format.py */,
+				3020ECE21A4C739A00270661 /* resources */,
 				3020ED021A4C739A00270661 /* utils.py */,
-				309ED1661A58351F006157F5 /* fol.py */,
 				3020ECE81A4C739A00270661 /* test */,
 			);
 			path = nlg;
-			sourceTree = "<group>";
-		};
-		3020ECCC1A4C739A00270661 /* __pycache__ */ = {
-			isa = PBXGroup;
-			children = (
-				3020ECCD1A4C739A00270661 /* __init__.cpython-34.pyc */,
-				3020ECCE1A4C739A00270661 /* aggregation.cpython-34.pyc */,
-				3020ECCF1A4C739A00270661 /* format.cpython-34.pyc */,
-				3020ECD01A4C739A00270661 /* lexicalisation.cpython-34.pyc */,
-				3020ECD11A4C739A00270661 /* macroplanning.cpython-34.pyc */,
-				3020ECD21A4C739A00270661 /* nlg.cpython-34.pyc */,
-				3020ECD31A4C739A00270661 /* ontology.cpython-34.pyc */,
-				3020ECD41A4C739A00270661 /* realisation.cpython-34.pyc */,
-				3020ECD51A4C739A00270661 /* reg.cpython-34.pyc */,
-				3020ECD61A4C739A00270661 /* simplenlg.cpython-34.pyc */,
-				3020ECD71A4C739A00270661 /* structures.cpython-34.pyc */,
-				3020ECD81A4C739A00270661 /* utils.cpython-34.pyc */,
-			);
-			path = __pycache__;
 			sourceTree = "<group>";
 		};
 		3020ECE21A4C739A00270661 /* resources */ = {
@@ -136,39 +94,21 @@
 			isa = PBXGroup;
 			children = (
 				3020ECE91A4C739A00270661 /* __init__.py */,
-				3020ECEA1A4C739A00270661 /* __pycache__ */,
 				3020ECF51A4C739A00270661 /* data */,
 				3020ECF91A4C739A00270661 /* main.py */,
-				3020ECFA1A4C739A00270661 /* test_aggregation.py */,
-				3020ECFB1A4C739A00270661 /* test_lexicalisation.py */,
-				3020ECFC1A4C739A00270661 /* test_macroplanning.py */,
-				3020ED051A4CAB7D00270661 /* test_lexicon.py */,
 				3020ECFD1A4C739A00270661 /* test_nlg.py */,
+				309ED1671A588182006157F5 /* test_fol.py */,
+				3020ED011A4C739A00270661 /* test_structures.py */,
+				3020ECFC1A4C739A00270661 /* test_macroplanning.py */,
+				3020ED041A4CA24D00270661 /* test_microplanning.py */,
+				3020ECFB1A4C739A00270661 /* test_lexicalisation.py */,
+				3020ED051A4CAB7D00270661 /* test_lexicon.py */,
+				3020ECFA1A4C739A00270661 /* test_aggregation.py */,
 				3020ECFE1A4C739A00270661 /* test_ontology.py */,
 				3020ECFF1A4C739A00270661 /* test_realisation.py */,
 				3020ED001A4C739A00270661 /* test_simplenlg.py */,
-				3020ED011A4C739A00270661 /* test_structures.py */,
-				3020ED041A4CA24D00270661 /* test_microplanning.py */,
-				309ED1671A588182006157F5 /* test_fol.py */,
 			);
 			path = test;
-			sourceTree = "<group>";
-		};
-		3020ECEA1A4C739A00270661 /* __pycache__ */ = {
-			isa = PBXGroup;
-			children = (
-				3020ECEB1A4C739A00270661 /* __init__.cpython-34.pyc */,
-				3020ECEC1A4C739A00270661 /* main.cpython-34.pyc */,
-				3020ECED1A4C739A00270661 /* test_aggregation.cpython-34.pyc */,
-				3020ECEE1A4C739A00270661 /* test_lexicalisation.cpython-34.pyc */,
-				3020ECEF1A4C739A00270661 /* test_macroplanning.cpython-34.pyc */,
-				3020ECF01A4C739A00270661 /* test_nlg.cpython-34.pyc */,
-				3020ECF11A4C739A00270661 /* test_ontology.cpython-34.pyc */,
-				3020ECF21A4C739A00270661 /* test_realisation.cpython-34.pyc */,
-				3020ECF31A4C739A00270661 /* test_simplenlg.cpython-34.pyc */,
-				3020ECF41A4C739A00270661 /* test_structures.cpython-34.pyc */,
-			);
-			path = __pycache__;
 			sourceTree = "<group>";
 		};
 		3020ECF51A4C739A00270661 /* data */ = {

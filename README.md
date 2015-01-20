@@ -1,0 +1,1 @@
+SassyNLG is a simple NLG library written in Python 3.

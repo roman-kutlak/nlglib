@@ -48,11 +48,11 @@ def lexicalise_message_spec(msg):
     if template is None:
         get_log().warning('No sentence template for "%s"' % msg.name)
         result = String(str(msg))
-        result._features = msg._features.copy()
+        result.add_features(msg._features)
         return result
     if isinstance(template, str):
         return String(template)
-    template.set_features(msg._features.copy())
+    template.add_features(msg._features)
     # find arguments
     args = template.arguments()
     # if there are any arguments, replace them by values

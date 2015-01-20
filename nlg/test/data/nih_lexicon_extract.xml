@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lexRecords>
 <lexRecord>
+	<base>happy</base>
+	<eui>E0030812</eui>
+	<cat>adj</cat>
+		<inflVars cat="adj" cit="happy" eui="E0030812" infl="base" type="basic" unInfl="happy">happy</inflVars>
+		<inflVars cat="adj" cit="happy" eui="E0030812" infl="positive" type="basic" unInfl="happy">happy</inflVars>
+		<inflVars cat="adj" cit="happy" eui="E0030812" infl="comparative" type="reg" unInfl="happy">happier</inflVars>
+		<inflVars cat="adj" cit="happy" eui="E0030812" infl="superlative" type="reg" unInfl="happy">happiest</inflVars>
+		<adjEntry>
+			<variants>reg</variants>
+			<variants>inv</variants>
+			<position type="attrib(1)"/>
+			<position type="attrib(3)"/>
+			<position type="pred"/>
+			<compl>infcomp:subjc</compl>
+			<compl>fincomp(o)</compl>
+			<nominalization>happiness|noun|E0030811</nominalization>
+		</adjEntry>
+</lexRecord>
+<lexRecord>
 	<base>house</base>
 	<eui>E0032085</eui>
 	<cat>noun</cat>
@@ -60,6 +79,36 @@
 			<tran>pphr(through,np)</tran>
 			<tran>pphr(into,np)</tran>
 		</verbEntry>
+</lexRecord>
+<lexRecord>
+	<base>John</base>
+	<eui>E0003544</eui>
+	<cat>noun</cat>
+		<inflVars cat="noun" cit="John" eui="E0003544" infl="base" type="basic" unInfl="John">John</inflVars>
+		<inflVars cat="noun" cit="John" eui="E0003544" infl="singular" type="basic" unInfl="John">John</inflVars>
+		<inflVars cat="noun" cit="John" eui="E0003544" infl="plural" type="reg" unInfl="John">Johns</inflVars>
+		<nounEntry>
+			<variants>reg</variants>
+			<variants>uncount</variants>
+			<proper/>
+		</nounEntry>
+</lexRecord>
+<lexRecord>
+	<base>sad</base>
+	<eui>E0054106</eui>
+	<cat>adj</cat>
+		<inflVars cat="adj" cit="sad" eui="E0054106" infl="base" type="basic" unInfl="sad">sad</inflVars>
+		<inflVars cat="adj" cit="sad" eui="E0054106" infl="positive" type="basic" unInfl="sad">sad</inflVars>
+		<inflVars cat="adj" cit="sad" eui="E0054106" infl="comparative" type="regd" unInfl="sad">sadder</inflVars>
+		<inflVars cat="adj" cit="sad" eui="E0054106" infl="superlative" type="regd" unInfl="sad">saddest</inflVars>
+		<adjEntry>
+			<variants>regd</variants>
+			<position type="attrib(1)"/>
+			<position type="pred"/>
+			<compl>fincomp(t):subj</compl>
+			<compl>fincomp(t)</compl>
+			<nominalization>sadness|noun|E0054113</nominalization>
+		</adjEntry>
 </lexRecord>
 <lexRecord>
 	<base>walk</base>

@@ -10,7 +10,7 @@ class TestFOL(unittest.TestCase):
 
     def tearDown(self):
         t = time.time() - self.startTime
-        print("{0}: {1:.3f}".format(self.id(), t))
+        #print("{0}: {1:.3f}".format(self.id(), t))
 
     def test_parsing(self):
         s = 'x'
@@ -144,7 +144,7 @@ class TestFOL(unittest.TestCase):
     
     def test_testers(self):
         pass
-#        self.assertEqual(True, is_symbol())
+#        self.assertEqual(True, is_symbol(Expr('x')))
 
     def test_vars(self):
         f = expr('forall x: Rich(x) ==> Happy(x)')
