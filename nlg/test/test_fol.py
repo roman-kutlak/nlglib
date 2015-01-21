@@ -86,6 +86,10 @@ class TestFOL(unittest.TestCase):
         e = expr('(P) | (Q)')
         expected = Expr('P') | Expr('Q')
         self.assertEqual(expected, e)
+    
+        e = expr('exists hoist, crate, truck, place: '
+             'At(hoist, place) & At(truck, place) & Lifting(hoist, crate) & '
+             '(current_load(truck) + weight(crate) <= load_limit(truck))')
 
     def test_operators(self):
         p = Expr('p')

@@ -270,6 +270,11 @@ def is_term(f):
     return (is_variable(f) or is_constant(f) or is_function(f))
 
 
+def is_predicate(f):
+    """Formula f is a predicate if it start with an upper case letter. """
+    return is_prop_symbol(f.op)
+
+
 def is_quantified(f):
     """Formula f is quantifie if the operator is a quantifier. """
     return (f.op == OP_EXISTS or f.op == OP_FORALL)
@@ -429,7 +434,7 @@ def simplify(f):
                 return simplify(Quantifier(f.op, variables, arg))
             else:
                 return f
-    if f.op == OP_NOT:
+    elif f.op == OP_NOT:
         arg = f.args[0]
         if arg.op == OP_NOT: # double neg
             return simplify(arg.args[0])
@@ -442,18 +447,20 @@ def simplify(f):
             if arg2 != arg:
                 return simplify(Expr(OP_NOT, arg2))
             return f
-    if f.op == OP_AND:
+    elif f.op == OP_AND:
         if any(map(is_false, f.args)): # if one conjuct is FALSE, expr is FALSE
             return Expr(OP_FALSE)
         elif len(f.args) == 1:
             return simplify(f.args[0])
         else: # remove conjuncts that are TRUE and simplify args
             args = list(map(simplify, filter(lambda x: not is_true(x),f.args)))
+            # FIXME: remove arguments that appear multiple times in AND and OR
+            uniq = set(args)
             if args != f.args:
                 return simplify(Expr(OP_AND, *args))
             else:
                 return f
-    if f.op == OP_OR:
+    elif f.op == OP_OR:
         if any(map(is_true, f.args)): # if one conjuct is TRUE, expr is TRUE
             return Expr(OP_TRUE)
         elif len(f.args) == 1:
@@ -464,7 +471,7 @@ def simplify(f):
                 return simplify(Expr(OP_OR, *args))
             else:
                 return f
-    if f.op == OP_IMPLIES:
+    elif f.op == OP_IMPLIES:
         if is_false(f.args[0]) or is_true(f.args[1]):
             return Expr(OP_TRUE)
         elif is_true(f.args[0]):
@@ -478,7 +485,7 @@ def simplify(f):
                 return simplify(Expr(OP_IMPLIES, arg1, arg2))
             else:
                 return f
-    if f.op == OP_IMPLIED_BY:
+    elif f.op == OP_IMPLIED_BY:
         if is_false(f.args[1]) or is_true(f.args[0]):
             return Expr(OP_TRUE)
         elif is_true(f.args[1]):
@@ -492,7 +499,7 @@ def simplify(f):
                 return simplify(Expr(OP_IMPLIES, arg1, arg2))
             else:
                 return f
-    if f.op == OP_EQUIVALENT:
+    elif f.op == OP_EQUIVALENT:
         if is_true(f.args[0]):
             return simplify(f.args[1])
         elif is_true(f.args[1]):
@@ -816,9 +823,50 @@ def push_quants(f):
 
     return pushquants(deepen(f))
 
+
 def miniscope(f):
     """ Return a normalised copy of f with the minimu scope of quantifiers. """
     return flatten(push_quants(nnf(f)))
+
+
+def to_prover_str(f):
+    """ Return a string representation of f that can be parsed by Prover9. """
+    def to_prover(f):
+        """ Function assumes each op has at most two args. """
+        if f.op == OP_NOT:
+            return ('-({arg})'.format(arg=to_prover(f.args[0])))
+        elif f.op == OP_AND:
+            return ('{arg1} & {arg2}'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_OR:
+            return ('{arg1} | {arg2}'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_IMPLIES:
+            return ('{arg1} -> {arg2}'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_IMPLIED_BY:
+            return ('{arg2} -> {arg1}'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_EQUIVALENT:
+            return ('{arg1} <-> {arg2}'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_FORALL:
+            return ('all {var} ({arg})'
+                    .format(var=to_prover(f.vars[0]),
+                            arg=to_prover(f.args[0])))
+        elif f.op == OP_EXISTS:
+            return ('exists {var} ({arg})'
+                    .format(var=to_prover(f.vars[0]),
+                            arg=to_prover(f.args[0])))
+        else:
+            return str(f)
+    # first make sure each op has at most two args and then use the helper.
+    return '{0} .'.format(to_prover(deepen(f)))
 
 
 # #############################  PARSING  ################################### #
@@ -948,10 +996,17 @@ math_expr = operatorPrecedence(number | variable,
                  (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
                  (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
 
+
 term = Forward() # definition of term will involve itself
 terms = delimitedList(term)
-term << (Group(constant + Group(LP + terms + RP)).setParseAction(FOLPred) |
-         math_expr)
+predicate = Group(constant + Group(LP + terms + RP)).setParseAction(FOLPred)
+
+term << operatorPrecedence(number | predicate | variable,
+                [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
+                 (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
+                 (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
+                 (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
+                 (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
 
 
 # main parser for FOL formula

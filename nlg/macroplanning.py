@@ -1,10 +1,12 @@
 from nlg.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
 from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
 from nlg.fol import OP_EXISTS, OP_FORALL
-from nlg.fol import is_prop_symbol
+from nlg.fol import is_predicate, is_variable, is_function
 
-from nlg.structures import Message, MsgSpec, Word, PlaceHolder
+from nlg.structures import Message, MsgSpec, Word, PlaceHolder, NounPhrase
 from nlg.structures import DiscourseContext, OperatorContext
+
+
 
 import logging
 
@@ -181,11 +183,16 @@ def formula_to_rst(f):
         else:
             m.marker = 'there exist'
         return m
-    if f.op[0] == OP_NOT and is_prop_symbol(f.args[0].op):
+    if f.op[0] == OP_NOT and is_predicate(f.args[0]):
         get_log().debug('negated predicate: ' + str(f))
         arg = f.args[0]
         m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
         m._features = {'NEGATION': 'TRUE'}
+        return m
+    if f.op[0] == OP_NOT and is_variable(f.args[0]):
+        get_log().debug('negated variable: ' + str(f))
+        arg = f.args[0]
+        m = NounPhrase(PlaceHolder(arg.op), Word('not', 'DETERMINER'))
         return m
     if f.op[0] == OP_NOT:
         get_log().debug('negated formula: ' + str(f))
@@ -193,9 +200,13 @@ def formula_to_rst(f):
         m = Message('Negation', msgs[0], *msgs[1:])
         m.marker = 'it is not the case that'
         return m
-    if is_prop_symbol(f.op):
+    if is_predicate(f):
         get_log().debug('predicate: ' + str(f))
         return PredicateMsg(f, *[formula_to_rst(x) for x in f.args])
+    if is_function(f):
+        get_log().debug('function: ' + str(f))
+        return PlaceHolder(f.op,
+                    PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
     else:
         get_log().debug('None: ' + repr(f))
         return PlaceHolder(f.op)

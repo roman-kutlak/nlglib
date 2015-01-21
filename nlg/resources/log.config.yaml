@@ -31,14 +31,14 @@ handlers:
         backupCount: 2
         encoding: utf8
 
+root:
+    level: DEBUG
+    handlers: [console, single_run_handler, rotating_lib_handler]
+
 loggers:
     nlg:
         level: DEBUG
         handlers: [console, single_run_handler, rotating_lib_handler]
         propagate: no
-
-    root:
-        level: DEBUG
-        handlers: [console, single_run_handler, rotating_lib_handler]
 
 ...
