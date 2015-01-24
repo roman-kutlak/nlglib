@@ -37,7 +37,7 @@ root:
 
 loggers:
     nlg:
-        level: DEBUG
+        level: WARNING
         handlers: [console, single_run_handler, rotating_lib_handler]
         propagate: no
 

@@ -1,4 +1,5 @@
 import numbers
+import itertools
 from pyparsing import (nums, alphas, alphanums, restOfLine, Word,
                        Group, Optional, Keyword, Literal, CaselessKeyword,
                        Combine, Forward, Suppress, opAssoc, operatorPrecedence,
@@ -32,6 +33,7 @@ OP_FALSE  = 'FALSE'
 LOGIC_OPS = [OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
 UNARY_LOGIC_OPS = [OP_NOT]
 BINARY_LOGIC_OPS = [OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+BINARY_OPS = BINARY_LOGIC_OPS + [OP_EQUALS, OP_NOTEQUALS]
 CONDITIONAL_LOGIC_OPS = [OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
 
 # ∀ ?x: Happy(?x) ⇔ ¬Sad(?x)
@@ -145,6 +147,11 @@ class Expr:
     def __hash__(self):
         "Need a hash method so Exprs can live in dicts."
         return hash(self.op) ^ hash(tuple(self.args))
+
+    def numops(self):
+        """ Return the number of operators in an expression. """
+        if len(self.args) == 0: return 0
+        return 1 + sum(map(lambda x: x.numops(), self.args))
 
     # Some operators implemented for convenience
     def __neg__(self):           return Expr('-',  self)
@@ -376,7 +383,9 @@ def deepen(f):
             return Quantifier(f.op, f.vars, deepen(f.args[0]))
     elif f.op == OP_AND or f.op == OP_OR:
         args = [deepen(x) for x in f.args]
-        if len(args) > 2:
+        if len(args) == 1:
+            return args[0]
+        elif len(args) > 2:
             return Expr(f.op, args[0], deepen(Expr(f.op, *args[1:])))
         else:
             return Expr(f.op, *args)
@@ -442,6 +451,14 @@ def simplify(f):
             return Expr(OP_FALSE)
         elif is_false(arg): # -FALSE --> TRUE
             return Expr(OP_TRUE)
+        elif arg.op == OP_EQUALS:
+            return Expr(OP_NOTEQUALS,
+                        simplify(arg.args[0]),
+                        simplify(arg.args[1]))
+        elif arg.op == OP_NOTEQUALS:
+            return Expr(OP_EQUALS,
+                        simplify(arg.args[0]),
+                        simplify(arg.args[1]))
         else:
             arg2 = simplify(arg)
             if arg2 != arg:
@@ -747,13 +764,14 @@ def push_quants(f):
                 arg1 = pushquants(arg)
                 # did pushquants have any effect?
                 if arg1 == arg:
-                    # if no, see if changing the order of the quants has an effect
-                    arg2 = Quantifier(f.op, f.vars, arg.args[0])
-                    arg2_ = pushquants(arg2)
-                    if arg2 == arg2_:
-                        return Quantifier(f.op, f.vars, arg1)
-                    else:
-                        return Quantifier(arg.op, arg.vars, arg2_)
+#                    # if no, see if changing the order of the quants has an effect
+#                    arg2 = Quantifier(f.op, f.vars, arg.args[0])
+#                    arg2_ = pushquants(arg2)
+#                    if arg2 == arg2_:
+#                        return Quantifier(f.op, f.vars, arg1)
+#                    else:
+#                        return Quantifier(arg.op, arg.vars, arg2_)
+                    return Quantifier(f.op, f.vars, arg1)
                 else:
                     return pushquants(Quantifier(f.op, f.vars, arg1))
             elif arg.op in [OP_AND, OP_OR]:
@@ -829,6 +847,36 @@ def miniscope(f):
     return flatten(push_quants(nnf(f)))
 
 
+def generate_subformulas(f):
+    """ Create a generator that returns variants of the formula. 
+    >>> list(generate_subformulas(Expr('P') & Expr('Q')))
+    [Expr('P'), Expr('Q'), Expr('P) & Expr('Q')]
+    
+    """
+    def subformulas(f):
+        if is_quantified(f):
+            for fm in subformulas(f.args[0]):
+                yield Quantifier(f.op, f.vars, fm)
+        elif f.op == OP_NOT:
+            for fm in subformulas(f.args[0]):
+                yield ~fm
+        elif f.op in BINARY_OPS:
+            lhs = subformulas(f.args[0])
+            for fm in lhs:
+                yield fm
+            rhs = subformulas(f.args[1])
+            for fm in rhs:
+                yield fm
+            lhs = subformulas(f.args[0])
+            for fm1 in lhs:
+                rhs = subformulas(f.args[1])
+                for fm2 in rhs:
+                    yield Expr(f.op, fm1, fm2)
+        else:
+            yield f
+    return subformulas(deepen(f))
+
+
 def to_prover_str(f):
     """ Return a string representation of f that can be parsed by Prover9. """
     def to_prover(f):
@@ -836,23 +884,31 @@ def to_prover_str(f):
         if f.op == OP_NOT:
             return ('-({arg})'.format(arg=to_prover(f.args[0])))
         elif f.op == OP_AND:
-            return ('{arg1} & {arg2}'
+            return ('({arg1} & {arg2})'
                     .format(arg1=to_prover(f.args[0]),
                             arg2=to_prover(f.args[1])))
         elif f.op == OP_OR:
-            return ('{arg1} | {arg2}'
+            return ('({arg1} | {arg2})'
                     .format(arg1=to_prover(f.args[0]),
                             arg2=to_prover(f.args[1])))
         elif f.op == OP_IMPLIES:
-            return ('{arg1} -> {arg2}'
+            return ('({arg1} -> {arg2})'
                     .format(arg1=to_prover(f.args[0]),
                             arg2=to_prover(f.args[1])))
         elif f.op == OP_IMPLIED_BY:
-            return ('{arg2} -> {arg1}'
+            return ('({arg2} -> {arg1})'
                     .format(arg1=to_prover(f.args[0]),
                             arg2=to_prover(f.args[1])))
         elif f.op == OP_EQUIVALENT:
-            return ('{arg1} <-> {arg2}'
+            return ('({arg1} <-> {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_EQUALS:
+            return ('({arg1} = {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_NOTEQUALS:
+            return ('({arg1} != {arg2})'
                     .format(arg1=to_prover(f.args[0]),
                             arg2=to_prover(f.args[1])))
         elif f.op == OP_FORALL:
@@ -979,7 +1035,8 @@ or_  = Keyword('\\/') | Literal('|') | Keyword('or') | Literal('\u2228')
 and_ = Keyword('/\\') | Literal('&') | Keyword('and') | Literal('\u2227')
 not_ = Literal('~') | Keyword('not') | Literal('\u00AC')
 equals = Literal('=') | Keyword('equals')
-notequals = Literal('=/=') | Keyword('notequals') | Literal('\u2260')
+notequals = Literal('=/=') | Literal('!=') | \
+            Keyword('notequals') | Literal('\u2260')
 boolean = (CaselessKeyword('FALSE') | CaselessKeyword('TRUE'))
 
 variable = (~(and_ | or_ | not_ | forall | exists | implied | implies | iff) +
@@ -1026,10 +1083,10 @@ operand = forall_expression | exists_expression | boolean | term
 # specify the precedence -- highest precedence first, lowest last
 operator_list = [(not_, 1, opAssoc.RIGHT, FOLUnOp)]
 #
-operator_list += [(and_, 2, opAssoc.LEFT, FOLBinOp),
-                  (or_, 2, opAssoc.LEFT, FOLBinOp),
-                  (equals, 2, opAssoc.RIGHT, FOLBinOp),
+operator_list += [(equals, 2, opAssoc.RIGHT, FOLBinOp),
                   (notequals, 2, opAssoc.RIGHT, FOLBinOp),
+                  (and_, 2, opAssoc.LEFT, FOLBinOp),
+                  (or_, 2, opAssoc.LEFT, FOLBinOp),
                   (implies, 2, opAssoc.RIGHT, FOLBinOp),
                   (implied, 2, opAssoc.RIGHT, FOLBinOp),
                   (iff, 2, opAssoc.RIGHT, FOLBinOp)]

@@ -126,10 +126,7 @@ def realise(msg):
 def realise_element(elt):
     """ Realise NLG element. """
     get_log().debug('Realising element:\n{0}'.format(repr(elt)))
-    v = RealisationVisitor()
-    elt.accept(v)
-    result = str(v)
-    return result
+    return simple_realisation(elt)
 
 
 def realise_message_spec(msg):
@@ -311,7 +308,9 @@ def simple_realisation(struct):
     """
     v = RealisationVisitor()
     struct.accept(v)
-    return str(v)
+    result = str(v)
+    result.replace(' ,', ',')
+    return '{0}{1}.'.format(result[:1].upper(), result[1:])
 
 
 #    There are constraints on the combination of phrases in E0:
