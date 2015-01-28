@@ -3,8 +3,8 @@ from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
 from nlg.fol import OP_EXISTS, OP_FORALL
 from nlg.fol import is_predicate, is_variable, is_function
 
-from nlg.structures import Message, MsgSpec, Word, PlaceHolder, NounPhrase
-from nlg.structures import DiscourseContext, OperatorContext
+from nlg.structures import Message, MsgSpec, Word, String, PlaceHolder
+from nlg.structures import NounPhrase, DiscourseContext, OperatorContext
 
 
 
@@ -37,8 +37,8 @@ class PredicateMsgSpec(MsgSpec):
             return p.op
         else:
             neg = ''
-            if ('NEGATION' in self._features and
-                self._features['NEGATION'] == 'TRUE'):
+            if ('NEGATED' in self._features and
+                self._features['NEGATED'] == 'true'):
                     neg = 'not '
             return(neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')')
 
@@ -97,8 +97,8 @@ class PredicateMsg(MsgSpec):
             return p.op
         else:
             neg = ''
-            if ('NEGATION' in self._features and
-                self._features['NEGATION'] == 'TRUE'):
+            if ('NEGATED' in self._features and
+                self._features['NEGATED'] == 'true'):
                     neg = 'not '
             return(neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')')
 
@@ -187,7 +187,7 @@ def formula_to_rst(f):
         get_log().debug('negated predicate: ' + str(f))
         arg = f.args[0]
         m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
-        m._features = {'NEGATION': 'TRUE'}
+        m._features = {'NEGATED': 'true'}
         return m
     if f.op[0] == OP_NOT and is_variable(f.args[0]):
         get_log().debug('negated variable: ' + str(f))

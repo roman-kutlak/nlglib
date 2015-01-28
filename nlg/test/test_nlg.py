@@ -1,6 +1,4 @@
 import unittest
-import time
-import sys
 
 from nlg.nlg import *
 from nlg.structures import *

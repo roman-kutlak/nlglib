@@ -1,9 +1,6 @@
 import unittest
-import sys
 
 from nlg.ontology import Ontology
-import rdflib
-import rdflib.plugins.sparql as sparql
 
 
 path = 'nlg/test/data/test.ttl'
@@ -43,8 +40,8 @@ class TestOntology(unittest.TestCase):
         res = ontology.entities_of_type(type_)
         self.assertGreater(len(res), 0)
 
-    def test_lexicalisation_tree(self):
-        ontology = Ontology(path, format)
+#    def test_lexicalisation_tree(self):
+#        ontology = Ontology(path, format)
 
     def test_subclasses(self):
         ontology = Ontology(path, format)

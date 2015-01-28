@@ -1,6 +1,3 @@
-
-import os
-import itertools
 import logging
 from urllib.parse import unquote_plus
 
@@ -27,16 +24,14 @@ def get_log():
 
 
 class Realiser:
-    def __init__(self, host, port):
-        get_log().debug('Client using host "%s:%s"' % (host, str(port)))
-        self.client = SimplenlgClient(host, port)
-
+    def __init__(self, simple=False):
+        self.simple = simple
+    
     def __enter__(self):
-        get_log().debug('Enter: Realiser server staritng up.')
-        return self
-
+        pass
+    
     def __exit__(self, type, value, traceback):
-        get_log().debug('Exit: Realiser server shutting down.')
+        pass
 
     def realise(self, msg):
         """ Perform lexicalisation on the message depending on the type. """
@@ -51,31 +46,41 @@ class Realiser:
         else:
             raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
+
     def realise_element(self, elt):
         """ Realise NLG element. """
-        get_log().debug('Realising element "%s" through realiser' % str(elt))
-        v = XmlVisitor()
-        elt.accept(v)
-        get_log().debug(v.to_xml())
-        result = nlg.simplenlg_client.xml_request(v.to_xml())
-        result = unquote_plus(result)
-        return result
+        if nlg.nlg.simplenlg_client is not None and not self.simple:
+            get_log().debug('Realising element (SimpleNLG realisation):\n{0}'
+                            .format(repr(elt)))
+            return simpleNlg_realisation(elt)
+        else:
+            get_log().debug('Realising element (simple realisation):\n{0}'
+                            .format(repr(elt)))
+            return simple_realisation(elt)
+
 
     def realise_message_spec(self, msg):
         """ Realise message specification - this should not happen """
-        get_log().debug('Realising message spec.')
+        get_log().debug('Realising message spec:\n{0}'.format(repr(msg)))
         return str(msg).strip()
 
 
     def realise_message(self, msg):
         """ Return a copy of Message with strings. """
-        get_log().debug('Realising message.')
+        get_log().debug('Realising message:\n{0}'.format(repr(msg)))
         if msg is None: return None
         nucl = self.realise(msg.nucleus)
         sats = [self.realise(x) for x in msg.satelites if x is not None]
+    #    if len(sats) > 0:
+    #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
         sentences = _flatten([nucl] + sats)
         get_log().debug('flattened sentences: %s' % sentences)
-        return Message(*sentences)
+        # TODO: this si wrong because the recursive call can apply capitalisation
+        # and punctuation multiple times...
+        sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
+                                        ('.' if e[-1] != '.' else ''),
+                             [s for s in sentences if s != '']))
+        return sentences
 
 
     def realise_paragraph(self, msg):
@@ -105,10 +110,6 @@ class Realiser:
         return Document(title, *sections)
 
 
-#realisation = client.xml_request(test_data)
-#self.assertEqual(self.test_result, realisation)
-
-
 def realise(msg):
     """ Perform lexicalisation on the message depending on the type. """
     if msg is None:                  return None
@@ -125,7 +126,8 @@ def realise(msg):
 
 def realise_element(elt):
     """ Realise NLG element. """
-    get_log().debug('Realising element:\n{0}'.format(repr(elt)))
+    get_log().debug('Realising element (simple realisation):\n{0}'
+                    .format(repr(elt)))
     return simple_realisation(elt)
 
 
@@ -230,11 +232,11 @@ class RealisationVisitor:
         # do a bit of coordination
         node.vp.add_features(node._features)
         if node.subj.has_feature('NUMBER'):
-            node.vp.add_feature(node.subj.get_feature('NUMBER'))
+            node.vp.set_feature('NUMBER', node.subj.get_feature('NUMBER'))
         if node.subj.has_feature('GENDER'):
-            node.vp.add_feature(node.subj.get_feature('GENDER'))
+            node.vp.set_feature('GENDER', node.subj.get_feature('GENDER'))
         if node.subj.has_feature('CASE'):
-            node.vp.add_feature(node.subj.get_feature('CASE'))
+            node.vp.set_feature('CASE', node.subj.get_feature('CASE'))
         for o in node.pre_modifiers: o.accept(self)
         node.subj.accept(self)
         node.vp.accept(self)
@@ -270,14 +272,14 @@ class RealisationVisitor:
         for c in node.front_modifiers: c.accept(self)
         for c in node.pre_modifiers: c.accept(self)
         if str(node.head).strip() == 'have':
-            if node.has_feature('NEGATION', 'TRUE'):
+            if node.has_feature('NEGATED', 'true'):
                 self.text += 'do not have '
         elif str(node.head).strip() == 'has':
-            if node.has_feature('NEGATION', 'TRUE'):
+            if node.has_feature('NEGATED', 'true'):
                 self.text += 'does not have '
         else:
             node.head.accept(self)
-            if node.has_feature('NEGATION', 'TRUE'):
+            if node.has_feature('NEGATED', 'true'):
                 self.text += 'not '
         for c in node.complements: c.accept(self)
         for c in node.post_modifiers: c.accept(self)
@@ -301,6 +303,16 @@ class RealisationVisitor:
         for c in node.post_modifiers: c.accept(self)
 
 
+def simpleNlg_realisation(struct):
+    """ Use the simpleNLG server to create a surface realisation of an Element.
+    
+    """
+    v = XmlVisitor()
+    struct.accept(v)
+    get_log().debug('XML for realisation:\n{0}'.format(v.to_xml()))
+    result = nlg.nlg.simplenlg_client.xml_request(v.to_xml())
+    return result
+
 def simple_realisation(struct):
     """ Use the RealisationVisitor that performs only the most basic realisation
     and return the created surface realisation as a string.
@@ -311,6 +323,7 @@ def simple_realisation(struct):
     result = str(v)
     result.replace(' ,', ',')
     return '{0}{1}.'.format(result[:1].upper(), result[1:])
+
 
 
 #    There are constraints on the combination of phrases in E0:

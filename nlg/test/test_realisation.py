@@ -1,11 +1,7 @@
 import unittest
-import time
-import sys
 
 import nlg.realisation as realisation
 from nlg.structures import *
-import nlg.simplenlg as snlg
-from nlg.utils import get_user_settings
 from nlg.realisation import RealisationVisitor
 
 

@@ -1,7 +1,4 @@
-
-from copy import deepcopy
 import logging
-import re
 
 from nlg.simplenlg import SimplenlgClient, SimpleNLGServer
 from nlg.structures import *
@@ -25,7 +22,7 @@ simplenlg_client = None
 
 class Nlg:
     def __init__(self):
-        pass
+        self.realiser = realisation.Realiser(simple=False)
 
     def process_nlg_doc(self, doc, ontology, context=None):
         if context is None: context = Context(ontology)
@@ -88,8 +85,7 @@ class Nlg:
 
     def realise2(self, msgs):
         """ Perform linguistic realisation using simpleNLG. """
-        r = realisation.Realiser()
-        res = r.realise(msgs)
+        res = self.realiser.realise(msgs)
         return res
 
     def format(self, msgs, fmt='txt'):
@@ -98,26 +94,50 @@ class Nlg:
         return text
 
 
-def init(server=True, client=True):
+def init(settings_path='nlg/resources/simplenlg.settings',
+         server=True, client=True):
     """ Initialise the simpleNLG client and server. """
-    s = Settings('nlg/resources/simplenlg.settings')
-    host = s.get_setting('SimplenlgHost')
-    port = s.get_setting('SimplenlgPort')
-    jar  = s.get_setting('SimplenlgJarPath')
+    get_log().info('Initialising simpleNLG server from settings in "{0}"'
+                   .format(settings_path))
     if server:
-        simplenlg_server = SimpleNLGServer(jar, port)
-        simplenlg_server.start()
+        global simplenlg_server
+        s = Settings(settings_path)
+        host = s.get_setting('SimplenlgHost')
+        port = s.get_setting('SimplenlgPort')
+        jar  = s.get_setting('SimplenlgJarPath')
+        if host is None:
+            get_log().error('Could not find value for '
+                            'SimplenlgHost in settings.')
+            get_log().warning('Using default host "localhost"')
+            host = 'localhost'
+        if port is None:
+            get_log().error('Could not find value for '
+                            'SimplenlgPort in settings.')
+            get_log().warning('Using default port "50007"')
+            port = 50007
+        if jar is None:
+            get_log().error('Could not find value for '
+                            'SimplenlgJarPath in settings.')
+            get_log().error('Initialisation of nlg server failed.')
+        else:
+            simplenlg_server = SimpleNLGServer(jar, port)
+            simplenlg_server.start()
     if client:
+        global simplenlg_client
         simplenlg_client = SimplenlgClient(host, port)
 
 
 def shutdown(server=True, client=True):
     """ Shut down the simpleNLG client and server. """
     if server:
-        simplenlg_server.shutdown()
-        simplenlg_server = None
+        global simplenlg_server
+        if simplenlg_server is not None:
+            simplenlg_server.shutdown()
+            simplenlg_server = None
     if client:
-        simplenlg_client = None
+        global simplenlg_client
+        if simplenlg_client is not None:
+            simplenlg_client = None
 
 
 #############################################################################

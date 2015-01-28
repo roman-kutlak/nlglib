@@ -41,7 +41,8 @@ def add_elements(e1, e2, conj='and'):
         elif 'discourseFunction' in e1._features:
             cc._features['discourseFunction'] = e1._features['discourseFunction']
     cc.set_feature('conj', conj)
-    get_log().warning('added elements: \n' + str(cc))
+    # TODO: figure out when it is appropriate to set number to plural
+    cc.set_feature('NUMBER', 'PLURAL')
     return cc
 
 def try_to_aggregate(sent1, sent2, marker='and'):
@@ -97,7 +98,7 @@ def synt_aggregation(elements, max=3, marker='and'):
     """
     if elements is None: return
     if len(elements) < 2: return elements
-    get_log().debug('performing synt. aggr on: ' + str(elements))
+    get_log().debug('performing synt. aggr on:\n' + repr(elements))
     aggregated = list()
     i = 0
     while i < len(elements):
@@ -159,6 +160,8 @@ def aggregate(msg, limit):
         return msg
     elif isinstance(msg, Clause):
         return msg
+    elif isinstance(msg, Coordination):
+        return aggregate_coordination(msg, limit)
     elif isinstance(msg, MsgSpec):
         return msg
     elif isinstance(msg, Message):
@@ -175,6 +178,19 @@ def aggregate(msg, limit):
         return msg
 
 
+def aggregate_coordination(cc, limit):
+    get_log().debug('Aggregating coordination.')
+    elements = []
+    if len(cc.coords) > 1:
+        elements = synt_aggregation(cc.coords, limit)
+    elif len(cc.coords) == 1:
+        elements.append[cc.coords[0]]
+    if len(elements) == 1:
+        return elements[0]
+    else:
+        return Coordination(*elements, features=cc._features)
+
+
 def aggregate_message(msg, limit):
     """ Perform syntactic aggregation on the constituents.
     The aggregation is triggered only if the RST relation is
@@ -189,6 +205,7 @@ def aggregate_message(msg, limit):
     get_log().debug('Aggregating list or sequence.')
     elements = []
     if len(msg.satelites) > 1:
+        # FIXME: where does the marker go?
         if msg.marker is None or msg.marker == '':
             marker = 'and'
         else:

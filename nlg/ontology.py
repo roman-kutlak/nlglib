@@ -1,7 +1,5 @@
-
 import rdflib
 import rdflib.plugins.sparql as sparql
-from rdflib.namespace import RDF
 import logging
 
 

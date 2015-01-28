@@ -41,15 +41,12 @@
 # format fields:
 #   http://docs.python.org/3.3/library/logging.html#logrecord-attributes
 
-import os
-import inspect
-import logging.config
-
-import yaml
-
-import nlg.utils
+#import os
+#import yaml
+#import inspect
 
 import logging
+#import logging.config
 
 logging.getLogger(__name__).info('initialising NLG library')
 

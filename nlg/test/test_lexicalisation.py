@@ -59,7 +59,7 @@ class TestLexicalisation(unittest.TestCase):
         expected = '\tBoris is fast Boris is fast Boris is fast'
         self.assertEqual(expected, real(tmp))
 
-    def test_lexicalise_paragraph(self):
+    def test_lexicalise_paragraph2(self):
         """ Test lixicalisation of Paragraph. """
         m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         p = Paragraph(m)

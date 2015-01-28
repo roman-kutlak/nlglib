@@ -9,8 +9,9 @@ class TestFOL(unittest.TestCase):
         self.startTime = time.time()
 
     def tearDown(self):
-        t = time.time() - self.startTime
+        #t = time.time() - self.startTime
         #print("{0}: {1:.3f}".format(self.id(), t))
+        pass
 
     def test_parsing(self):
         s = 'x'

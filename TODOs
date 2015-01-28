@@ -3,7 +3,17 @@ Issue: The parser can't cope with more than 5 quantifiers in a formula.
 add type of expression to Expr and deduce the type from syntax (EXPR_TERM, ...)
 add __len__ to Expr (1 for terms, sum of args for rest? or count ops as well/only?)
 
+When PlaceHolder is used on its own, it does not replace the variable.
+
 add variable context for FOL to NLG
 add REG context
 
 allow latex formulas?
+
+In SimpleNLG realisation change string back to non-html encode:
+At(roman, work) ∧ At(sharon, work)
+At%28roman%2C+work%29 and At%28sharon%2C+work%29
+
+BUG: SimpleNLG accepts 'NEGATED'='true' but not 'NEGATED'='TRUE'
+
+write simplenlg realiser and str realiser -- allow setting aggregation, REG, etc.

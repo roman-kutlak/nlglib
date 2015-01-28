@@ -1,9 +1,13 @@
 import logging
 from urllib.parse import quote_plus
 
-from nlg.structures import *
-import nlg.lexicon as lexicon
-from nlg.lexicon import POS_ANY
+from nlg.structures import Element, Word, Clause, Phrase, Coordination
+from nlg.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
+from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
+from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
+from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
+from nlg.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
+from nlg.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
 
 def get_log():
     return logging.getLogger(__name__)
@@ -13,35 +17,62 @@ get_log().addHandler(logging.NullHandler())
 
 # functions for creating word elements
 
-def noun(word):
-    return Word(word, 'NOUN')
+# decorator
+def str_or_element(fn):
+    def helper(word):
+        if isinstance(word, str):
+            return fn(word)
+        elif isinstance(word, Element):
+            tmp = fn(str(word))
+            word._features.update(tmp._features)
+            return word
+        else:
+            return fn(str(word))
+    return helper
 
-def verb(word):
-    return Word(word, 'VERB')
+@str_or_element
+def Noun(word):
+    return Word(word, POS_NOUN)
 
-def adjective(word):
-    return Word(word, 'ADJECTIVE')
+@str_or_element
+def Verb(word):
+    return Word(word, POS_VERB)
 
-def adverb(word):
-    return Word(word, 'ADVERB')
+@str_or_element
+def Adjective(word):
+    return Word(word, POS_ADJECTIVE)
 
-def pronoun(word):
-    return Word(word, 'PRONOUN')
+@str_or_element
+def Adverb(word):
+    return Word(word, POS_ADVERB)
 
-def numeral(word):
+@str_or_element
+def Pronoun(word):
+    return Word(word, POS_PRONOUN)
+
+@str_or_element
+def Numeral(word):
     return Word(word, POS_NUMERAL)
 
-def preposition(word):
-    return Word(word, 'PREPOSITION')
+@str_or_element
+def Preposition(word):
+    return Word(word, POS_PREPOSITION)
 
-def conjunction(word):
-    return Word(word, 'CONJUNCTION')
+@str_or_element
+def Conjunction(word):
+    return Word(word, POS_CONJUNCTION)
 
-def determiner(word):
-    return Word(word, 'DETERMINER')
+@str_or_element
+def Determiner(word):
+    return Word(word, POS_DETERMINER)
 
-def exclamation(word):
-    return Word(word, 'EXCLAMATION')
+@str_or_element
+def Exclamation(word):
+    return Word(word, POS_EXCLAMATION)
+    
+@str_or_element
+def Symbol(word):
+    return Word(word, POS_SYMBOL)
 
 
 # functions for creating phrases (mostly based on Penn Treebank tags)
@@ -53,17 +84,27 @@ def exclamation(word):
 #14.	NNP     Proper noun, singular
 #15.	NNPS	Proper noun, plural
 
+@str_or_element
 def NN(word):
-    return noun(word)
+    return Noun(word)
 
+@str_or_element
 def NNS(word):
-    o = noun(word)
+    o = Noun(word)
     o.set_feature('NUMBER', 'PLURAL')
     return o
 
+@str_or_element
 def NNP(name):
-    o = noun(name)
+    o = Noun(name)
     o.set_feature('PROPER', 'true')
+    return o
+
+@str_or_element
+def NNPS(name):
+    o = Noun(name)
+    o.set_feature('PROPER', 'true')
+    o.set_feature('NUMBER', 'PLURAL')
     return o
 
 # phrases
@@ -72,34 +113,39 @@ def NNP(name):
 def NP(spec, *mods_and_head, features=None, postmods=[]):
     """ Create a complex noun phrase where the first arg is determiner, then
     modifiers and head is last. Determiner can be None.
+    The determiner can be ommited if the NP consists of the head noun only.
     NP('the', 'brown', 'wooden', 'table')
 
     """
-    assert(len(mods_and_head) > 0)
-    words = list(mods_and_head)
-    if spec is None:
-        NounPhrase(noun(words[-1]), features=features,
-           pre_modifiers=[adjective(x) for x in words[:-1]])
+    
+    if (len(mods_and_head) == 0):
+        words = [spec]
+        spec = None
     else:
-        return NounPhrase(noun(words[-1]), determiner(spec), features=features,
-                  pre_modifiers=[adjective(x) for x in words[:-1]])
+        words = list(mods_and_head)
+    if spec is None:
+        return NounPhrase(Noun(words[-1]), features=features,
+                   pre_modifiers=[Adjective(x) for x in words[:-1]])
+    else:
+        return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
+                  pre_modifiers=[Adjective(x) for x in words[:-1]])
 
 
 def VP(head, *complements, features=None):
-    return VerbPhrase(verb(head), *complements, features=features)
+    return VerbPhrase(Verb(head), *complements, features=features)
 
 
 def PP(head, *complements, features=None):
-    return PrepositionalPhrase(preposition(head),
+    return PrepositionalPhrase(Preposition(head),
                                *complements, features=features)
 
 
 def AdjP(head, *complements, features=None):
-    return AdjectivePhrase(adjective(head), *complements, features=features)
+    return AdjectivePhrase(Adjective(head), *complements, features=features)
 
 
 def AdvP(head, *complements, features=None):
-    return AdverbPhrase(adverb(head), *complements, features=features)
+    return AdverbPhrase(Adverb(head), *complements, features=features)
 
 
 def template(word, lexicon, pos=POS_ANY):
@@ -201,8 +247,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += text
 
     def visit_word(self, node):
-        tag = self.ancestors[-1]
-        spaces = self.indent * self.depth
         # a bug in simplenlg treats 'is' differently from 'be'
         # so keep 'is' in templates to allow simple to_str realisation
         # but change it to 'be' for simplenlg
@@ -217,8 +261,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += text
 
     def visit_placeholder(self, node):
-        tag = self.ancestors[-1]
-        spaces = self.indent * self.depth
         text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
                 '{inner}<val>{val}</val>{sep}'
                 '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.id)),
@@ -226,8 +268,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += text
 
     def visit_clause(self, node):
-        tag = self.ancestors[-1]
-        spaces = self.indent * self.depth
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="SPhraseSpec"{f}>{sep}'\
                        .format(**self._get_args(f=features))
@@ -238,8 +278,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
     def visit_np(self, node):
-        tag = self.ancestors[-1]
-        spaces = self.indent * self.depth
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="NPPhraseSpec"{f}>{sep}'\
                        .format(**self._get_args(f=features))
@@ -252,8 +290,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
     def visit_phrase(self, node, type):
-        tag = self.ancestors[-1]
-        spaces = self.indent * self.depth
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="{type}"{f}>{sep}'\
                        .format(type=type, **self._get_args(f=features))
@@ -277,8 +313,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.visit_phrase(node, 'AdvPhraseSpec')
 
     def visit_coordination(self, node):
-        tag = self.ancestors[-1]
-        spaces = self.indent * self.depth
         features = node.features_to_xml_attributes()
         self.xml +='{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f}>{sep}'\
                        .format(**self._get_args(f=features))
@@ -312,10 +346,6 @@ class ReprVisitor(PrintVisitor):
         super().__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
-    
-    def spaces(self, n=-1):
-        if n < 0: return ' ' * depth
-        else: return ' ' * n
     
     def _process_elements(self, node, name):
         attr = getattr(node, name)
@@ -798,7 +828,6 @@ def replace_element(sent, elt, replacement=None):
                 return True
 
     if isinstance(sent, Phrase):
-        res = False
         for i, o in reversed(list(enumerate(sent.post_modifiers))):
             if (o == elt):
                 if replacement is None:

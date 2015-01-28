@@ -1,12 +1,6 @@
 import unittest
-import time
-import sys
 
-#from nlg.nlg import *
-from nlg.structures import *
 import nlg.simplenlg as snlg
-#from planning.planner import Planner
-from nlg.utils import Settings
 
 
 test_data = """<?xml version="1.0" encoding="utf-8"?>
@@ -132,15 +126,46 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 """
 
 
-# FIXME: not working
+test_data4 = """\
+<?xml version="1.0" encoding="utf-8"?>
+<nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:nlg="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
+<nlg:Request>
+
+<Document cat="PARAGRAPH">
+<child xsi:type="SPhraseSpec" NEGATED="true">
+  <subj xsi:type="StringElement">
+    <val>Roman</val>
+  </subj>
+  <vp xsi:type="VPPhraseSpec">
+    <head xsi:type="WordElement" cat="VERB">
+      <base>be</base>
+    </head>
+    <compl xsi:type="PPPhraseSpec">
+      <head xsi:type="WordElement" cat="PREPOSITION">
+        <base>at</base>
+      </head>
+      <compl xsi:type="StringElement">
+        <val>work</val>
+      </compl>
+    </compl>
+  </vp>
+</child>
+
+</Document>
+</nlg:Request>
+</nlg:NLGSpec>
+"""
+
+
 class TestSimplenlgClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(obj):
-        #print('Setting up class TestSimplenlgClient')
-        s = Settings('nlg/resources/simplenlg.settings')
-        jp = s.get_setting('SimplenlgJarPath')
-        port = s.get_setting('SimplenlgPort')
+        jp = 'nlg/resources/simplenlg.jar'
+        port = '50007'
         obj.test_result = 'Put the piano and the drum into the truck.'
         obj.simplenlg_server = snlg.SimpleNLGServer(jp, port)
         obj.simplenlg_server.start()
@@ -170,17 +195,18 @@ class TestSimplenlgClient(unittest.TestCase):
             SimplenlgHost and SimplenlgPort.
 
         """
-        s = Settings('nlg/resources/simplenlg.settings')
-        host = s.get_setting('SimplenlgHost')
-        port = s.get_setting('SimplenlgPort')
-        if host is None: host = 'localhost'
-        if port is None: port = 50007
+        host = 'localhost'
+        port = 50007
         client = snlg.SimplenlgClient(host, port)
         realisation = client.xml_request(test_data)
         self.assertEqual(self.test_result, realisation)
 
         expected = 'Roman is not in the office.'
         realisation = client.xml_request(test_data3)
+        self.assertEqual(expected, realisation)
+
+        expected = 'Roman is not at work.'
+        realisation = client.xml_request(test_data4)
         self.assertEqual(expected, realisation)
 
 

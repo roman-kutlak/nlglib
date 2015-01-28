@@ -1,5 +1,4 @@
 import numbers
-import itertools
 from pyparsing import (nums, alphas, alphanums, restOfLine, Word,
                        Group, Optional, Keyword, Literal, CaselessKeyword,
                        Combine, Forward, Suppress, opAssoc, operatorPrecedence,
@@ -472,9 +471,14 @@ def simplify(f):
         else: # remove conjuncts that are TRUE and simplify args
             args = list(map(simplify, filter(lambda x: not is_true(x),f.args)))
             # FIXME: remove arguments that appear multiple times in AND and OR
-            uniq = set(args)
+            used = set()
             if args != f.args:
-                return simplify(Expr(OP_AND, *args))
+                unique = []
+                for arg in args:
+                    if arg not in used:
+                        used.add(arg)
+                        unique.append(arg)
+                return simplify(Expr(OP_AND, *unique))
             else:
                 return f
     elif f.op == OP_OR:
@@ -939,7 +943,7 @@ def get_op(x):
 
 def to_expr(item):
     """ Convert to instance of Expr. """
-    get_log().debug('to_expr: ' + str((repr(type(item)), repr(item))))
+#    get_log().debug('to_expr: ' + str((repr(type(item)), repr(item))))
     if isinstance(item, str): return Expr(num_or_str(item))
     if isinstance(item, Expr): return item
     if hasattr(item, '__getitem__'): return list(map(to_expr, item))

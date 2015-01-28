@@ -24,6 +24,7 @@ POS_AUXILIARY = 'AUXILIARY'
 POS_COMPLEMENTISER = 'COMPLEMENTISER'
 POS_CONJUNCTION = 'CONJUNCTION'
 POS_DETERMINER = 'DETERMINER'
+POS_EXCLAMATION = 'EXCLAMATION'
 POS_MODAL = 'MODAL'
 POS_NOUN = 'NOUN'
 POS_NUMERAL = 'NUMERAL'
@@ -46,7 +47,8 @@ POS_TAGS = [
     POS_PREPOSITION,
     POS_PRONOUN,
     POS_SYMBOL,
-    POS_VERB
+    POS_VERB,
+    POS_EXCLAMATION
 ]
 
 
@@ -76,7 +78,7 @@ class Lexicon:
         try:
             with open('nlg/resources/tagger.pkl', 'rb') as input:
                 self.tagger = load(input)
-        except Exception as e:
+        except Exception:
             get_log().exception('Could not load pickled tagger.')
             self.tagger = None
     
@@ -222,7 +224,8 @@ class Lexicon:
             for k, v in fs: candidate.set_feature(k, v)
             return candidate
         else:
-            return (self.noun(word) or self.verb(word) or self(auxiliary) or
+            return (self.noun(word) or
+                    self.verb(word) or self.auxiliary(word) or
                     self.modal(word) or self.adjective(word) or
                     self.adverb(word) or self.pronoun(word) or
                     self.preposition(word) or self.conjunction(word) or
@@ -233,17 +236,17 @@ class Lexicon:
         """ Return the features corresponding to the given (Brown corp) tag. """
         features = {}
         if tag.endswith('$'):
-            features['POSSESSIVE'] = 'TRUE'
+            features['POSSESSIVE'] = 'true'
             if not tag.startswith('PrepositionalPhrase'):
                 features['CASE'] = 'GENITIVE'
-        if tag.endswith('*'): features['NEGATION'] = 'TRUE'
-        if tag.startswith('NounPhrase'): features['PROPER'] = 'TRUE'
+        if tag.endswith('*'): features['NEGATED'] = 'true'
+        if tag.startswith('NounPhrase'): features['PROPER'] = 'true'
         if tag.startswith('NNS'): features['NUMBER'] = 'PLURAL'
         if tag.startswith('NPS'): features['NUMBER'] = 'PLURAL'
-        if tag.startswith('JJR'): features['COMPARATIVE'] = 'TRUE'
-        if tag.startswith('JJS'): features['SUPERLATIVE'] = 'TRUE'
-        if tag.startswith('JJT'): features['SUPERLATIVE'] = 'TRUE'
-        if tag.startswith('VB'): features['BASE_FORM'] = 'TRUE'
+        if tag.startswith('JJR'): features['COMPARATIVE'] = 'true'
+        if tag.startswith('JJS'): features['SUPERLATIVE'] = 'true'
+        if tag.startswith('JJT'): features['SUPERLATIVE'] = 'true'
+        if tag.startswith('VB'): features['BASE_FORM'] = 'true'
         if tag.startswith('VBD'): features['TENSE'] = 'PAST'
         if tag.startswith('VBG'): features['TENSE'] = 'PRESENT_PARTICIPLE'
         if tag.startswith('VBN'): features['TENSE'] = 'PAST_PARTICIPLE'

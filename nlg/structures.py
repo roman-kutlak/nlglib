@@ -422,7 +422,7 @@ class Element:
     """
     def __init__(self, type=ELEMENT, features=None):
         self.id = 0 # this is useful for replacing elements
-        self._type = ELEMENT
+        self._type = type
         self._visitor_name = VisitorNames[type]
         self._features = features or dict()
 

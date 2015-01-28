@@ -1,7 +1,4 @@
 from copy import deepcopy
-import re
-import sys
-import traceback
 import logging
 import numbers
 
@@ -24,7 +21,7 @@ def lexicalise(msg):
     elif isinstance(msg, str):
         return String(msg)
     elif isinstance(msg, Element):
-        return msg
+        return lexicalise_element(msg)
     elif isinstance(msg, MsgSpec):
         return lexicalise_message_spec(msg)
     elif isinstance(msg, Message):
@@ -38,6 +35,29 @@ def lexicalise(msg):
     else:
         raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
+
+def lexicalise_element(elt):
+    """ See if element contains placeholders and if so, replace them
+    by templates.
+
+    """
+    get_log().debug('Lexicalising Element: {0}'.format(repr(elt)))
+    # find arguments
+    args = elt.arguments()
+    # if there are any arguments, replace them by values
+    for arg in args:
+        result = templates.template(arg.id)
+        get_log().debug('Replacing\n{0} in \n{1} by \n{2}.'
+                        .format(repr(arg), repr(elt), repr(result)))
+        if result is None: continue
+        if isinstance(template, str):
+            result = String(result)
+        result.add_features(elt._features)
+        if elt == arg:
+            return result
+        else:
+            elt.replace(arg, lexicalise(result))
+    return elt
 
 # each message should correspond to a clause
 def lexicalise_message_spec(msg):

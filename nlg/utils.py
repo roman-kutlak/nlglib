@@ -31,6 +31,8 @@ class Settings:
         except IOError:
             # This should probably log the exception...
             get_log().exception("Something wrong with the file '%s'" % filename)
+        except FileNotFoundError:
+            get_log().exception("Could not find settings file '%s'" % filename)
 
     def get_setting(self, key):
         if key in self.table:
