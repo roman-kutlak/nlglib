@@ -119,6 +119,8 @@ def init(settings_path='nlg/resources/simplenlg.settings',
             get_log().error('Could not find value for '
                             'SimplenlgJarPath in settings.')
             get_log().error('Initialisation of nlg server failed.')
+            import os
+            get_log().error('CWD: ' + os.getcwd())
         else:
             simplenlg_server = SimpleNLGServer(jar, port)
             simplenlg_server.start()
