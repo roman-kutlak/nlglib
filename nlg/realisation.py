@@ -223,6 +223,8 @@ class RealisationVisitor:
         if (node.has_feature('NUMBER', 'PLURAL') and
             node.pos == 'NOUN'):
             word = lexicon.pluralise_noun(node.word)
+        if node.has_feature('NEGATED', 'true'):
+            self.text += 'not '
         self.text += word + ' '
 
     def visit_placeholder(self, node):
@@ -342,8 +344,7 @@ def simple_realisation(struct):
     """
     v = RealisationVisitor()
     struct.accept(v)
-    result = str(v)
-    result.replace(' ,', ',')
+    result = str(v).replace(' ,', ',')
     return '{0}{1}.'.format(result[:1].upper(), result[1:])
 
 

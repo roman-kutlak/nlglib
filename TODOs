@@ -10,9 +10,6 @@ add REG context
 
 allow latex formulas?
 
-In SimpleNLG realisation change string back to non-html encode:
-At(roman, work) ∧ At(sharon, work)
-At%28roman%2C+work%29 and At%28sharon%2C+work%29
 
 BUG: SimpleNLG accepts 'NEGATED'='true' but not 'NEGATED'='TRUE'
 

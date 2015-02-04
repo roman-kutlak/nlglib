@@ -252,8 +252,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.ancestors.append('child')
 
     def visit_string(self, node):
-#        neg = 'not ' if node.has_feature('NEGATED', 'true') else ''
-        neg = ''
+        neg = 'not ' if node.has_feature('NEGATED', 'true') else ''
         text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
                 '{inner}<val>{neg}{val}</val>{sep}'
                 '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
@@ -275,11 +274,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += text
 
     def visit_placeholder(self, node):
-#        text = ('{outer}<{tag} xsi:type="WordElement" cat="NOUN">{sep}'
-#                '{inner}<val>{val}</val>{sep}'
-#                '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.id)),
-#                                               **self._get_args())
-#        self.xml += text
         node.value.accept(self)
 
     def visit_clause(self, node):

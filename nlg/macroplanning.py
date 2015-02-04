@@ -96,6 +96,14 @@ class PredicateMsg(MsgSpec):
         if len(p.args) == 0:
             return p.op
         else:
+            return(p.op + '(' + ', '.join([str(x) for x in p.args]) + ')')
+
+    def __repr__(self):
+        """ Return a suitable string representation. """
+        p = self.predicate
+        if len(p.args) == 0:
+            return p.op
+        else:
             neg = ''
             if ('NEGATED' in self._features and
                 self._features['NEGATED'] == 'true'):

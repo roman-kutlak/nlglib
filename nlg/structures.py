@@ -734,10 +734,6 @@ class Coordination(Element):
         return False
 
 
-# Coordination is a synonym for coordination
-class Coordination(Coordination): pass
-
-
 # FIXME: incomplete implementation -- who is parent and who is subord child?
 class Subordination(Element):
     """ Subordinate elment. """
