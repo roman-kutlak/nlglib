@@ -42,6 +42,7 @@ OPS = {
     'equals' : OP_EQUALS,
     '='      : OP_EQUALS,
     'notequals' : OP_NOTEQUALS,
+    '!='    : OP_NOTEQUALS,
     '=/='    : OP_NOTEQUALS,
     '\u2260' : OP_NOTEQUALS,
     'and'    : OP_AND,

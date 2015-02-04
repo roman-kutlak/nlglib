@@ -391,7 +391,7 @@ def is_phrase_t(o):
     return (is_element_t(o) and
             (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJPHRASE, ADVPHRASE} or
              (o._type == COORDINATION and
-             (o.coord == [] or is_phrase_t(o.coord[0])))))
+             (o.coords == [] or is_phrase_t(o.coords[0])))))
 
 
 def is_clause_t(o):
@@ -400,9 +400,8 @@ def is_clause_t(o):
     
     """
     return (is_element_t(o) and
-            (o._type in {CLAUSE, SUBORDINATION} or
-             (o._type == COORDINATION and
-              (o.coord == [] or is_clause_t(o.coord[0])))))
+            ((o._type in {CLAUSE, SUBORDINATION}) or
+             (o._type == COORDINATION and any(map(is_clause_t, o.coords)))))
 
 
 def str_to_elt(*params):
@@ -425,6 +424,7 @@ class Element:
         self._type = type
         self._visitor_name = VisitorNames[type]
         self._features = features or dict()
+        self.hash = -1
 
     def __bool__(self):
         """ Because Element is abstract, it will evaluate to false. """
@@ -435,6 +435,12 @@ class Element:
         if not self._type is other._type: return False
         return (self.id == other.id and
                 self._features == other._features)
+
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = (hash(self.id) ^ hash(tuple(['k:v'.format(k, v)
+                            for k, v in self._features.items()])))
+        return self.hash
 
     @classmethod
     def from_dict(Cls, dct):
@@ -474,7 +480,6 @@ class Element:
             return m(self)
         if len(sig.parameters) == 2:
             return m(self, element)
-
 
     def features_to_xml_attributes(self):
         features = ""
@@ -586,17 +591,22 @@ class String(Element):
     """ String is a basic element representing canned text. """
     def __init__(self, val='', features=None):
         super().__init__(STRING, features)
-        self.val = val
+        self.value = val
 
     def __bool__(self):
         """ Return True if the string is non-empty. """
-        return len(self.val) > 0
+        return len(self.value) > 0
     
     def __eq__(self, other):
         if (not isinstance(other, String)):
             return False
-        return (self.val == other.val and
+        return (self.value == other.value and
                 super().__eq__(other))
+                
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = (11*super().__hash__()) ^ hash(self.value)
+        return self.hash
 
     def constituents(self):
         return [self]
@@ -621,6 +631,12 @@ class Word(Element):
         return (self.word == other.word and
                 self.pos == other.pos and
                 super().__eq__(other))
+                
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = ((11*super().__hash__()) ^
+                         (hash(self.pos) ^ hash(self.word)))
+        return self.hash
 
     def constituents(self):
         return [self]
@@ -653,11 +669,17 @@ class PlaceHolder(Element):
                     self.value == other.value and
                     super().__eq__(other))
 
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = ((11*super().__hash__()) ^
+                         (hash(self.id) & hash(self.value)))
+        return self.hash
+
     def constituents(self):
         return [self]
 
     def set_value(self, val):
-        if val is None: val = self.id
+        if val is None: val = Word(str(self.id), 'NOUN')
         self.value = String(val) if isinstance(val, str) else val
 
 
@@ -681,6 +703,9 @@ class Coordination(Element):
         else:
             return (self.coords == other.coords and
                     super().__eq__(other))
+
+    def __hash__(self):
+        assert False, 'Coordination Element is not hashable'
 
     def add_coordinate(self, *elts):
         """ Add one or more elements as a co-ordinate in the clause. """
@@ -734,6 +759,9 @@ class Subordination(Element):
                     self.subordinate == other.subordinate and
                     super().__eq__(other))
 
+    def __hash__(self):
+        assert False, 'Coordination Element is not hashable'
+
 
 class Phrase(Element):
     """ A base class for all kinds of phrases - elements containing other
@@ -776,6 +804,9 @@ class Phrase(Element):
                 self.complements == other.complements and
                 self.post_modifiers == other.post_modifiers and
                 super().__eq__(other))
+
+    def __hash__(self):
+        assert False, 'Coordination Element is not hashable'
 
     def accept(self, visitor, element='Phrase'):
         return super().accept(visitor, element)
@@ -1021,11 +1052,6 @@ class VerbPhrase(Phrase):
             obj.features['discourseFunction'] = 'OBJECT'
             self.complements.insert(0, obj)
 
-    def to_xml(self, element):
-        features = self.features_to_xml_attributes()
-        text = '<%s xsi:type="VPPhraseSpec" %s>\n' % (element, features)
-        return text
-
 
 class PrepositionalPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
@@ -1062,13 +1088,19 @@ class Clause(Element):
 
     def __init__(self, subj=Element(), vp=Element(), features=None, **kwargs):
         super().__init__(CLAUSE, features)
+        self.front_modifiers = list()
         self.pre_modifiers = list()
-        self.post_modifiers = list()
         self.set_subj(subj)
         self.set_vp(vp)
+        self.complements = list()
+        self.post_modifiers = list()
         # see if anything was passed from above...
+        if 'front_modifiers' in kwargs:
+            self.front_modifiers = str_to_elt(*kwargs['front_modifiers'])
         if 'pre_modifiers' in kwargs:
             self.pre_modifiers = str_to_elt(*kwargs['pre_modifiers'])
+        if 'complements' in kwargs:
+            self.complements = str_to_elt(*kwargs['complements'])
         if 'post_modifiers' in kwargs:
             self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
 
@@ -1093,6 +1125,12 @@ class Clause(Element):
     def set_vp(self, vp):
         """ Set the vp of the clause. """
         self.vp = String(vp) if isinstance(vp, str) else vp
+
+    # TODO: test
+    def set_object(self, obj):
+        object = String(obj) if isinstance(obj, str) else obj
+        object.set_feature('discourseFunction', 'OBJECT')
+        self.add_complement(object)
 
     def set_features(self, features):
         """ Set features on the VerbPhrase. """
@@ -1125,6 +1163,24 @@ class Clause(Element):
 
         return super().replace(one, another)
 
+    def set_front_modifiers(self, *mods):
+        """ Set front-modifiers to the passed parameters. """
+        self.front_modifiers = list(str_to_elt(*mods))
+
+    def add_front_modifier(self, *mods):
+        """ Add one or more front-modifiers. """
+        self._add_to_list(self.front_modifiers, *mods)
+
+    def del_front_modifier(self, *mods):
+        """ Remove one or more front-modifiers if present. """
+        self._del_from_list(self.front_modifiers, *mods)
+
+    def yield_front_modifiers(self):
+        """ Iterate through pre-modifiers. """
+        for o in self.front_modifiers:
+            for x in o.constituents():
+                yield x
+    
     def set_pre_modifiers(self, *mods):
         """ Set pre-modifiers to the passed parameters. """
         self.pre_modifiers = list(str_to_elt(*mods))
@@ -1140,6 +1196,24 @@ class Clause(Element):
     def yield_pre_modifiers(self):
         """ Iterate through pre-modifiers. """
         for o in self.pre_modifiers:
+            for x in o.constituents():
+                yield x
+
+    def set_complements(self, *mods):
+        """ Set complemets to the given ones. """
+        self.complements = list(str_to_elt(*mods))
+
+    def add_complement(self, *mods):
+        """ Add one or more complements. """
+        self._add_to_list(self.complements, *mods)
+
+    def del_complement(self, *mods):
+        """ Delete one or more complements if present. """
+        self._del_from_list(self.complements, *mods)
+
+    def yield_complements(self):
+        """ Iterate through complements. """
+        for o in self.complements:
             for x in o.constituents():
                 yield x
 

@@ -4,6 +4,7 @@ import subprocess
 import threading
 import time
 import logging
+import urllib.parse
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -129,7 +130,10 @@ class SimplenlgClient:
         with self.socket as socket:
             socket.send_string(data)
             result = socket.recv_string()
-            return result
+            if 'Exception: XML unmarshal error' == result:
+                raise ServerError
+            # decode xml symbols
+            return urllib.parse.unquote_plus(result, encoding='utf-8')
 
 
 class SimpleNLGServer(threading.Thread):

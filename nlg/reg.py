@@ -110,7 +110,8 @@ def generate_ref_exp(referent, context):
 
     get_log().debug('GRE for "{0}"'.format(referent))
     
-    if isinstance(referent, String): referent = referent.val
+    if isinstance(referent, String): referent = referent.value
+    if isinstance(referent, Word): referent = referent.word
     
     if referent in context.referents:
         result = _do_repeated_reference(referent, context)

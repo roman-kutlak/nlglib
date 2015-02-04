@@ -214,7 +214,9 @@ class RealisationVisitor:
         pass
     
     def visit_string(self, node):
-        self.text += node.val + ' '
+        if node.has_feature('NEGATED', 'true'):
+            self.text += 'not '
+        self.text += node.value + ' '
 
     def visit_word(self, node):
         word = node.word
@@ -237,9 +239,15 @@ class RealisationVisitor:
             node.vp.set_feature('GENDER', node.subj.get_feature('GENDER'))
         if node.subj.has_feature('CASE'):
             node.vp.set_feature('CASE', node.subj.get_feature('CASE'))
-        for o in node.pre_modifiers: o.accept(self)
+        for o in node.front_modifiers: o.accept(self)
         node.subj.accept(self)
+        for o in node.pre_modifiers: o.accept(self)
         node.vp.accept(self)
+        if len(node.complements) > 0:
+            if node.complements[0].has_feature('COMPLEMENTISER'):
+                self.text += node.complements[0].get_feature('COMPLEMENTISER')
+                self.text += ' '
+        for c in node.complements: c.accept(self)
         for o in node.post_modifiers: o.accept(self)
     
     def visit_coordination(self, node):
@@ -271,17 +279,31 @@ class RealisationVisitor:
     def visit_vp(self, node):
         for c in node.front_modifiers: c.accept(self)
         for c in node.pre_modifiers: c.accept(self)
-        if str(node.head).strip() == 'have':
+        tmp_vis = RealisationVisitor()
+        node.head.accept(tmp_vis)
+        head = str(tmp_vis)
+        get_log().debug('head of VP is "{0}"'.format(head))
+        if head == 'have':
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'do not have '
-        elif str(node.head).strip() == 'has':
+        elif head == 'has':
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'does not have '
-        else:
-            node.head.accept(self)
+        elif (head == 'be' or head == 'is'):
+            if node.has_feature('NUMBER', 'PLURAL'):
+                self.text += 'are '
+            else:
+                self.text += 'is '
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'not '
-        for c in node.complements: c.accept(self)
+        else:
+            if node.has_feature('NEGATED', 'true'):
+                self.text += 'does not '
+            node.head.accept(self)
+        for c in node.complements:
+            if c.has_feature('COMPLEMENTISER'):
+                self.text += ' {0} '.format(c.get_feature('COMPLEMENTISER'))
+            c.accept(self)
         for c in node.post_modifiers: c.accept(self)
     
     def visit_pp(self, node):
@@ -311,7 +333,7 @@ def simpleNlg_realisation(struct):
     struct.accept(v)
     get_log().debug('XML for realisation:\n{0}'.format(v.to_xml()))
     result = nlg.nlg.simplenlg_client.xml_request(v.to_xml())
-    return result
+    return result.replace(' ,', ',')
 
 def simple_realisation(struct):
     """ Use the RealisationVisitor that performs only the most basic realisation

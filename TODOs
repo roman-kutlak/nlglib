@@ -17,3 +17,5 @@ At%28roman%2C+work%29 and At%28sharon%2C+work%29
 BUG: SimpleNLG accepts 'NEGATED'='true' but not 'NEGATED'='TRUE'
 
 write simplenlg realiser and str realiser -- allow setting aggregation, REG, etc.
+
+Test hashing.

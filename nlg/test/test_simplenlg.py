@@ -159,6 +159,74 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:NLGSpec>
 """
 
+test_data5 = """\
+<?xml version="1.0" encoding="utf-8"?>
+<nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:nlg="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
+<nlg:Request>
+
+<Document cat="PARAGRAPH">
+<child xsi:type="SPhraseSpec">
+  <frontMod xsi:type="StringElement">
+    <val>if</val>
+  </frontMod>
+  <subj xsi:type="StringElement">
+    <val>p</val>
+  </subj>
+  <vp xsi:type="VPPhraseSpec">
+    <head xsi:type="WordElement" cat="ADVERB">
+      <base>then</base>
+    </head>
+    <compl xsi:type="StringElement">
+      <val>q</val>
+    </compl>
+  </vp>
+</child>
+
+</Document>
+</nlg:Request>
+</nlg:NLGSpec>
+"""
+
+test_data6 ="""\
+<?xml version="1.0" encoding="utf-8"?>
+<nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:nlg="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
+<nlg:Request>
+
+<Document cat="PARAGRAPH">
+<child xsi:type="SPhraseSpec">
+  <subj xsi:type="NPPhraseSpec">
+    <spec xsi:type="StringElement">
+      <val>there+exists</val>
+    </spec>
+    <head xsi:type="StringElement">
+      <val>x</val>
+    </head>
+    <postMod xsi:type="NPPhraseSpec" COMPLEMENTISER="such+that">
+      <frontMod xsi:type="StringElement">
+        <val>%28</val>
+      </frontMod>
+      <head xsi:type="StringElement">
+        <val>At%28p%2C+y%29</val>
+      </head>
+      <postMod xsi:type="StringElement">
+        <val>%29</val>
+      </postMod>
+    </postMod>
+  </subj>
+</child>
+
+</Document>
+</nlg:Request>
+</nlg:NLGSpec>
+"""
+
+
 
 class TestSimplenlgClient(unittest.TestCase):
 
@@ -207,6 +275,14 @@ class TestSimplenlgClient(unittest.TestCase):
 
         expected = 'Roman is not at work.'
         realisation = client.xml_request(test_data4)
+        self.assertEqual(expected, realisation)
+        
+        expected = 'If p then q.'
+        realisation = client.xml_request(test_data5)
+        self.assertEqual(expected, realisation)
+        
+        expected = 'There exists x such that p.'
+        realisation = client.xml_request(test_data6)
         self.assertEqual(expected, realisation)
 
 

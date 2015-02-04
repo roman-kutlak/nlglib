@@ -5,6 +5,7 @@ import numbers
 from nlg.structures import *
 from nlg.aggregation import *
 from nlg.microplanning import *
+import nlg.realisation as realisation
 
 def get_log():
     return logging.getLogger(__name__)
@@ -47,9 +48,9 @@ def lexicalise_element(elt):
     # if there are any arguments, replace them by values
     for arg in args:
         result = templates.template(arg.id)
+        if result is None: continue
         get_log().debug('Replacing\n{0} in \n{1} by \n{2}.'
                         .format(repr(arg), repr(elt), repr(result)))
-        if result is None: continue
         if isinstance(template, str):
             result = String(result)
         result.add_features(elt._features)
@@ -81,6 +82,7 @@ def lexicalise_message_spec(msg):
     # find arguments
     args = template.arguments()
     # if there are any arguments, replace them by values
+    # TODO: check that features are propagated
     for arg in args:
         get_log().debug('Replacing\n{0} in \n{1}.'
                         .format(str(arg), repr(template)))
@@ -92,7 +94,7 @@ def lexicalise_message_spec(msg):
 
 # TODO: lexicalisation should replace Messages by {NLG Elements} and use
 # RST relations to connect the clauses when applicable.
-def lexicalise_message(msg):
+def lexicalise_message(msg, parenthesis=False):
     """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
     get_log().debug('Lexicalising message.')
     if msg is None: return None
@@ -101,83 +103,89 @@ def lexicalise_message(msg):
     else:
         nucleus = lexicalise(msg.nucleus)
     satelites = [lexicalise(x) for x in msg.satelites if x is not None]
+
+    features = msg._features if hasattr(msg, '_features') else {}
     # stick each message into a clause
     result = None
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
-        result = Coordination(*satelites, conj=msg.marker)
+        result = Coordination(*satelites, conj=msg.marker, features=features)
     elif msg.rst == 'Imply':
-        if (len(satelites) != 1):
-            get_log().error('expected only one satelite in implication; got '
-                            + str(satelites))
-        result = Phrase()
-        result.set_head(nucleus)
-        result.add_complement(*satelites)
-        result.add_front_modifier('if')
-        result.set_feature('COMPLEMENTISER', 'then')
+        subj = clausify(nucleus)
+        compl = clausify(satelites[0])
+        compl.set_feature('COMPLEMENTISER', 'then')
+        subj.add_complement(compl)
+        subj.add_front_modifier('if')
+        result = subj
     elif msg.rst == 'Equivalent':
-        if (len(satelites) != 1):
-            get_log().error('expected only one satelite in equivalence; got '
-                            + str(satelites))
-        result = Phrase()
-        result.set_head(nucleus)
-        result.add_complement(*satelites)
-#        result.add_front_modifier('if and only if')
-#        result.set_feature('COMPLEMENTISER', 'then')
-        result.set_feature('COMPLEMENTISER', 'if and only if')
+        subj = clausify(nucleus)
+        compl = clausify(satelites[0])
+        subj.add_front_modifier('if')
+        compl.set_feature('COMPLEMENTISER', 'if and only if')
+        subj.add_complement(compl)
+        result = subj
     elif msg.rst == 'ImpliedBy':
-        if (len(satelites) != 1):
-            get_log().error('expected only one satelite in implication by; got '
-                            + str(satelites))
-        result = Phrase()
-        result.set_head(nucleus)
-        result.add_complement(*satelites)
-        result.set_feature('COMPLEMENTISER', 'when')
+        subj = clausify(nucleus)
+        compl = clausify(satelites[0])
+        compl.set_feature('COMPLEMENTISER', 'if')
+        subj.add_complement(compl)
+        result = subj
     elif msg.rst == 'Equality':
-        if (len(satelites) != 1):
-            get_log().error('expected only one satelite in Equality; got '
-                            + str(satelites))
-        result = Phrase()
-        result.set_head(nucleus)
-        result.add_complement(*satelites)
-        result.set_feature('COMPLEMENTISER', 'is')
+        result = Clause()
+        result.set_subj(nucleus)
+        object = satelites[0]
+        result.set_vp(VP('equal',object, features=features))
     elif msg.rst == 'Inequality':
-        if (len(satelites) != 1):
-            get_log().error('expected only one satelite in Inequality; got '
-                            + str(satelites))
-        result = Phrase()
-        result.set_head(nucleus)
-        result.add_complement(*satelites)
-        result.set_feature('COMPLEMENTISER', 'is not')
+        result = Clause()
+        result.set_subj(nucleus)
+        object = satelites[0]
+        features['NEGATED'] = 'true'
+        result.set_vp(VP('equal',object, features=features))
     elif msg.rst == 'Quantifier':
         # quantifiers have multiple nuclei (variables)
-        if (len(satelites) != 1):
-            get_log().error('expected only one satelite in implication; got '
-                            + str(satelites))
-        result = Phrase()
-        if len(nucleus) == 1:
-            np = NounPhrase(nucleus[0], String(msg.marker))
+        quant = msg.marker
+        if quant.startswith('there exist') and len(nucleus) == 1:
+            quant += 's' # there exists
+        
+        cc = Coordination(*nucleus, conj='and')
+        np = NounPhrase(cc, String(quant))
+
+        if (quant.startswith('there exist')):
+            np.add_post_modifier(String('such that'))
         else:
-            cc = Coordination(*nucleus, conj='and')
-            np = NounPhrase(cc, String(msg.marker))
-        if (msg.marker.startswith('there exist')):
-            np.add_complement('such that')
-        np.add_post_modifier('(')
-        result.set_head(np)
-        result.add_complement(*satelites)
-#        result.add_front_modifier('(')
-        result.add_post_modifier(')')
+            np.add_post_modifier(String(','))
+
+        get_log().debug('Quantified formula:\n' + repr(satelites[0]))
+
+        result = clausify(satelites[0])
+        
+        get_log().debug('Clausified as formula:\n' + repr(result))
+
+        front_mod = realisation.simple_realisation(np)
+        # remove period
+        if front_mod.endswith('.'): front_mod = front_mod[:-1]
+        # lower case the first letter
+        front_mod = front_mod[0].lower() + front_mod[1:]
+        # front_mod should go in front of existing front_mods
+        # In case of CC, modify the first coordinate
+        if result._type == COORDINATION:
+            result.coords[0].front_modifiers.insert(0, String(front_mod))
+        else:
+            result.front_modifiers.insert(0, String(front_mod))
+        get_log().debug('Result:\n' + repr(result))
     elif msg.rst == 'Negation':
-        result = Phrase()
-        np = NounPhrase(nucleus, String(msg.marker))
-        np.add_pre_modifier('(')
-        result.set_head(np)
-        result.add_complement(*satelites)
-        result.add_post_modifier(')')
+        result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
+                                          features={'NEGATED': 'true'}))
+        cl = clausify(nucleus)
+        cl.set_feature('COMPLEMENTISER', 'that')
+        if parenthesis:
+            cl.add_front_modifier('(')
+            cl.add_post_modifier(')')
+        result.vp.add_complement(cl)
     else:
         get_log().debug('RST is: ' + repr(msg.rst))
         result = Message(msg.rst, nucleus, *satelites)
         result.marker = msg.marker
-    result.add_features(msg._features)
+    result.add_features(features)
     return result
 
 def lexicalise_paragraph(msg):

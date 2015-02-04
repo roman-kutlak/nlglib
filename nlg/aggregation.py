@@ -182,13 +182,13 @@ def aggregate_coordination(cc, limit):
     get_log().debug('Aggregating coordination.')
     elements = []
     if len(cc.coords) > 1:
-        elements = synt_aggregation(cc.coords, limit)
+        elements = synt_aggregation(cc.coords, limit, marker=cc.conj)
     elif len(cc.coords) == 1:
         elements.append[cc.coords[0]]
     if len(elements) == 1:
         return elements[0]
     else:
-        return Coordination(*elements, features=cc._features)
+        return Coordination(*elements, conj=cc.conj, features=cc._features)
 
 
 def aggregate_message(msg, limit):
