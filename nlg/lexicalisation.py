@@ -110,42 +110,38 @@ def lexicalise_message(msg, parenthesis=False):
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
         result = Coordination(*satelites, conj=msg.marker, features=features)
     elif msg.rst == 'Imply':
-        subj = clausify(nucleus)
-        compl = clausify(satelites[0])
+        subj = promote_to_phrase(nucleus)
+        compl = promote_to_phrase(satelites[0])
         compl.set_feature('COMPLEMENTISER', 'then')
-        subj.add_complement(compl)
-        subj.add_front_modifier('if')
         result = subj
+        result.add_complement(compl)
+        result.add_front_modifier('if')
     elif msg.rst == 'Equivalent':
-        subj = clausify(nucleus)
-        compl = clausify(satelites[0])
-        subj.add_front_modifier('if')
+        result = promote_to_phrase(nucleus)
+        compl = promote_to_phrase(satelites[0])
         compl.set_feature('COMPLEMENTISER', 'if and only if')
-        subj.add_complement(compl)
-        result = subj
+        result.add_complement(compl)
     elif msg.rst == 'ImpliedBy':
-        subj = clausify(nucleus)
-        compl = clausify(satelites[0])
+        result = promote_to_phrase(nucleus)
+        compl = promote_to_phrase(satelites[0])
         compl.set_feature('COMPLEMENTISER', 'if')
-        subj.add_complement(compl)
-        result = subj
+        result.add_complement(compl)
     elif msg.rst == 'Equality':
         result = Clause()
         result.set_subj(nucleus)
         object = satelites[0]
-        result.set_vp(VP('equal',object, features=features))
+        tmp_vp = VP('equal', object, features=features)
+        get_log().debug('Setting VP:\n' + repr(tmp_vp))
+        result.set_vp(tmp_vp)
     elif msg.rst == 'Inequality':
         result = Clause()
         result.set_subj(nucleus)
         object = satelites[0]
         features['NEGATED'] = 'true'
-        result.set_vp(VP('equal',object, features=features))
+        result.set_vp(VP('equal', object, features=features))
     elif msg.rst == 'Quantifier':
         # quantifiers have multiple nuclei (variables)
         quant = msg.marker
-        if quant.startswith('there exist') and len(nucleus) == 1:
-            quant += 's' # there exists
-        
         cc = Coordination(*nucleus, conj='and')
         np = NounPhrase(cc, String(quant))
 
@@ -154,11 +150,7 @@ def lexicalise_message(msg, parenthesis=False):
         else:
             np.add_post_modifier(String(','))
 
-        get_log().debug('Quantified formula:\n' + repr(satelites[0]))
-
-        result = clausify(satelites[0])
-        
-        get_log().debug('Clausified as formula:\n' + repr(result))
+        result = promote_to_phrase(satelites[0])
 
         front_mod = realisation.simple_realisation(np)
         # remove period
@@ -168,14 +160,14 @@ def lexicalise_message(msg, parenthesis=False):
         # front_mod should go in front of existing front_mods
         # In case of CC, modify the first coordinate
         if result._type == COORDINATION:
-            result.coords[0].front_modifiers.insert(0, String(front_mod))
+            result.coords[0].add_front_modifier(String(front_mod), pos=0)
         else:
-            result.front_modifiers.insert(0, String(front_mod))
+            result.add_front_modifier(String(front_mod), pos=0)
         get_log().debug('Result:\n' + repr(result))
     elif msg.rst == 'Negation':
         result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
                                           features={'NEGATED': 'true'}))
-        cl = clausify(nucleus)
+        cl = promote_to_phrase(nucleus)
         cl.set_feature('COMPLEMENTISER', 'that')
         if parenthesis:
             cl.add_front_modifier('(')

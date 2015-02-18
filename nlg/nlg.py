@@ -49,15 +49,15 @@ class Nlg:
             get_log().debug('Creating new context for REG')
             context = reg.Context(ontology)
         summary = self.lexicalise(summary)
-        get_log().debug('After lex: %s' % str(summary))
+        get_log().debug('After lex: \n%s' % str(summary))
         summary = self.aggregate(summary, 3)
-        get_log().debug('After aggr: %s' % str(summary))
+        get_log().debug('After aggr: \n%s' % str(summary))
         summary = self.generate_re(summary, context)
-        get_log().debug('After REG: %s' % str(summary))
+        get_log().debug('After REG: \n%s' % str(summary))
         summary = self.realise2(summary)
-        get_log().debug('After realisation: %s' % str(summary))
+        get_log().debug('After realisation: \n%s' % str(summary))
         summary = self.format(summary)
-        get_log().debug('After formatting: %s' % str(summary))
+        get_log().debug('After formatting: \n%s' % str(summary))
         return summary
 
     def lexicalise(self, msgs):

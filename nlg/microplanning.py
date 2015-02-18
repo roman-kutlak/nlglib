@@ -4,8 +4,8 @@ from urllib.parse import quote_plus
 from nlg.structures import Element, Word, Clause, Phrase, Coordination
 from nlg.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
 from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
-from nlg.structures import is_clause_t, is_phrase_t, STRING
-from nlg.structures import NOUNPHRASE, VERBPHRASE
+from nlg.structures import is_clause_t, is_phrase_t, STRING, WORD
+from nlg.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
 
 from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
 from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
@@ -156,13 +156,29 @@ def template(word, lexicon, pos=POS_ANY):
     pass
 
 
-def clausify(e):
+def promote_to_clause(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
     if is_clause_t(e): return e
     if is_phrase_t(e):
         if e._type == NOUNPHRASE: return Clause(e)
         if e._type == VERBPHRASE: return Clause(Element(), e)
     return Clause(e)
+
+
+def promote_to_phrase(e):
+    """ Convert element into a clause. If it is a clause, return it as is. """
+    if is_clause_t(e): return e
+    if is_phrase_t(e): return e
+    if e._type == STRING: return NounPhrase(e)
+    if e._type == PLACEHOLDER: return NounPhrase(e)
+    if e._type == WORD:
+        if e.cat == POS_VERB: return VerbPhrase(e)
+        if e.cat == POS_ADVERB: return VerbPhrase(e)
+        return NounPhrase(e)
+    if e._type == COORDINATION:
+        return Coordination(*[promote_to_phrase(x) for x in e.coords])
+    return NounPhrase(e)
+
 
 
 # Visitors -- printing, xml, etc.
@@ -327,7 +343,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         features = node.features_to_xml_attributes()
         self.xml +='{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f}>{sep}'\
                        .format(**self._get_args(f=features))
+        self._process_elements(node, 'pre_modifiers', 'preMod')
         self._process_elements(node, 'coords', 'coord')
+        self._process_elements(node, 'complements', 'compl')
+        self._process_elements(node, 'post_modifiers', 'postMod')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
     def visit_subordination(self, node):

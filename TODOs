@@ -1,5 +1,13 @@
 Issue: The parser can't cope with more than 5 quantifiers in a formula.
 
+Issues:
+∃ x, y, p: (x ≠ y) ∧ At(p, x) ↔ ~At(p, y)
+∀ x, y, p: ((x ≠ y) ∧ House(x) ∧ House(y)) → (At(p, x) → ~At(p, y))
+
+∀ x: Clean(x) ∧ Rich(x) → Happy(x) ∧ Satisfied(x) 
+  -- coordinated element in complement uses 'that' instead of 'then' as a complementiser
+  -- aggregation cannot handle this
+
 add type of expression to Expr and deduce the type from syntax (EXPR_TERM, ...)
 add __len__ to Expr (1 for terms, sum of args for rest? or count ops as well/only?)
 

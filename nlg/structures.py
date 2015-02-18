@@ -575,10 +575,13 @@ class Element:
                 self.replace_argument(k, v)
 
     @staticmethod
-    def _add_to_list(lst, *mods):
+    def _add_to_list(lst, *mods, pos=None):
         """ Add modifiers to the given list. Convert any strings to String. """
-        for p in str_to_elt(*mods):
-            if p not in lst: lst.append(p)
+        if pos is None:
+            lst.extend(mods)
+        else:
+            for p in str_to_elt(*mods):
+                lst.insert(pos, p)
 
     @staticmethod
     def _del_from_list(lst, *mods):
@@ -686,12 +689,22 @@ class PlaceHolder(Element):
 class Coordination(Element):
     """ Coordinated clause with a conjunction. """
 
-    def __init__(self, *coords, conj='and', features=None):
+    def __init__(self, *coords, conj='and', features=None, **kwargs):
         super().__init__(COORDINATION, features)
         self.coords = list()
         self.add_coordinate(*coords)
         self.set_feature('conj', conj)
         self.conj = conj
+        self.pre_modifiers = list()
+        self.complements = list()
+        self.post_modifiers = list()
+        # see if anything was passed from above...
+        if 'pre_modifiers' in kwargs:
+            self.pre_modifiers = str_to_elt(*kwargs['pre_modifiers'])
+        if 'complements' in kwargs:
+            self.complements = str_to_elt(*kwargs['complements'])
+        if 'post_modifiers' in kwargs:
+            self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
 
     def __bool__(self):
         """ Return True """
@@ -702,11 +715,40 @@ class Coordination(Element):
             return False
         else:
             return (self.coords == other.coords and
+                    self.conj == other.conj and
                     super().__eq__(other))
 
     def __hash__(self):
         assert False, 'Coordination Element is not hashable'
 
+    def add_front_modifier(self, *mods):
+        """ Add front modifiers to the first element. """
+        # promote the element to a phrase
+        if not is_phrase_t(self.coords[0]):
+            self.coords[0] = NounPhrase(self.coords[0])
+        self.coords[0].add_front_modifier(*mods)
+    
+    def add_pre_modifier(self, *mods, pos=0):
+        """ Add pre-modifiers to the first element. """
+        # promote the element to a phrase
+        if not is_phrase_t(self.coords[0]):
+            self.coords[0] = NounPhrase(self.coords[0])
+        self.coords[0].add_pre_modifier(*mods, pos=pos)
+
+    def add_complement(self, *mods, pos=None):
+        """ Add complements to the last element. """
+        # promote the element to a phrase
+        if not is_phrase_t(self.coords[0]):
+            self.coords[-1] = NounPhrase(self.coords[-1])
+        self.coords[-1].add_complement(*mods, pos=pos)
+
+    def add_post_modifier(self, *mods, pos=None):
+        """ Add post modifiers to the last element. """
+        # promote the element to a phrase
+        if not is_phrase_t(self.coords[0]):
+            self.coords[-1] = NounPhrase(self.coords[-1])
+        self.coords[-1].add_post_modifier(*mods, pos=pos)
+    
     def add_coordinate(self, *elts):
         """ Add one or more elements as a co-ordinate in the clause. """
         for e in str_to_elt(*elts):
@@ -811,9 +853,9 @@ class Phrase(Element):
         """ Set front-modifiers to the passed parameters. """
         self.front_modifiers = list(str_to_elt(*mods))
 
-    def add_front_modifier(self, *mods):
+    def add_front_modifier(self, *mods, pos=0):
         """ Add one or more front-modifiers. """
-        self._add_to_list(self.front_modifiers, *mods)
+        self._add_to_list(self.front_modifiers, *mods, pos=pos)
 
     def del_front_modifier(self, *mods):
         """ Remove one or more front-modifiers if present. """
@@ -823,9 +865,9 @@ class Phrase(Element):
         """ Set pre-modifiers to the passed parameters. """
         self.pre_modifiers = list(str_to_elt(*mods))
 
-    def add_pre_modifier(self, *mods):
+    def add_pre_modifier(self, *mods, pos=0):
         """ Add one or more pre-modifiers. """
-        self._add_to_list(self.pre_modifiers, *mods)
+        self._add_to_list(self.pre_modifiers, *mods, pos=pos)
 
     def del_pre_modifier(self, *mods):
         """ Delete one or more pre-modifiers if present. """
@@ -835,9 +877,9 @@ class Phrase(Element):
         """ Set complemets to the given ones. """
         self.complements = list(str_to_elt(*mods))
 
-    def add_complement(self, *mods):
+    def add_complement(self, *mods, pos=None):
         """ Add one or more complements. """
-        self._add_to_list(self.complements, *mods)
+        self._add_to_list(self.complements, *mods, pos=pos)
 
     def del_complement(self, *mods):
         """ Delete one or more complements if present. """
@@ -847,9 +889,9 @@ class Phrase(Element):
         """ Set post-modifiers to the given parameters. """
         self.post_modifiers = list(str_to_elt(*mods))
 
-    def add_post_modifier(self, *mods):
+    def add_post_modifier(self, *mods, pos=None):
         """ Add one or more post-modifiers. """
-        self._add_to_list(self.post_modifiers, *mods)
+        self._add_to_list(self.post_modifiers, *mods, pos=pos)
 
     def del_post_modifier(self, *mods):
         """ Delete one or more post-modifiers if present. """
@@ -964,6 +1006,7 @@ class NounPhrase(Phrase):
      * <li>Specifier     (eg, "the")</LI>
      * <LI>PreModifier   (eg, "green")</LI>
      * <LI>Noun (head)   (eg, "apples")</LI>
+     * <LI>complement    (eg, "that you liked")</LI>
      * <LI>PostModifier  (eg, "in the shop")</LI>
      * </UL>
      """
@@ -1026,16 +1069,14 @@ class VerbPhrase(Phrase):
 
     def get_object(self):
         for c in self.complements:
-            if ('discourseFunction' in c.features and
-                c.features['discourseFunction'] == 'OBJECT'):
+            if c.has_feature('discourseFunction', 'OBJECT'):
                 return c
         return None
 
     def remove_object(self):
         compls = list()
         for c in self.complements:
-            if ('discourseFunction' in c.features and
-                c.features['discourseFunction'] == 'OBJECT'):
+            if c.has_feature('discourseFunction', 'OBJECT'):
                 continue
             else:
                 compls.append(c)
@@ -1045,7 +1086,7 @@ class VerbPhrase(Phrase):
         self.remove_object()
         if obj is not None:
             if isinstance(obj, str): obj = String(obj)
-            obj.features['discourseFunction'] = 'OBJECT'
+            obj.set_feature('discourseFunction', 'OBJECT')
             self.complements.insert(0, obj)
 
 
@@ -1110,6 +1151,7 @@ class Clause(Element):
         return (self.pre_modifiers == other.pre_modifiers and
                 self.subj == other.subj and
                 self.vp == other.vp and
+                self.complements == other.complements and
                 self.post_modifiers == other.post_modifiers and
                 super().__eq__(other))
 
@@ -1132,6 +1174,8 @@ class Clause(Element):
         """ Set features on the VerbPhrase. """
         if self.vp:
             self.vp.set_features(features)
+        else:
+            self._features = features
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
@@ -1163,9 +1207,9 @@ class Clause(Element):
         """ Set front-modifiers to the passed parameters. """
         self.front_modifiers = list(str_to_elt(*mods))
 
-    def add_front_modifier(self, *mods):
+    def add_front_modifier(self, *mods, pos=0):
         """ Add one or more front-modifiers. """
-        self._add_to_list(self.front_modifiers, *mods)
+        self._add_to_list(self.front_modifiers, *mods, pos=pos)
 
     def del_front_modifier(self, *mods):
         """ Remove one or more front-modifiers if present. """
@@ -1181,9 +1225,9 @@ class Clause(Element):
         """ Set pre-modifiers to the passed parameters. """
         self.pre_modifiers = list(str_to_elt(*mods))
 
-    def add_pre_modifier(self, *mods):
+    def add_pre_modifier(self, *mods, pos=0):
         """ Add one or more pre-modifiers. """
-        self._add_to_list(self.pre_modifiers, *mods)
+        self._add_to_list(self.pre_modifiers, *mods, pos=pos)
 
     def del_pre_modifier(self, *mods):
         """ Delete one or more pre-modifiers if present. """
@@ -1199,9 +1243,9 @@ class Clause(Element):
         """ Set complemets to the given ones. """
         self.complements = list(str_to_elt(*mods))
 
-    def add_complement(self, *mods):
+    def add_complement(self, *mods, pos=None):
         """ Add one or more complements. """
-        self._add_to_list(self.complements, *mods)
+        self._add_to_list(self.complements, *mods, pos=pos)
 
     def del_complement(self, *mods):
         """ Delete one or more complements if present. """
@@ -1217,9 +1261,9 @@ class Clause(Element):
         """ Set post-modifiers to the given parameters. """
         self.post_modifiers = list(str_to_elt(*mods))
 
-    def add_post_modifier(self, *mods):
+    def add_post_modifier(self, *mods, pos=None):
         """ Add one or more post-modifiers. """
-        self._add_to_list(self.post_modifiers, *mods)
+        self._add_to_list(self.post_modifiers, *mods, pos=pos)
 
     def del_post_modifier(self, *mods):
         """ Delete one or more post-modifiers if present. """

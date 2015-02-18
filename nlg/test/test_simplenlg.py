@@ -204,7 +204,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
     <spec xsi:type="StringElement">
       <val>there+exists</val>
     </spec>
-    <head xsi:type="StringElement">
+    <head xsi:type="WordElement" cat="NOUN">
       <val>x</val>
     </head>
     <postMod xsi:type="NPPhraseSpec" COMPLEMENTISER="such+that">
@@ -226,7 +226,47 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:NLGSpec>
 """
 
+test_data7 = """\
+<?xml version="1.0" encoding="utf-8"?>
+<nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:nlg="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
+<nlg:Request>
 
+<Document cat="PARAGRAPH">
+<child xsi:type="CoordinatedPhraseElement" conj="and">
+  <coord xsi:type="SPhraseSpec">
+    <frontMod xsi:type="StringElement">
+      <val>if</val>
+    </frontMod>
+      <subj xsi:type="WordElement" cat="NOUN">
+        <base>x</base>
+      </subj>
+      <vp xsi:type="VPPhraseSpec">
+        <head xsi:type="WordElement" cat="VERB">
+          <base>equal</base>
+        </head>
+        <compl xsi:type="WordElement" cat="NOUN">
+          <base>y</base>
+        </compl>
+      </vp>
+  </coord>
+  <coord xsi:type="NPPhraseSpec">
+    <head xsi:type="WordElement" cat="NOUN">
+      <val>At%28p%2C+x%29</val>
+    </head>
+    <compl xsi:type="StringElement" COMPLEMENTISER="then">
+        <val>not At%28p%2C+y%29</val>
+      </subj>
+    </compl>
+  </coord>
+</child>
+
+</Document>
+</nlg:Request>
+</nlg:NLGSpec>
+"""
 
 class TestSimplenlgClient(unittest.TestCase):
 
@@ -281,8 +321,12 @@ class TestSimplenlgClient(unittest.TestCase):
         realisation = client.xml_request(test_data5)
         self.assertEqual(expected, realisation)
         
-        expected = 'There exists x such that p.'
-        realisation = client.xml_request(test_data6)
+#        expected = 'There exists x such that p.'
+#        realisation = client.xml_request(test_data6)
+#        self.assertEqual(expected, realisation)
+
+        expected = 'If x equals y and At(p, x) then not At(p, y).'
+        realisation = client.xml_request(test_data7)
         self.assertEqual(expected, realisation)
 
 

@@ -191,18 +191,18 @@ def formula_to_rst(f):
         else:
             m.marker = 'there exist'
         return m
-    if f.op[0] == OP_NOT and is_predicate(f.args[0]):
+    if f.op == OP_NOT and is_predicate(f.args[0]):
         get_log().debug('negated predicate: ' + str(f))
         arg = f.args[0]
         m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
         m._features = {'NEGATED': 'true'}
         return m
-    if f.op[0] == OP_NOT and is_variable(f.args[0]):
+    if f.op == OP_NOT and is_variable(f.args[0]):
         get_log().debug('negated variable: ' + str(f))
         arg = f.args[0]
         m = NounPhrase(PlaceHolder(arg.op), Word('not', 'DETERMINER'))
         return m
-    if f.op[0] == OP_NOT:
+    if f.op == OP_NOT:
         get_log().debug('negated formula: ' + str(f))
         msgs = [formula_to_rst(x) for x in f.args] 
         m = Message('Negation', msgs[0], *msgs[1:])
