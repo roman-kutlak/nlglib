@@ -94,38 +94,62 @@ class Nlg:
         return text
 
 
-def init(settings_path='nlg/resources/simplenlg.settings',
+def init_from_settings(settings_path='nlg/resources/simplenlg.settings',
          server=True, client=True):
-    """ Initialise the simpleNLG client and server. """
+    """ Initialise the simpleNLG client and server using a settings file. """
     get_log().info('Initialising simpleNLG server from settings in "{0}"'
                    .format(settings_path))
+    s = Settings(settings_path)
+    port = s.get_setting('SimplenlgPort')
+    if not port:
+        get_log().error('Could not find value for '
+                        'SimplenlgPort in settings.')
+        port = None
     if server:
-        global simplenlg_server
-        s = Settings(settings_path)
-        host = s.get_setting('SimplenlgHost')
-        port = s.get_setting('SimplenlgPort')
         jar  = s.get_setting('SimplenlgJarPath')
-        if host is None:
-            get_log().error('Could not find value for '
-                            'SimplenlgHost in settings.')
-            get_log().warning('Using default host "localhost"')
-            host = 'localhost'
-        if port is None:
-            get_log().error('Could not find value for '
-                            'SimplenlgPort in settings.')
-            get_log().warning('Using default port "50007"')
-            port = 50007
         if jar is None:
             get_log().error('Could not find value for '
                             'SimplenlgJarPath in settings.')
+            jar = None
+    if client:
+        host = s.get_setting('SimplenlgHost')
+        if host is None:
+            get_log().error('Could not find value for '
+                            'SimplenlgHost in settings.')
+    init(jar, host, port)
+
+
+def init(jar, host, port, server=True, client=True):
+    """ Initialise the simpleNLG client and server. """
+    get_log().info('Initialising simpleNLG server using info: '
+                   '\n\tjar: "{0}" \n\thost" "{1}" \n\tport: "{2}"'
+                   .format(jar, host, port))
+    if not port:
+        get_log().warning('Using default port "50007"')
+        port = 50007
+    if server:
+        global simplenlg_server
+        if not jar:
+            get_log().error('SimpleNLG jar not specified.')
             get_log().error('Initialisation of nlg server failed.')
             import os
             get_log().error('CWD: ' + os.getcwd())
-        else:
-            simplenlg_server = SimpleNLGServer(jar, port)
-            simplenlg_server.start()
+            raise Exception('Initialisation of nlg server failed.')
+        if simplenlg_server:
+            get_log().warning('Initialising SimpleNLG Server when a server is '
+                'already running. Shutting down the previous instance.')
+            shutdown(True, False)
+        simplenlg_server = SimpleNLGServer(jar, port)
+        simplenlg_server.start()
     if client:
         global simplenlg_client
+        if not host:
+            get_log().warning('Using default host "localhost"')
+            host = 'localhost'
+        if simplenlg_client:
+            get_log().warning('Initialising SimpleNLG Client when a client is '
+                'already running. Shutting down the previous instance.')
+            shutdown(False, True)
         simplenlg_client = SimplenlgClient(host, port)
 
 

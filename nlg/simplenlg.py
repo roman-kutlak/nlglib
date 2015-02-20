@@ -1,3 +1,4 @@
+import os
 import socket
 import struct
 import subprocess
@@ -8,8 +9,8 @@ import urllib.parse
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-def get_log():
-    return logging.getLogger(__name__)
+def get_log(name=__name__):
+    return logging.getLogger(name)
 
 
 # simplenlg_path = 'nlg/resources/simplenlg.jar'
@@ -49,7 +50,8 @@ class Socket:
         except OSError as msg:
             self.socket.close()
             self.socket = None
-            get_log().exception('Socket.connect() caught an exception: %s' % msg)
+            get_log().exception('Socket.connect() caught an exception: %s'
+                                % msg)
             raise
 
     def _send(self, msg, length):
@@ -136,6 +138,43 @@ class SimplenlgClient:
             return urllib.parse.unquote_plus(result, encoding='utf-8')
 
 
+class LogPipe(threading.Thread):
+    """ A pipe that runs in a separate thread and logs comming messages.
+    codereview.stackexchange.com/questions/6567/
+    how-to-redirect-a-subprocesses-output-stdout-and-stderr-to-logging-module
+    
+    """
+    
+    def __init__(self, log_fn):
+        """Setup the object with a logger and a loglevel
+        and start the thread
+        """
+        threading.Thread.__init__(self)
+        self.daemon = False
+        self.log_fn = log_fn
+        self.fdRead, self.fdWrite = os.pipe()
+        self.pipeReader = os.fdopen(self.fdRead)
+        self.start()
+
+    def fileno(self):
+        """Return the write file descriptor of the pipe
+        """
+        return self.fdWrite
+
+    def run(self):
+        """Run the thread, logging everything.
+        """
+        for line in iter(self.pipeReader.readline, ''):
+            self.log_fn(line.strip('\n'))
+
+        self.pipeReader.close()
+
+    def close(self):
+        """Close the write end of the pipe.
+        """
+        os.close(self.fdWrite)
+
+
 class SimpleNLGServer(threading.Thread):
     """ A class that can be used as a SimpleNLG server. The actual java server
     is started as a subprocess and listens on the port 50007 for incoming XML
@@ -149,12 +188,15 @@ class SimpleNLGServer(threading.Thread):
     def __init__(self, jar_path, port):
         super(SimpleNLGServer, self).__init__()
         get_log().debug('Creating simpleNLG server (%s)' % jar_path)
+        get_log().debug('simpleNLG server port: ' + str(port))
         self.jar_path = jar_path
         self.port = port
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
         self._ready = False
         self._shutdown = False
+        self.error_log = LogPipe(get_log('nlg.simplenlg.server').error)
+        self.output_log = LogPipe(get_log('nlg.simplenlg.server').debug)
 
     def start(self):
         """ Start the server (calling run() on a different thread) and wait for
@@ -171,21 +213,28 @@ class SimpleNLGServer(threading.Thread):
         signals that the server should be shut down using do_shutdown().
 
         """
-        args = ['java', '-jar', self.jar_path, '-Xmx512MB', self.port]
-        with subprocess.Popen(args, stdin=subprocess.PIPE,
-                                universal_newlines=True) as proc:
+        args = ['java', '-Xmx512m', '-jar', self.jar_path, self.port]
+        with subprocess.Popen(args,
+                              stdin=subprocess.PIPE,
+                              stdout=self.output_log,
+                              stderr=self.error_log,
+                              universal_newlines=True) as proc:
             # use a condition variable to signal that the process is running
             time.sleep(1)
             self._signal_startup_done()
-            get_log().debug('SimpleNLG server (%s): ready to serve language.'
-                            % self.jar_path)
 
             self._wait_for_shutdown()
 
             try:
                 out, errs = proc.communicate('exit\n', timeout=5)
+                if out:
+                    get_log().debug('Server output: "{0}"'.format(out))
+                if errs:
+                    get_log().error('Server errors: "{0}"'.format(errs))
             except subprocess.TimeoutExpired:
                 proc.kill()
+            self.output_log.close()
+            self.error_log.close()
 
     def is_ready(self):
         """ Return true if the server is initialised. """
@@ -218,7 +267,7 @@ class SimpleNLGServer(threading.Thread):
 
     def _wait_for_shutdown(self):
         """ Block until self._shutdown is set to true (by calling shutdown())."""
-        get_log().debug('SimpleNLG server (%s): waiting for shutdown...'
+        get_log().debug('SimpleNLG server (%s): is up and running...'
                 % self.jar_path)
         self.exit_cv.acquire()
         while not self._shutdown:

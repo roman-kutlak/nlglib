@@ -18,6 +18,104 @@ def get_log():
 get_log().addHandler(logging.NullHandler())
 
 
+def Features(*feature_list):
+    """ Create a dictionary of features from given pairs. """
+    return dict(feature_list)
+
+
+# noun features
+class Case:
+    nominative   = ('CASE', 'NOMINATIVE')
+    genitive     = ('CASE', 'GENITIVE')
+    dative       = ('CASE', 'DATIVE')
+    accusative   = ('CASE', 'ACCUSATIVE')
+    vocative     = ('CASE', 'VOCATIVE')
+    locative     = ('CASE', 'LOCATIVE')
+    instrumental = ('CASE', 'INSTRUMENTAL')
+
+
+class Number:
+    singular = ('NUMBER', 'SINGULAR')
+    plural   = ('NUMBER', 'PLURAL')
+    both     = ('NUMBER', 'BOTH')
+
+
+class Gender:
+    masculine = ('GENDER', 'MASCULINE')
+    feminine  = ('GENDER', 'FEMININE')
+    neuter    = ('GENDER', 'NEUTER')
+
+
+# verb features
+class Person:
+    first  = ('PERSON', 'FIRST')
+    second = ('PERSON', 'SECOND')
+    third  = ('PERSON', 'THIRD')
+
+
+class Tense:
+    present = ('TENSE', 'PRESENT')
+    past    = ('TENSE', 'PAST')
+    future  = ('TENSE', 'FUTURE')
+
+# Number -- same as for Nouns
+
+class Aspect:
+    """ http://en.wikipedia.org/wiki/Grammatical_aspect#English """
+    progressive = ('PROGRESSIVE', 'true')
+    perfect     = ('PERFECT', 'true')
+
+
+class Mood:
+    indicative  = ('FORM', 'NORMAL')
+    imperative  = ('FORM', 'IMPERATIVE')
+    subjunctive = ('MODAL', 'would')
+
+
+class Modal:
+     can    = ('MODAL', 'can')
+     could  = ('MODAL', 'could')
+     may    = ('MODAL', 'may')
+     might  = ('MODAL', 'might')
+     must   = ('MODAL', 'must')
+     ought  = ('MODAL', 'ought')
+     shall  = ('MODAL', 'shall')
+     should = ('MODAL', 'should')
+     will   = ('MODAL', 'will')
+     would  = ('MODAL', 'would')
+
+
+class Voice:
+    active  = ('PASSIVE', 'false')
+    passive = ('PASSIVE', 'true')
+
+
+class Form:
+    """ These are defined by SimpleNLG. """
+    bare_infinitive    = ('FORM', 'BARE_INFINITIVE')
+    gerund             = ('FORM', 'GERUND')
+    imperative         = ('FORM', 'IMPERATIVE')
+    infinitive         = ('FORM', 'INFINITIVE')
+    normal             = ('FORM', 'NORMAL')
+    past_participle    = ('FORM', 'PAST_PARTICIPLE')
+    present_participle = ('FORM', 'PRESENT_PARTICIPLE')
+
+
+class InterrogativeType:
+    how      = ('INTERROGATIVE_TYPE', 'HOW')
+    why      = ('INTERROGATIVE_TYPE', 'WHY')
+    where    = ('INTERROGATIVE_TYPE', 'WHERE')
+    how_many = ('INTERROGATIVE_TYPE', 'HOW_MANY')
+    yes_no   = ('INTERROGATIVE_TYPE', 'YES_NO')
+    
+    how_predicate = ('INTERROGATIVE_TYPE', 'HOW_PREDICATE')
+    what_object   = ('INTERROGATIVE_TYPE', 'WHAT_OBJECT')
+    what_subject  = ('INTERROGATIVE_TYPE', 'WHAT_SUBJECT')
+    who_object    = ('INTERROGATIVE_TYPE', 'WHO_OBJECT')
+    who_subject   = ('INTERROGATIVE_TYPE', 'WHO_SUBJECT')
+    who_indirect_object = ('INTERROGATIVE_TYPE', 'WHO_INDIRECT_OBJECT')
+
+
 # functions for creating word elements
 
 # decorator
@@ -153,7 +251,7 @@ def AdvP(head, *complements, features=None):
 
 def template(word, lexicon, pos=POS_ANY):
     """ Create syntactic template for expressing a word. """
-    pass
+    assert False, "not implemented"
 
 
 def promote_to_clause(e):
@@ -269,11 +367,19 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_string(self, node):
         neg = 'not ' if node.has_feature('NEGATED', 'true') else ''
-        text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
-                '{inner}<val>{neg}{val}</val>{sep}'
-                '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
-                                               neg=neg, **self._get_args())
+#        text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
+#                '{inner}<val>{neg}{val}</val>{sep}'
+#                '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
+#                                               neg=neg, **self._get_args())
+        features = node.features_to_xml_attributes()
+        text = ('{outer}<{tag} xsi:type="WordElement" '
+                'cat="ANY" canned="true" {f}>{sep}'
+                '{inner}<base>{neg}{word}</base>{sep}'
+                '{outer}</{tag}>{sep}').format(word=quote_plus(str(node.value)),
+                                               neg=neg,
+                                               **self._get_args(f=features))
         self.xml += text
+
 
     def visit_word(self, node):
         # a bug in simplenlg treats 'is' differently from 'be'
