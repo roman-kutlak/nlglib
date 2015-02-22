@@ -927,7 +927,7 @@ def to_prover_str(f):
         else:
             return str(f)
     # first make sure each op has at most two args and then use the helper.
-    return '{0} .'.format(to_prover(deepen(f)))
+    return to_prover(deepen(f))
 
 
 # #############################  PARSING  ################################### #
