@@ -275,6 +275,10 @@ class RealisationVisitor:
         node.spec.accept(self)
         for c in node.pre_modifiers: c.accept(self)
         node.head.accept(self)
+        if len(node.complements) > 0:
+            if node.complements[0].has_feature('COMPLEMENTISER'):
+                self.text += node.complements[0].get_feature('COMPLEMENTISER')
+                self.text += ' '
         for c in node.complements: c.accept(self)
         for c in node.post_modifiers: c.accept(self)
     
@@ -306,9 +310,11 @@ class RealisationVisitor:
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'does not '
             node.head.accept(self)
+        if len(node.complements) > 0:
+            if node.complements[0].has_feature('COMPLEMENTISER'):
+                self.text += ' {0} '.format(
+                    node.complements[0].get_feature('COMPLEMENTISER'))
         for c in node.complements:
-            if c.has_feature('COMPLEMENTISER'):
-                self.text += ' {0} '.format(c.get_feature('COMPLEMENTISER'))
             c.accept(self)
         for c in node.post_modifiers: c.accept(self)
     
