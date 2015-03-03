@@ -68,28 +68,33 @@ def lexicalise_message_spec(msg):
 
     """
     get_log().debug('Lexicalising message specs: {0}'.format(repr(msg)))
-    template = templates.template(msg.name)
-    if template is None:
-        get_log().warning('No sentence template for "%s"' % msg.name)
-        result = String(str(msg))
-        result.add_features(msg._features)
-        return result
-    if isinstance(template, str):
-        result = String(template)
-        result.add_features(msg._features)
-        return result
-    template.add_features(msg._features)
-    # find arguments
-    args = template.arguments()
-    # if there are any arguments, replace them by values
-    # TODO: check that features are propagated
-    for arg in args:
-        get_log().debug('Replacing\n{0} in \n{1}.'
-                        .format(str(arg), repr(template)))
-        val = msg.value_for(arg.id)
-        get_log().debug(' val = {0}'.format(repr(val)))
-        template.replace(arg, lexicalise(val))
-    return template
+    try:
+        template = templates.template(msg.name)
+        if template is None:
+            get_log().warning('No sentence template for "%s"' % msg.name)
+            result = String(str(msg))
+            result.add_features(msg._features)
+            return result
+        if isinstance(template, str):
+            result = String(template)
+            result.add_features(msg._features)
+            return result
+        template.add_features(msg._features)
+        # find arguments
+        args = template.arguments()
+        # if there are any arguments, replace them by values
+        # TODO: check that features are propagated
+        for arg in args:
+            get_log().debug('Replacing\n{0} in \n{1}.'
+                            .format(str(arg), repr(template)))
+            val = msg.value_for(arg.id)
+            get_log().debug(' val = {0}'.format(repr(val)))
+            template.replace(arg, lexicalise(val))
+        return template
+    except Exception as e:
+        get_log().exception(str(e))
+        get_log().info('\tmessage: ' + repr(msg))
+        get_log().info('\ttemplate: ' + repr(template))
 
 
 # TODO: lexicalisation should replace Messages by {NLG Elements} and use
@@ -174,9 +179,13 @@ def lexicalise_message(msg, parenthesis=False):
             cl.add_post_modifier(')')
         result.vp.add_complement(cl)
     else:
-        get_log().debug('RST is: ' + repr(msg.rst))
+        get_log().debug('RST relation: ' + repr(msg))
+        get_log().debug('RST nucleus:  ' + repr(nucleus))
+        get_log().debug('RST satelite: ' + repr(satelites))
         result = Message(msg.rst, nucleus, *satelites)
         result.marker = msg.marker
+        # TODO: decide how to handle features. Add to all? Drop?
+        #return ([nucleus] if nucleus else []) + [x for x in satelites]
     result.add_features(features)
     return result
 
@@ -226,7 +235,7 @@ into = Word('into', 'PREPOSITION')
 from_ = Word('from', 'PREPOSITION')
 to = Word('to', 'PREPOSITION')
 
-you = None # Word('you', 'PRONOUN')
+you = Element() # Word('you', 'PRONOUN')
 
 load_truck = Clause(you, VerbPhrase(put, PlaceHolder(0), PrepositionalPhrase(into, PlaceHolder(1))))
 drive_truck = Clause(you, VerbPhrase(drive, PlaceHolder(0),
@@ -396,7 +405,7 @@ class SentenceTemplates:
         self.templates['Perth'] = Clause(you, VerbPhrase('drive to', 'Perth'))
         self.templates['Kincardine'] = Clause(you, VerbPhrase('drive to', 'Kincardine'))
         self.templates['Stirling'] = Clause(you, VerbPhrase('drive to', 'Stirling'))
-        self.templates['Inverness'] = Clause(you, VerbPhrase('drive to', 'Inverness'))
+        self.templates['Inverness'] = Clause(you, VP('drive', PP('to', NNP('Inverness'))))
         self.templates['Aberdeen'] = Clause(you, VerbPhrase('drive to', 'Aberdeen'))
 
         self.templates['drive_to_Edinburgh'] = Clause(you, VerbPhrase('drive to', 'Edinburgh'))

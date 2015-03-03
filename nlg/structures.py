@@ -39,6 +39,20 @@ RST = enum('Elaboration', 'Exemplification',
            )
 
 
+def _flatten(lst):
+    """ Return a list where all elemts are items. 
+    Any encountered iterable will be expanded. Method is recursive.
+
+    """
+    result = list()
+    for x in lst:
+        if isinstance(x, list):
+            for y in _flatten(x):
+                result.append(y)
+        else:
+            if x is not None: result.append(x)
+    return result
+
 class Document:
     """ The class Document represents a container holding information about
         a document - title and a list of sections.
@@ -113,7 +127,7 @@ class Paragraph:
     """
     def __init__(self, *messages):
         """ Create a new Paragraph with zero or more messages. """
-        self.messages = [m for m in messages if m is not None]
+        self.messages = _flatten(messages)
 
     def __repr__(self):
         descr = '; '.join([repr(m) for m in self.messages if m is not None])
@@ -180,6 +194,20 @@ class Message:
             else:
                 yield x
 
+    def del_feature(self, feat, val=None):
+        """ Delete a feature, if the element has it else do nothing.
+        If val is None, delete whathever value is assigned to the feature.
+        Otherwise only delete the feature if it has matching value.
+
+        """
+        if feat in self._features:
+            if val is not None: del self._features[feat]
+            elif val == self._features[feat]: del self._features[feat]
+
+    def add_features(self, features):
+        """ Add the given features (dict) to the existing features. """
+        for k, v in features.items():
+            self._features[k] = v
 
 class RhetRep:
     """ A representation of a rhetorical structure.
@@ -272,7 +300,21 @@ class MsgSpec:
     @classmethod
     def instantiate(Klass, data):
         return None
+    
+    def del_feature(self, feat, val=None):
+        """ Delete a feature, if the element has it else do nothing.
+        If val is None, delete whathever value is assigned to the feature.
+        Otherwise only delete the feature if it has matching value.
 
+        """
+        if feat in self._features:
+            if val is not None: del self._features[feat]
+            elif val == self._features[feat]: del self._features[feat]
+
+    def add_features(self, features):
+        """ Add the given features (dict) to the existing features. """
+        for k, v in features.items():
+            self._features[k] = v
 
 class DiscourseContext:
     """ A class that captures the discourse referents and history. """
@@ -851,11 +893,11 @@ class Phrase(Element):
 
     def set_front_modifiers(self, *mods):
         """ Set front-modifiers to the passed parameters. """
-        self.front_modifiers = list(str_to_elt(*mods))
+        self.front_modifiers = str_to_elt(*mods)
 
     def add_front_modifier(self, *mods, pos=0):
         """ Add one or more front-modifiers. """
-        self._add_to_list(self.front_modifiers, *mods, pos=pos)
+        self._add_to_list(self.front_modifiers, *str_to_elt(*mods), pos=pos)
 
     def del_front_modifier(self, *mods):
         """ Remove one or more front-modifiers if present. """
@@ -867,7 +909,7 @@ class Phrase(Element):
 
     def add_pre_modifier(self, *mods, pos=0):
         """ Add one or more pre-modifiers. """
-        self._add_to_list(self.pre_modifiers, *mods, pos=pos)
+        self._add_to_list(self.pre_modifiers, *str_to_elt(*mods), pos=pos)
 
     def del_pre_modifier(self, *mods):
         """ Delete one or more pre-modifiers if present. """
@@ -879,7 +921,7 @@ class Phrase(Element):
 
     def add_complement(self, *mods, pos=None):
         """ Add one or more complements. """
-        self._add_to_list(self.complements, *mods, pos=pos)
+        self._add_to_list(self.complements, *str_to_elt(*mods), pos=pos)
 
     def del_complement(self, *mods):
         """ Delete one or more complements if present. """
@@ -891,7 +933,7 @@ class Phrase(Element):
 
     def add_post_modifier(self, *mods, pos=None):
         """ Add one or more post-modifiers. """
-        self._add_to_list(self.post_modifiers, *mods, pos=pos)
+        self._add_to_list(self.post_modifiers, *str_to_elt(*mods), pos=pos)
 
     def del_post_modifier(self, *mods):
         """ Delete one or more post-modifiers if present. """
@@ -1123,7 +1165,7 @@ class Clause(Element):
 
     """
 
-    def __init__(self, subj=Element(), vp=Element(), features=None, **kwargs):
+    def __init__(self, subj=None, vp=Element(), features=None, **kwargs):
         super().__init__(CLAUSE, features)
         self.front_modifiers = list()
         self.pre_modifiers = list()
@@ -1158,7 +1200,7 @@ class Clause(Element):
     def set_subj(self, subj):
         """ Set the subject of the clause. """
         # convert str to String if necessary
-        self.subj = String(subj) if isinstance(subj, str) else subj
+        self.subj = String(subj) if isinstance(subj, str) else (subj or Element())
 
     def set_vp(self, vp):
         """ Set the vp of the clause. """
@@ -1209,7 +1251,7 @@ class Clause(Element):
 
     def add_front_modifier(self, *mods, pos=0):
         """ Add one or more front-modifiers. """
-        self._add_to_list(self.front_modifiers, *mods, pos=pos)
+        self._add_to_list(self.front_modifiers, *str_to_elt(*mods), pos=pos)
 
     def del_front_modifier(self, *mods):
         """ Remove one or more front-modifiers if present. """
@@ -1227,7 +1269,7 @@ class Clause(Element):
 
     def add_pre_modifier(self, *mods, pos=0):
         """ Add one or more pre-modifiers. """
-        self._add_to_list(self.pre_modifiers, *mods, pos=pos)
+        self._add_to_list(self.pre_modifiers, *str_to_elt(*mods), pos=pos)
 
     def del_pre_modifier(self, *mods):
         """ Delete one or more pre-modifiers if present. """
@@ -1245,7 +1287,7 @@ class Clause(Element):
 
     def add_complement(self, *mods, pos=None):
         """ Add one or more complements. """
-        self._add_to_list(self.complements, *mods, pos=pos)
+        self._add_to_list(self.complements, *str_to_elt(*mods), pos=pos)
 
     def del_complement(self, *mods):
         """ Delete one or more complements if present. """
@@ -1263,7 +1305,7 @@ class Clause(Element):
 
     def add_post_modifier(self, *mods, pos=None):
         """ Add one or more post-modifiers. """
-        self._add_to_list(self.post_modifiers, *mods, pos=pos)
+        self._add_to_list(self.post_modifiers, *str_to_elt(*mods), pos=pos)
 
     def del_post_modifier(self, *mods):
         """ Delete one or more post-modifiers if present. """

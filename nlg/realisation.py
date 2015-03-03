@@ -288,9 +288,13 @@ class RealisationVisitor:
         if head == 'have':
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'do not have '
+            else:
+                self.text += 'have '
         elif head == 'has':
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'does not have '
+            else:
+                self.text += 'has '
         elif (head == 'be' or head == 'is'):
             if node.has_feature('NUMBER', 'PLURAL'):
                 self.text += 'are '
@@ -345,7 +349,10 @@ def simple_realisation(struct):
     v = RealisationVisitor()
     struct.accept(v)
     result = str(v).replace(' ,', ',')
-    return '{0}{1}.'.format(result[:1].upper(), result[1:])
+    if result:
+        return '{0}{1}.'.format(result[:1].upper(), result[1:])
+    else:
+        return ''
 
 
 
