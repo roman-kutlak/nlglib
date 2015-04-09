@@ -289,7 +289,12 @@ class RealisationVisitor:
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
         get_log().debug('head of VP is "{0}"'.format(head))
-        if head == 'have':
+        if node.has_feature('MODAL'):
+          self.text += ' ' + node.get_feature('MODAL') + ' '
+          if node.has_feature('NEGATED', 'true'):
+                self.text += 'not '
+          node.head.accept(self)
+        elif head == 'have':
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'do not have '
             else:

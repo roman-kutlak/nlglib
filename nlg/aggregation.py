@@ -76,7 +76,7 @@ def try_to_aggregate(sent1, sent2, marker='and'):
                 get_log().debug('Aggregating:\n\t%s\n\t%s' % (str(s1), str(s2)))
                 cc = add_elements(e1, e2, conj=marker)
                 s1.replace(replacement, cc)
-                get_log().debug('Result: %s' % repr(s1))
+                get_log().debug('Result of aggregation:\n%s' % repr(s1))
                 return s1
 #            else:
 #                print('Did not aggregate:\n\t%s\n\t%s' % (str(s1), str(s2)))
@@ -152,14 +152,16 @@ def _can_skip(elements, j):
     return (elements[j] is None)
 
 
-def aggregate(msg, limit):
+def aggregate(msg, limit=5):
     """ """
     if msg is None:
         return None
     elif isinstance(msg, String):
         return msg
+    elif isinstance(msg, list):
+        return aggregate_list(msg)
     elif isinstance(msg, Clause):
-        return msg
+        return aggregate_clause(msg)
     elif isinstance(msg, Coordination):
         return aggregate_coordination(msg, limit)
     elif isinstance(msg, MsgSpec):
@@ -178,17 +180,38 @@ def aggregate(msg, limit):
         return msg
 
 
+def aggregate_list(lst):
+    get_log().debug('Aggregating a list.')
+    elements = []
+    if len(lst) > 1:
+        elements = synt_aggregation([aggregate(x) for x in lst])
+    elif len(lst) == 1:
+        elements.append(aggregate(lst[0]))
+    return elements
+
+def aggregate_clause(clause, marker='and'):
+    """Check if clause contains a coordinated element and if so, aggregate. """
+    get_log().debug('Aggregating a clause:\n' + repr(clause))
+    subj = aggregate(clause.subj, 10)
+    obj = aggregate(clause.complements, 10)
+    vp = aggregate(clause.vp, 10)
+    vp.add_features(clause.vp._features)
+    c = deepcopy(clause)
+    c.set_subj(subj)
+    c.set_vp(vp)
+    c.set_complements(*obj)
+    get_log().debug('...result:\n' + repr(c))
+    return c
+
 def aggregate_coordination(cc, limit):
     get_log().debug('Aggregating coordination.')
-    elements = []
-    if len(cc.coords) > 1:
-        elements = synt_aggregation(cc.coords, limit, marker=cc.conj)
-    elif len(cc.coords) == 1:
-        elements.append[cc.coords[0]]
-    if len(elements) == 1:
-        return elements[0]
+    coords = aggregate_list(cc.coords)
+    if len(coords) == 1:
+        result = coords[0]
+        result.add_features(cc._features)
+        return result
     else:
-        return Coordination(*elements, conj=cc.conj, features=cc._features)
+        return Coordination(*coords, conj=cc.conj, features=cc._features)
 
 
 def aggregate_message(msg, limit):

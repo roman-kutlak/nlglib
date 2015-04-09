@@ -763,12 +763,12 @@ class Coordination(Element):
     def __hash__(self):
         assert False, 'Coordination Element is not hashable'
 
-    def add_front_modifier(self, *mods):
+    def add_front_modifier(self, *mods, pos=0):
         """ Add front modifiers to the first element. """
         # promote the element to a phrase
         if not is_phrase_t(self.coords[0]):
             self.coords[0] = NounPhrase(self.coords[0])
-        self.coords[0].add_front_modifier(*mods)
+        self.coords[0].add_front_modifier(*mods, pos=pos)
     
     def add_pre_modifier(self, *mods, pos=0):
         """ Add pre-modifiers to the first element. """

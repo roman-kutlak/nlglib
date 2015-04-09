@@ -1,4 +1,5 @@
 import numbers
+import random
 from pyparsing import (nums, alphas, alphanums, restOfLine, Word,
                        Group, Optional, Keyword, Literal, CaselessKeyword,
                        Combine, Forward, Suppress, opAssoc, operatorPrecedence,
@@ -10,18 +11,21 @@ def get_log():
     return logging.getLogger(__name__)
 
 
+from nlg.qm import qm
+
+
 #______________________________________________________________________________
 
 OP_NOT = '~'
 OP_OR  = '|'
 OP_AND = '&'
 
-OP_EQUALS     = '%'
-OP_NOTEQUALS  = '^'
+OP_EQUALS     = '=='
+OP_NOTEQUALS  = '!='
 
-OP_IMPLIES    = '>>'
-OP_IMPLIED_BY = '<<'
-OP_EQUIVALENT = '<->'
+OP_IMPLIES    = '==>'
+OP_IMPLIED_BY = '<=='
+OP_EQUIVALENT = '<=>'
 
 OP_FORALL = 'forall'
 OP_EXISTS = 'exists'
@@ -29,11 +33,15 @@ OP_EXISTS = 'exists'
 OP_TRUE   = 'TRUE'
 OP_FALSE  = 'FALSE'
 
-LOGIC_OPS = [OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+
+NULLARY_OPS = [OP_TRUE, OP_FALSE]
 UNARY_LOGIC_OPS = [OP_NOT]
 BINARY_LOGIC_OPS = [OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
 BINARY_OPS = BINARY_LOGIC_OPS + [OP_EQUALS, OP_NOTEQUALS]
 CONDITIONAL_LOGIC_OPS = [OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+LOGIC_OPS = [OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
+NO_OPS = [OP_FORALL, OP_EXISTS, OP_TRUE, OP_FALSE]
+
 
 # ∀ ?x: Happy(?x) ⇔ ¬Sad(?x)
 OPS = {
@@ -251,7 +259,7 @@ def is_prop_symbol(s):
     """A proposition logic symbol is an initial-uppercase string other than
     TRUE or FALSE."""
     try:
-        return is_symbol(s) and s[0].isupper() and s != 'TRUE' and s != 'FALSE'
+        return is_symbol(s) and s[0].isupper() and (not s in NO_OPS)
     except:
         return False
 
@@ -300,6 +308,35 @@ def is_true(f):
 def is_false(f):
     """ Return True if the operator is OP_FALSE (ignore case). """
     return str(f.op).upper() == OP_FALSE
+
+
+def is_nullary_op(op):
+    """Return True if operator can takes no arguments (it is nullary). """
+    return (is_symbol(op) or op in NULLARY_OPS)
+
+
+def is_unary_op(op):
+    """Return True if operator can take 1 argument (it is unary). """
+    try:
+        return (is_prop_symbol(op.upper()) or op in UNARY_LOGIC_OPS)
+    except:
+        return False
+
+
+def is_binary_op(op):
+    """Return True if operator can take 2 arguments (it is binary). """
+    try:
+        return (is_prop_symbol(op.upper()) or op in BINARY_OPS)
+    except:
+        return False
+
+
+def is_nary_op(op):
+    """Return True if operator can take n arguments (it is n-ary). """
+    try:
+        return (is_prop_symbol(op.upper()) or op in [OP_AND, OP_OR])
+    except:
+        return False
 
 
 def vars(s):
@@ -427,7 +464,7 @@ def flatten(f):
         return f
 
 
-def simplify(f):
+def kleene(f):
     """ Take a FOL formula and try to simplify it. """
 #    print('\nSimplifying op "{0}" args "{1}"'.format(f.op, f.args))
     if is_quantified(f): # remove variable that are not in f
@@ -435,106 +472,111 @@ def simplify(f):
         fv = fvars(f.args[0])
         needed = vars & fv
         if needed == set():
-            return simplify(f.args[0])
+            return kleene(f.args[0])
         else:
-            arg = simplify(f.args[0])
+            arg = kleene(f.args[0])
             variables = [v for v in f.vars if v in needed] # keep the same order
             if (arg != f.args[0]) or (len(needed) < len(f.vars)):
-                return simplify(Quantifier(f.op, variables, arg))
+                return kleene(Quantifier(f.op, variables, arg))
             else:
                 return f
     elif f.op == OP_NOT:
         arg = f.args[0]
         if arg.op == OP_NOT: # double neg
-            return simplify(arg.args[0])
+            return kleene(arg.args[0])
         elif is_true(arg): # -TRUE --> FALSE
             return Expr(OP_FALSE)
         elif is_false(arg): # -FALSE --> TRUE
             return Expr(OP_TRUE)
         elif arg.op == OP_EQUALS:
             return Expr(OP_NOTEQUALS,
-                        simplify(arg.args[0]),
-                        simplify(arg.args[1]))
+                        kleene(arg.args[0]),
+                        kleene(arg.args[1]))
         elif arg.op == OP_NOTEQUALS:
             return Expr(OP_EQUALS,
-                        simplify(arg.args[0]),
-                        simplify(arg.args[1]))
+                        kleene(arg.args[0]),
+                        kleene(arg.args[1]))
         else:
-            arg2 = simplify(arg)
+            arg2 = kleene(arg)
             if arg2 != arg:
-                return simplify(Expr(OP_NOT, arg2))
+                return kleene(Expr(OP_NOT, arg2))
             return f
     elif f.op == OP_AND:
         if any(map(is_false, f.args)): # if one conjuct is FALSE, expr is FALSE
             return Expr(OP_FALSE)
         elif len(f.args) == 1:
-            return simplify(f.args[0])
+            return kleene(f.args[0])
         else: # remove conjuncts that are TRUE and simplify args
-            args = list(map(simplify, filter(lambda x: not is_true(x),f.args)))
-            # FIXME: remove arguments that appear multiple times in AND and OR
+            args = list(map(kleene, filter(lambda x: not is_true(x),f.args)))
             used = set()
-            if args != f.args:
-                unique = []
-                for arg in args:
-                    if arg not in used:
-                        used.add(arg)
-                        unique.append(arg)
-                return simplify(Expr(OP_AND, *unique))
+            unique = []
+            for arg in args:
+                if arg not in used:
+                    used.add(arg)
+                    unique.append(arg)
+            if args != unique or f.args != unique:
+                return kleene(Expr(OP_AND, *unique))
             else:
                 return f
     elif f.op == OP_OR:
         if any(map(is_true, f.args)): # if one conjuct is TRUE, expr is TRUE
             return Expr(OP_TRUE)
         elif len(f.args) == 1:
-            return simplify(f.args[0])
-        else: # remove conjuncts that are TRUE and simplify args
-            args = list(map(simplify, filter(lambda x: not is_false(x),f.args)))
-            if args != f.args:
-                return simplify(Expr(OP_OR, *args))
+            return kleene(f.args[0])
+        else: # remove conjuncts that are FALSE and simplify args
+            args = list(map(kleene, filter(lambda x: not is_false(x),f.args)))
+            used = set()
+            unique = []
+            for arg in args:
+                if arg not in used:
+                    used.add(arg)
+                    unique.append(arg)
+            if args != unique or f.args != unique:
+                return kleene(Expr(OP_OR, *unique))
             else:
                 return f
     elif f.op == OP_IMPLIES:
         if is_false(f.args[0]) or is_true(f.args[1]):
             return Expr(OP_TRUE)
         elif is_true(f.args[0]):
-            return simplify(f.args[1])
+            return kleene(f.args[1])
         elif is_false(f.args[1]):
-            return simplify(Expr(OP_NOT, simplify(f.args[0])))
+            return kleene(Expr(OP_NOT, kleene(f.args[0])))
         else:
-            arg1 = simplify(f.args[0])
-            arg2 = simplify(f.args[1])
+            arg1 = kleene(f.args[0])
+            arg2 = kleene(f.args[1])
             if arg1 != f.args[0] or arg2 != f.args[1]:
-                return simplify(Expr(OP_IMPLIES, arg1, arg2))
+                return kleene(Expr(OP_IMPLIES, arg1, arg2))
             else:
                 return f
     elif f.op == OP_IMPLIED_BY:
         if is_false(f.args[1]) or is_true(f.args[0]):
             return Expr(OP_TRUE)
         elif is_true(f.args[1]):
-            return simplify(f.args[0])
+            return kleene(f.args[0])
         elif is_false(f.args[0]):
-            return simplify(Expr(OP_NOT, simplify(f.args[1])))
+            return kleene(Expr(OP_NOT, kleene(f.args[1])))
         else:
-            arg1 = simplify(f.args[0])
-            arg2 = simplify(f.args[1])
+            arg1 = kleene(f.args[0])
+            arg2 = kleene(f.args[1])
             if arg1 != f.args[0] or arg2 != f.args[1]:
-                return simplify(Expr(OP_IMPLIES, arg1, arg2))
+                return kleene(Expr(OP_IMPLIES, arg1, arg2))
             else:
                 return f
     elif f.op == OP_EQUIVALENT:
         if is_true(f.args[0]):
-            return simplify(f.args[1])
+            return kleene(f.args[1])
         elif is_true(f.args[1]):
-            return simplify(f.args[0])
+            return kleene(f.args[0])
         elif is_false(f.args[0]):
-            return simplify(Expr(OP_NOT, simplify(f.args[1])))
+            return kleene(Expr(OP_NOT, kleene(f.args[1])))
         elif is_false(f.args[1]):
-            return simplify(Expr(OP_NOT, simplify(f.args[0])))
+            return kleene(Expr(OP_NOT, kleene(f.args[0])))
         else:
-            arg1 = simplify(f.args[0])
-            arg2 = simplify(f.args[1])
+            arg1 = kleene(f.args[0])
+            arg2 = kleene(f.args[1])
             if arg1 != f.args[0] or arg2 != f.args[1]:
-                return simplify(Expr(OP_EQUIVALENT, arg1, arg2))
+                return kleene(Expr(OP_EQUIVALENT, arg1, arg2))
             else:
                 return f
     else:
@@ -608,7 +650,7 @@ def push_neg(f):
 
 def nnf(f):
     """ Create a Negated Normal Form """
-    return push_neg(remove_conditionals(simplify(f)))
+    return push_neg(remove_conditionals(kleene(f)))
 
 
 def unique_vars(f):
@@ -886,7 +928,11 @@ def to_prover_str(f):
     """ Return a string representation of f that can be parsed by Prover9. """
     def to_prover(f):
         """ Function assumes each op has at most two args. """
-        if f.op == OP_NOT:
+        if f.op == OP_TRUE:
+            return '(TRUE | -TRUE)' # no constant for true?
+        elif f.op == OP_FALSE:
+            return '(TRUE & -TRUE)' # no constant for false?
+        elif f.op == OP_NOT:
             return ('-({arg})'.format(arg=to_prover(f.args[0])))
         elif f.op == OP_AND:
             return ('({arg1} & {arg2})'
@@ -929,6 +975,163 @@ def to_prover_str(f):
     # first make sure each op has at most two args and then use the helper.
     return to_prover(deepen(f))
 
+
+def evaluate_prop(f, assignment):
+    """Evaluate a propositional formula with respect to the given assignment.
+#    The assignment should be a dict with 2 keys: 'True' and 'False'. The values
+#    for those keys should be a collection of strings corresponding to 
+#    the operator names - predicates with 0 arity (acting as propositions).
+    The assignment maps propositions (0-ary predicates) to True or False.
+
+    """
+    if f.op == OP_TRUE:
+        return True
+    elif f.op == OP_FALSE:
+        return False
+    elif f.op == OP_NOT:
+        return not evaluate_prop(f.args[0], assignment)
+    elif f.op == OP_AND:
+        return all(evaluate_prop(x, assignment) == True for x in f.args)
+    elif f.op == OP_OR:
+        return any(evaluate_prop(x, assignment) == True for x in f.args)
+    elif f.op == OP_IMPLIES:
+        args = [evaluate_prop(x, assignment) for x in f.args]
+        return not (args[0] == True and args[1] == False)
+    elif f.op == OP_IMPLIED_BY:
+        args = [evaluate_prop(x, assignment) for x in f.args]
+        return not (args[0] == False and args[1] == True)
+    elif f.op == OP_EQUIVALENT:
+        args = [evaluate_prop(x, assignment) for x in f.args]
+        return (args[0] == args[1])
+    elif is_predicate(f) and len(f.args) == 0:
+        try:
+            return assignment[f.op]
+        except KeyError:
+            raise EvaluationError('Predicate "{0}" is not in the assignment.'.
+                                  format(f.op))
+    else:
+        msg = ('The Quine-McCluskey algorithm is defined only for '
+               'propositional logic. The operator "{0}" is not defined '
+               'in propositional logic.'.format(f))
+        raise EvaluationError(msg)
+
+
+def collect_propositions(f):
+    """Collect propositions (zero-place predicates)."""
+    def helper(f, result):
+        if is_predicate(f) and len(f.args) == 0:
+            result.add(f.op)
+        else:
+            for x in f.args:
+                helper(x, result)
+        return result
+    return sorted(helper(f, set()))
+
+
+def mk_assignment(val, propositions):
+    """Assign True or False to `vars` depending on value.
+    The value is an integer representing binary values of the vars.
+    E.g., 5 would result in the assignment .., 0, 0, 1, 0, 1.
+
+    """
+    result = {}
+    mask = 1
+    vars = list(reversed(propositions))
+    for i in range(len(vars)):
+        result[vars[i]] = (mask & (val >> i)) == 1
+    return result
+
+
+def calculate_output(f):
+    """Calculate the output of the given propositional formula.
+    Return 3 lists of numbers corresponsing to when a formula evaluates to
+    True, False and don't cate based on alphabetically sorted predicates. 
+    
+    """
+    propositions = collect_propositions(f)
+    num_props = len(propositions)
+    true, false, dc = [], [], []
+    for i in range(2**num_props):
+        assignment = mk_assignment(i, propositions)
+        y = evaluate_prop(f, assignment)
+        if y:
+            true.append(i)
+        elif not y:
+            false.append(i)
+        else: # this won't happen with `evaluate_prop()`.
+            dc.append(i)
+    return true, false, dc
+
+
+def mk_formula_from(ones, vars=None):
+    """Return a formula corresponding to the output of QM algorithm.
+    >>> mk_formula_from(['X100', '1X11', '10X0'])
+    ((B & ~C & ~D) | (A & C & D) | (A & ~B & ~D))
+    
+    """
+    # is it a contradiction?
+    if ones == []:
+        return Expr(OP_FALSE)
+    first = ones[0]
+    # is it a tautology?
+    if all(x.lower() == 'x' for x in first):
+        return Expr(OP_TRUE)
+    # for anything else, return the sum of products
+    return Expr(OP_OR, *[mk_product(prod, vars) for prod in ones])
+
+
+def mk_product(string, vars=None):
+    """Make a product (OP_AND) from a string of 1, 0 and X chars. """
+    num_vars = len(string)
+    if vars is not None:
+        assert (len(vars) == num_vars)
+    else:
+        vars = [var_for_idx(i) for i in range(num_vars)]
+    args = []
+    for i in range(num_vars):
+        if string[i] == '1':
+            args.append(Expr(vars[i]))
+        elif string[i] == '0':
+            args.append(~Expr(vars[i]))
+    return Expr(OP_AND, *args)
+
+
+def var_for_idx(idx, padding=-1):
+    """Return a variable name for a given index.
+    Start from the letters of the alphabet and when Z is reached, add counter.
+    idx -- integer index; 0 = A, 25 = Z, 26 = A1
+    padding -- integer, default = -1: padding (zeros) for the counter
+    >>> var_for_idx(0, 3)
+    'A000'
+    
+    """
+    num_letters = 26 # ord('Z') - ord('A') = 25 for ASCII
+    ctr = idx // num_letters
+    letter = chr(65 + (idx % num_letters))
+    if ctr > 0 or padding > -1:
+        return ('{letter}{counter:{width}}'.
+                format(letter=letter, counter=ctr, width=padding))
+    return '{letter}'.format(letter=letter)
+
+
+def minimise_qm(f):
+    """Calculate the output of a predicate logic formula and return a minimal
+    form created by the Quine-McCluskey algorithm.
+    
+    """
+    return kleene(mk_formula_from(
+        qm(*(calculate_output(f))), collect_propositions(f)))
+
+
+def drop_quant(f):
+    """Remove quantifiers from a formula. """
+    def drop(f):
+        if is_quantified(f):
+            return drop(f.args[0])
+        else:
+            return f
+    return drop(pull_quants(f))
+    
 
 # #############################  PARSING  ################################### #
 
@@ -1149,6 +1352,68 @@ def expr(s):
 #col:1)
 
 ###
+
+
+# ############################  GENERATING  ################################# #
+
+#    variable ->  a..z
+#    predicate -> A..Z
+#    atomic_formula -> predicate(variable1, ..., variableN)
+#    formula -> atomic_formula
+#    conjunction -> formula & formula
+#    disjunction -> formula | formula
+#    implication -> formula ==> formula
+
+def gen_var(upper=25):
+    return var_for_idx(random.randint(0, upper)).lower()
+
+
+def gen_pred(upper=25):
+    return var_for_idx(random.randint(0, upper))
+
+
+def gen_var_or_pred(upper=25):
+    var = gen_var(upper)
+    pred = gen_pred(upper)
+    return random.choice( (var, pred) )
+
+
+def gen_op(upper=25):
+    choices = LOGIC_OPS + [gen_var(upper), OP_TRUE, OP_FALSE]
+    choices += choices
+    return random.choice(choices)
+
+
+# do this only once; increase chance of selecting & and |
+and_or = [OP_AND, OP_OR]
+choices =  and_or + CONDITIONAL_LOGIC_OPS + and_or
+choices += and_or + [OP_TRUE, OP_FALSE] + and_or
+choices += and_or + choices + and_or
+
+
+def gen_prop_op():
+    return random.choice(choices)
+
+
+def gen_prop_formula(n, upper=25):
+    if n <= 1: return gen_pred(upper)
+    op = gen_prop_op()
+    if is_nullary_op(op):
+        op2 = gen_prop_op()
+        while not is_binary_op(op2):
+            op2 = gen_prop_op()
+        return Expr(op2, Expr(op), gen_prop_formula(n-1, upper))
+    if is_unary_op(op):
+        op2 = gen_prop_op()
+        while not is_binary_op(op2):
+            op2 = gen_prop_op()
+        return Expr(op2, Expr(op, gen_pred()), gen_prop_formula(n-1, upper))
+    return Expr(op, gen_prop_formula(n-1, upper), gen_prop_formula(n-1, upper))
+
+
+def gen_pred_formula(n, upper=25):
+    pass
+
 
 #############################################################################
 ##

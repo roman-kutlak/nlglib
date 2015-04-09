@@ -1,7 +1,10 @@
 import unittest
 import time
 
+
+from nlg import prover
 from nlg.fol import *
+
 
 class TestFOL(unittest.TestCase):
 
@@ -78,7 +81,7 @@ class TestFOL(unittest.TestCase):
         e = expr('forall x: x + y = z ==> exists c: z > 0')
         expected = Quantifier(OP_FORALL, ['x'],
                               Expr(OP_IMPLIES,
-                                   Expr('%', Expr('+', Expr('x'), Expr('y')),
+                                   Expr(OP_EQUALS, Expr('+', Expr('x'), Expr('y')),
                                              Expr('z')),
                                    Quantifier(OP_EXISTS, ['c'],
                                               Expr('>', Expr('z'), Expr(0)))))
@@ -223,172 +226,172 @@ class TestFOL(unittest.TestCase):
     def test_simplification_none(self):
         f = expr('1')
         expected = expr('1')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P')
         expected = expr('P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('true')
         expected = expr('true')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('false')
         expected = expr('false')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P(x)')
         expected = expr('P(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P(x) | Q(x)')
         expected = expr('P(x) | Q(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P(x) & Q(x)')
         expected = expr('P(x) & Q(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P(x) ==> Q(x)')
         expected = expr('P(x) ==> Q(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P(x) <== Q(x)')
         expected = expr('P(x) <== Q(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P(x) <=> Q(x)')
         expected = expr('P(x) <=> Q(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('P(x, y) ==> Q(x)')
         expected = expr('P(x, y) ==> Q(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('x > 0')
         expected = expr('x > 0')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('x = y')
         expected = expr('x = y')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('x =/= 0')
         expected = expr('x =/= 0')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
     
     def test_simplification_basic(self):
         f = expr('~true')
         expected = expr('false')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('~false')
         expected = expr('true')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('~~true')
         expected = expr('true')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('~~~true')
         expected = expr('false')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P | true')
         expected = expr(OP_TRUE)
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P | false')
         expected = expr('P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P & false')
         expected = expr(OP_FALSE)
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P & true')
         expected = expr('P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P ==> false')
         expected = expr('~P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('true ==> P')
         expected = expr('P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
     
         f = expr('P <=> true')
         expected = expr('P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('P <=> false')
         expected = expr('~P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
     def test_simplification_complex(self):
         f = expr('forall x: P(x)')
         expected = expr('forall x: P(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('forall x: P(x) & true')
         expected = expr('forall x: P(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('forall x: P(x) & Q(x) ==> false')
         expected = expr('forall x: ~(P(x) & Q(x))')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('forall x, y: P(x) & true')
         expected = expr('forall x: P(x)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('forall x: forall y: P(x) & Q(x) ==> false')
         expected = expr('forall x: ~(P(x) & Q(x))')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('forall x: exists y: P(x) & Q(x) ==> false')
         expected = expr('forall x: ~(P(x) & Q(x))')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
         
         f = expr('forall x, y: exists z: x =/= y ==> x < z & z < y')
         expected = expr('forall x, y: exists z: x =/= y ==> x < z & z < y')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('forall x, y: (P(x1) & true) | (Q(y1) & false)')
         expected = expr('P(x1)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('forall x, y: exists z: (P(x1) & true) ==> (Q(y1) & false)')
         expected = expr('~P(x1)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('forall x, y: exists z: '\
                  '(P(x1) & true) | (Q(y1) & false) ==> Z(xy) ')
         expected = expr('P(x1) ==> Z(xy)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('forall x, y: exists z: '\
                  '(P(x1) & true) | (Q(y1) & false) <=> true ')
         expected = expr('P(x1)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('forall x, y: exists z: '\
                  '(P(x1) & true) | (Q(y1) & false) <== Z(xy) | true ')
         expected = expr('true')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('true ==> (P <=> (P <=> false))')
         expected = expr('P <=> ~P')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('exists x, y, z: P(x) ==> Q(z) ==> false')
         expected = expr('exists x, z: P(x) ==> ~Q(z)')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
         f = expr('(forall x, y: P(x) | (P(y) & false)) ==> exists z: Q')
         expected = expr('(forall x: P(x)) ==> Q')
-        self.assertEqual(expected, simplify(f))
+        self.assertTrue(prover.test_equivalent(expected, kleene(f), []))
 
     def test_nnf(self):
         f = expr('P & Q & R')
@@ -632,40 +635,49 @@ class TestFOL(unittest.TestCase):
         f = expr('forall x: P(x) & Q')
         e = expr('(forall x: P(x)) & Q')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
         
         f = expr('forall x: P & Q(x)')
         e = expr('P & (forall x: Q(x))')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         f = expr('forall x: P(x) | Q')
         e = expr('(forall x: P(x)) | Q')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         f = expr('forall x: P | Q(x)')
         e = expr('P | forall x: Q(x)')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         # easy exists cases
         f = expr('exists x: P(x) & Q')
         e = expr('(exists x: P(x)) & Q')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
         
         f = expr('exists x: P & Q(x)')
         e = expr('P & (exists x: Q(x))')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         f = expr('exists x: P(x) | Q')
         e = expr('(exists x: P(x)) | Q')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         f = expr('exists x: P | Q(x)')
         e = expr('P | (exists x: Q(x))')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         # variable reduction
         f = expr('(forall x: P(x) & Q(x))')
         e = expr('(forall x: P(x)) & (forall x: Q(x))')
         self.assertEqual(e, push_quants(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
         
         # catch
         f = expr("(forall x: forall x': P(x) | Q(x'))")
@@ -733,9 +745,13 @@ class TestFOL(unittest.TestCase):
         f = expr("forall z: exists x: P(z) ==> Q(z) | ~Q(x)")
         e = expr("forall z: ~P(z) | Q(z) | ~forall x: Q(x)")
         self.assertEqual(e, miniscope(f))
+        self.assertTrue(prover.test_equivalent(e, f, []))
 
         f = expr("exists x: forall z: P(z) ==> Q(z) | ~Q(x)")
-        e = expr("forall z: ~P(z) | Q(z) | ~forall x: Q(x)")
+        #e = expr("forall z: ~P(z) | Q(z) | ~forall x: Q(x)")
+        # do not swap the quantifiers
+        e = expr("exists x: forall z: ~P(z) | Q(z) | ~Q(x)")
+        self.assertTrue(prover.test_equivalent(e, f, []))
         self.assertEqual(e, miniscope(f))
 
 

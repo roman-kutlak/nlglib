@@ -115,6 +115,7 @@ def lexicalise_message(msg, parenthesis=False):
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
         result = Coordination(*satelites, conj=msg.marker, features=features)
     elif msg.rst == 'Imply':
+        get_log().debug('RST Implication: ' + repr(msg))
         subj = promote_to_phrase(nucleus)
         compl = promote_to_phrase(satelites[0])
         compl.set_feature('COMPLEMENTISER', 'then')

@@ -267,15 +267,16 @@ def promote_to_phrase(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
     if is_clause_t(e): return e
     if is_phrase_t(e): return e
-    if e._type == STRING: return NounPhrase(e)
-    if e._type == PLACEHOLDER: return NounPhrase(e)
+    if e._type == STRING: return NounPhrase(e, features=e._features)
+    if e._type == PLACEHOLDER: return NounPhrase(e, features=e._features)
     if e._type == WORD:
-        if e.cat == POS_VERB: return VerbPhrase(e)
-        if e.cat == POS_ADVERB: return VerbPhrase(e)
-        return NounPhrase(e)
+        if e.cat == POS_VERB: return VerbPhrase(e, features=e._features)
+        if e.cat == POS_ADVERB: return VerbPhrase(e, features=e._features)
+        return NounPhrase(e, features=e._features)
     if e._type == COORDINATION:
-        return Coordination(*[promote_to_phrase(x) for x in e.coords])
-    return NounPhrase(e)
+        return Coordination(*[promote_to_phrase(x) for x in e.coords],
+                            conj=e.conj, features=e._features)
+    return NounPhrase(e, features=e._features)
 
 
 
@@ -491,11 +492,13 @@ class ReprVisitor(PrintVisitor):
 #        self.indent += ' ' * len(name + '=[')
         self.data += name + '=['
         def fn(x):
+            if x is None: return
             r = ReprVisitor()
             x.accept(r)
-            return str(x)
+            return str(r)
+#        get_log().debug('*' * 4 + repr(attr))
         tmp = map(fn, attr)
-        tmp_no_whites = [' '.join(x.split()) for x in tmp]
+        tmp_no_whites = [' '.join(x.split()) for x in tmp if x is not None]
         self.data += ', '.join(tmp_no_whites)
         self.data += ']'
         # restore the indent
