@@ -1,6 +1,6 @@
 
 import re
-from copy import deepcopy
+from copy import deepcopy, copy
 import logging
 
 from nlg.structures import *
@@ -65,8 +65,8 @@ def generate_re_element(element, context):
     get_log().debug('Generating RE for element.')
     with_refexp = deepcopy(element)
     _replace_placeholders_with_nps(with_refexp, context)
-    optimise_ref_exp(with_refexp, context)
-    return with_refexp
+    result = optimise_ref_exp(with_refexp, context)
+    return result
 
 
 def generate_re_message(msg, context):
@@ -203,6 +203,7 @@ def _count_type_instances(entity_type, object_map):
 ########## new version of REG #############
 
 def optimise_ref_exp(phrase, context):
+    result = copy(phrase)
     nps = [x for x in phrase.constituents() if isinstance(x, NounPhrase)]
     pps = [x for x in phrase.constituents()
                 if isinstance(x, PrepositionalPhrase)]
@@ -230,8 +231,18 @@ def optimise_ref_exp(phrase, context):
                     pronoun = pronominalise(np, gender, PronounUse.objective)
             else:
                 pronoun = pronominalise(np, gender, PronounUse.subjective)
-            replace_element_with_id(phrase, id(np), pronoun)
+            replace_element_with_id(result, id(np), pronoun)
         uttered.append(np)
+    context.add_sentence(phrase)
+    return result
+
+
+def optimise_ref_exp2(phrase, context):
+    """Replace anaphoric noun phrases with pronouns when possible. """
+    if isinstance(phrase, np):
+        nps = [x for x in phrase.constituents() if isinstance(x, NounPhrase)]
+    
+    
     context.add_sentence(phrase)
     return phrase
 
