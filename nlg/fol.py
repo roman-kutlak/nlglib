@@ -976,6 +976,9 @@ def to_prover_str(f):
     return to_prover(deepen(f))
 
 
+class EvaluationError(Exception):
+    pass
+
 def evaluate_prop(f, assignment):
     """Evaluate a propositional formula with respect to the given assignment.
 #    The assignment should be a dict with 2 keys: 'True' and 'False'. The values
@@ -1005,10 +1008,10 @@ def evaluate_prop(f, assignment):
         return (args[0] == args[1])
     elif is_predicate(f) and len(f.args) == 0:
         try:
-            return assignment[f.op]
+            return assignment[f]
         except KeyError:
             raise EvaluationError('Predicate "{0}" is not in the assignment.'.
-                                  format(f.op))
+                                  format(str(f)))
     else:
         msg = ('The Quine-McCluskey algorithm is defined only for '
                'propositional logic. The operator "{0}" is not defined '
@@ -1020,7 +1023,7 @@ def collect_propositions(f):
     """Collect propositions (zero-place predicates)."""
     def helper(f, result):
         if is_predicate(f) and len(f.args) == 0:
-            result.add(f.op)
+            result.add(f)
         else:
             for x in f.args:
                 helper(x, result)
@@ -1090,9 +1093,9 @@ def mk_product(string, vars=None):
     args = []
     for i in range(num_vars):
         if string[i] == '1':
-            args.append(Expr(vars[i]))
+            args.append(vars[i])
         elif string[i] == '0':
-            args.append(~Expr(vars[i]))
+            args.append(~vars[i])
     return Expr(OP_AND, *args)
 
 

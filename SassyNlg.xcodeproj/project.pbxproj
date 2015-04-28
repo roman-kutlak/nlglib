@@ -41,6 +41,7 @@
 		3020ED051A4CAB7D00270661 /* test_lexicon.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = test_lexicon.py; sourceTree = "<group>"; };
 		302887701ACC7BAE00C8D551 /* qm.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = qm.py; sourceTree = "<group>"; };
 		30344DEB1AD6897A00DB775C /* prover.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = prover.py; sourceTree = "<group>"; };
+		30344DEC1AD6926D00DB775C /* simplifications.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = simplifications.py; sourceTree = "<group>"; };
 		306C41451A65E89E00C533F5 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		306C41461A65E8AC00C533F5 /* TODOs */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODOs; sourceTree = "<group>"; };
 		307C1D271A609E6E005FDB07 /* nih_lexicon_extract.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = nih_lexicon_extract.xml; sourceTree = "<group>"; };
@@ -80,6 +81,7 @@
 				3020ECE21A4C739A00270661 /* resources */,
 				3020ED021A4C739A00270661 /* utils.py */,
 				3020ECE81A4C739A00270661 /* test */,
+				30344DEC1AD6926D00DB775C /* simplifications.py */,
 			);
 			path = nlg;
 			sourceTree = "<group>";
