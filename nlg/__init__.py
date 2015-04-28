@@ -36,51 +36,16 @@
 #############################################################################
 
 
-# Code from:
-#   http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
-# format fields:
-#   http://docs.python.org/3.3/library/logging.html#logrecord-attributes
-
-#import os
-#import yaml
-#import inspect
-
 import logging
-#import logging.config
 
-logging.getLogger(__name__).info('initialising NLG library')
+logging.getLogger('nlg').info('initialising NLG library')
 
-#def setup_logging(
-#    default_path='log.config.yaml',
-#    default_level=logging.INFO,
-#    env_key='LOG_CFG'
-#):
-#    """Setup logging configuration
-#
-#    """
-#    path = default_path
-#    value = os.getenv(env_key, None)
-#    if value:
-#        path = value
-#    if os.path.exists(path):
-#        with open(path, 'rt') as f:
-#            config = yaml.load(f.read())
-#        logging.config.dictConfig(config)
-#    else:
-#        print('Could not open log config file "%s"' % path)
-#        logging.basicConfig(level=default_level)
-#
-#
-## read the config file
-#mod_path = os.path.dirname(__file__)
-#config_path = mod_path + os.path.sep + 'resources/log.config.yaml'
-#
-#if not (os.path.isfile(config_path) and os.access(config_path, os.R_OK)):
-#    files = nlg.utils.find_files('../..', '.yaml')
-#    for root, file in files:
-#        if file == 'log.config.yaml':
-#            config_path = os.path.join(root, file)
 
-# NOTE: setting up logging in the module overrides application settins!
-#       don't do that; rely on the app setting
-#setup_logging(config_path)
+"""
+This is a small library for Natural Language Generation.
+
+The library has some basic building blocks for creating document plans,
+syntactic structures with parameters and has a simplenlg wrapper so that 
+created syntactic structures can be realised using simpleNLG.
+
+"""

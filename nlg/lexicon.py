@@ -4,7 +4,13 @@ from copy import deepcopy
 from pickle import load
 import xml.etree.ElementTree as ET
 
-from nlg.structures import Word
+from nlg.structures import Element, Word, Clause, Phrase, Coordination
+from nlg.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
+from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
+from nlg.structures import is_clause_t, is_phrase_t, STRING, WORD
+from nlg.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
+from nlg.gender import gender # name genders; first names as keys are in caps
+
 
 def get_log():
     return logging.getLogger(__name__)
@@ -50,6 +56,355 @@ POS_TAGS = [
     POS_VERB,
     POS_EXCLAMATION
 ]
+
+
+def Features(*feature_list):
+    """ Create a dictionary of features from given pairs. """
+    return dict(feature_list)
+
+
+class FeatureMeta(type):
+	"""A metaclass that allows specifying properties for the Feature class. """
+    
+	@property
+	def attribute(cls):
+		"""Use the first element in the first feature tuple
+		For example ('CASE', 'X') would return the str 'CASE'. This can be 
+		used as a key in a dictionary of features.
+		
+		"""
+		return cls.features[0][0]
+
+	@property
+	def values(cls):
+		"""Return the list of definded values."""
+		return [x[1] for x in cls.features]
+
+	@property
+	def features(cls):
+		"""Return a list of all features defined in this class. 
+		This function assumes that a class attribute is a feature iff it
+		is a tuple and the name does not start with '_'.
+		
+		"""
+		return [getattr(cls, x) for x in dir(cls)
+				if (not x.startswith('_') and
+					isinstance(getattr(cls, x), tuple))]
+
+	def __str__(self):
+		return self.attribute
+
+
+class Feature(metaclass=FeatureMeta):
+	"""A base class used for features.
+	It provides some basic properties.
+	
+	"""
+	preference_order = []
+
+	@staticmethod
+	def feature_preference_value(feature):
+		"""Return the index of the given feature in a preference order.
+		If there is no preference order for this class, return -1.
+		
+		"""
+		try:
+			return Feature.preference_order.index(feature)
+		except ValueError:
+			return -1
+
+
+# noun features
+class Case(Feature):
+    nominative   = ('CASE', 'NOMINATIVE')
+    genitive     = ('CASE', 'GENITIVE')
+    dative       = ('CASE', 'DATIVE')
+    accusative   = ('CASE', 'ACCUSATIVE')
+    vocative     = ('CASE', 'VOCATIVE')
+    locative     = ('CASE', 'LOCATIVE')
+    instrumental = ('CASE', 'INSTRUMENTAL')
+
+    preference_order = [nominative, accusative, genitive,
+                        dative, vocative, locative, instrumental]
+
+
+class Number(Feature):
+    singular = ('NUMBER', 'SINGULAR')
+    plural   = ('NUMBER', 'PLURAL')
+    both     = ('NUMBER', 'BOTH')
+
+    preference_order = [singular, plural, both]
+
+
+class Gender(Feature):
+    masculine = ('GENDER', 'MASCULINE') # masculine - 'he'
+    feminine  = ('GENDER', 'FEMININE')  # feminine  - 'she'
+    neuter    = ('GENDER', 'NEUTER')    # neuter    - 'it'
+    epicene   = ('GENDER', 'EPICENE')   # gender neutral - singular 'they'
+
+    preference_order = [masculine, feminine, neuter, epicene]
+
+# TODO: missing possessive?
+
+
+# verb features
+class Person(Feature):
+    first   = ('PERSON', 'FIRST')
+    second  = ('PERSON', 'SECOND')
+    third   = ('PERSON', 'THIRD')
+    generic = ('PERSON', 'GENERIC') # used for pronouns eg 'you' in
+                                    # "Brushing 'your' teeth is healthy"
+    preference_order = [first, second, third, generic]
+
+
+class Tense(Feature):
+    present = ('TENSE', 'PRESENT')
+    past    = ('TENSE', 'PAST')
+    future  = ('TENSE', 'FUTURE')
+
+    preference_order = [present, past, future]
+
+
+class Aspect(Feature):
+    """ http://en.wikipedia.org/wiki/Grammatical_aspect#English """
+    progressive = ('PROGRESSIVE', 'true')
+    perfect     = ('PERFECT', 'true')
+
+
+# FIXME: the key is inconsistent -- remove?
+class Mood(Feature):
+    indicative  = ('FORM', 'NORMAL')
+    imperative  = ('FORM', 'IMPERATIVE')
+    subjunctive = ('MODAL', 'would')
+
+    preference_order = [indicative, imperative, subjunctive]
+
+
+class Modal(Feature):
+     can    = ('MODAL', 'can')
+     could  = ('MODAL', 'could')
+     may    = ('MODAL', 'may')
+     might  = ('MODAL', 'might')
+     must   = ('MODAL', 'must')
+     ought  = ('MODAL', 'ought')
+     shall  = ('MODAL', 'shall')
+     should = ('MODAL', 'should')
+     will   = ('MODAL', 'will')
+     would  = ('MODAL', 'would')
+
+
+class Voice(Feature):
+    active  = ('PASSIVE', 'false')
+    passive = ('PASSIVE', 'true')
+
+    preference_order = [active, passive]
+
+
+class Form(Feature):
+    """ These are defined by SimpleNLG. """
+    bare_infinitive    = ('FORM', 'BARE_INFINITIVE')
+    gerund             = ('FORM', 'GERUND')
+    imperative         = ('FORM', 'IMPERATIVE')
+    infinitive         = ('FORM', 'INFINITIVE')
+    normal             = ('FORM', 'NORMAL')
+    past_participle    = ('FORM', 'PAST_PARTICIPLE')
+    present_participle = ('FORM', 'PRESENT_PARTICIPLE')
+
+
+class InterrogativeType(Feature):
+    how      = ('INTERROGATIVE_TYPE', 'HOW')
+    why      = ('INTERROGATIVE_TYPE', 'WHY')
+    where    = ('INTERROGATIVE_TYPE', 'WHERE')
+    how_many = ('INTERROGATIVE_TYPE', 'HOW_MANY')
+    yes_no   = ('INTERROGATIVE_TYPE', 'YES_NO')
+    
+    how_predicate = ('INTERROGATIVE_TYPE', 'HOW_PREDICATE')
+    what_object   = ('INTERROGATIVE_TYPE', 'WHAT_OBJECT')
+    what_subject  = ('INTERROGATIVE_TYPE', 'WHAT_SUBJECT')
+    who_object    = ('INTERROGATIVE_TYPE', 'WHO_OBJECT')
+    who_subject   = ('INTERROGATIVE_TYPE', 'WHO_SUBJECT')
+    who_indirect_object = ('INTERROGATIVE_TYPE', 'WHO_INDIRECT_OBJECT')
+
+
+class Register(Feature):
+    """Register refers to the kind of language (eg formal, informal)
+    Ideally, types would be taken from some standard such as ISO 12620
+        - http://en.wikipedia.org/wiki/ISO_12620
+    
+    """
+    formal   = ('REGISTER', 'FORMAL')
+    informal = ('REGISTER', 'INFORMAL')
+
+    preference_order = [formal, informal]
+
+
+class PronounUse(Feature):
+    subjective = ('PRONOUN_USE', 'SUBJECT')
+    objective  = ('PRONOUN_USE', 'OBJECT')
+    reflexive  = ('PRONOUN_USE', 'REFLEXIVE')
+    possessive = ('PRONOUN_USE', 'POSSESSIVE')
+    
+    preference_order = [subjective, objective, reflexive, possessive]
+
+
+################################################################################
+#                                                                              #
+#                      functions for creating word elements                    #
+#                                                                              #
+################################################################################
+
+
+# decorator
+def str_or_element(fn):
+    def helper(word, features=None):
+        if isinstance(word, str):
+            return fn(word, features=features)
+        elif isinstance(word, Element):
+            tmp = fn(str(word), features=features)
+            word._features.update(tmp._features)
+            return word
+        else:
+            return fn(str(word), features=features)
+    return helper
+
+@str_or_element
+def Noun(word, features=None):
+    return Word(word, POS_NOUN, features)
+
+@str_or_element
+def Verb(word, features=None):
+    return Word(word, POS_VERB, features)
+
+@str_or_element
+def Adjective(word, features=None):
+    return Word(word, POS_ADJECTIVE, features)
+
+@str_or_element
+def Adverb(word, features=None):
+    return Word(word, POS_ADVERB, features)
+
+@str_or_element
+def Pronoun(word, features=None):
+    return Word(word, POS_PRONOUN, features)
+
+@str_or_element
+def Numeral(word, features=None):
+    return Word(word, POS_NUMERAL, features)
+
+@str_or_element
+def Preposition(word, features=None):
+    return Word(word, POS_PREPOSITION, features)
+
+@str_or_element
+def Conjunction(word, features=None):
+    return Word(word, POS_CONJUNCTION, features)
+
+@str_or_element
+def Determiner(word, features=None):
+    return Word(word, POS_DETERMINER, features)
+
+@str_or_element
+def Exclamation(word, features=None):
+    return Word(word, POS_EXCLAMATION, features)
+    
+@str_or_element
+def Symbol(word, features=None):
+    return Word(word, POS_SYMBOL, features)
+
+
+# functions for creating phrases (mostly based on Penn Treebank tags)
+# https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
+# scroll down for a list of tags
+
+#12.	NN      Noun, singular or mass
+#13.	NNS     Noun, plural
+#14.	NNP     Proper noun, singular
+#15.	NNPS	Proper noun, plural
+
+@str_or_element
+def NN(word, features=None):
+    return Noun(word, features=features)
+
+@str_or_element
+def NNS(word, features=None):
+    o = Noun(word, features=features)
+    o.set_feature('NUMBER', 'PLURAL')
+    return o
+
+@str_or_element
+def NNP(name, features=None):
+    o = Noun(name, features=features)
+    o.set_feature('PROPER', 'true')
+    return o
+
+@str_or_element
+def NNPS(name, features=None):
+    o = Noun(name, features=features)
+    o.set_feature('PROPER', 'true')
+    o.set_feature('NUMBER', 'PLURAL')
+    return o
+
+# phrases
+
+
+def NP(spec, *mods_and_head, features=None, postmods=[]):
+    """ Create a complex noun phrase where the first arg is determiner, then
+    modifiers and head is last. Determiner can be None.
+    The determiner can be ommited if the NP consists of the head noun only.
+    NP('the', 'brown', 'wooden', 'table')
+
+    """
+    
+    if (len(mods_and_head) == 0):
+        words = [spec]
+        spec = None
+    else:
+        words = list(mods_and_head)
+    if spec is None:
+        return NounPhrase(Noun(words[-1]), features=features,
+                   pre_modifiers=[Adjective(x) for x in words[:-1]])
+    else:
+        return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
+                  pre_modifiers=[Adjective(x) for x in words[:-1]])
+
+
+def VP(head, *complements, features=None):
+    return VerbPhrase(Verb(head), *complements, features=features)
+
+
+def PP(head, *complements, features=None):
+    return PrepositionalPhrase(Preposition(head),
+                               *complements, features=features)
+
+
+def AdjP(head, *complements, features=None):
+    return AdjectivePhrase(Adjective(head), *complements, features=features)
+
+
+def AdvP(head, *complements, features=None):
+    return AdverbPhrase(Adverb(head), *complements, features=features)
+
+
+def guess_noun_gender(word):
+    """Guess the gender of the given word. """
+    key = word.upper()
+    if key in gender:
+        val = gender[key]
+        if val == 'male':
+            return Gender.masculine
+        elif val == 'female':
+            return Gender.feminine
+        else:
+            return Gender.epicene
+    # if we don't know, return neuter
+    return Gender.neuter
+
+
+################################################################################
+#                                                                              #
+#                                Lexicon                                       #
+#                                                                              #
+################################################################################
 
 
 class Lexicon:
@@ -374,6 +729,121 @@ def lexicon_from_nih_xml(path):
         for variant in lexrecord.iter('inflVars'):
             lexicon.insert_variant(w, variant.text)
     return lexicon
+
+
+def declension(word, **features):
+    """Perform a word declension given features such as person, gender, number.
+    This function can be applied to word classes that can be inflected.
+    These differ by language but can usually be:
+        nouns, adjectives, pronouns, numerals
+    
+    """
+    return word
+
+
+def conjugation(word, **features):
+    """Perform a word declension given features such as person, gender, number.
+    This function can be applied to word classes that can be inflected.
+    In English, these are: nouns, adjectives, pronouns
+    
+    """
+    return word
+
+
+def inflection(word, **features):
+    """Perform inflection - declension or conjugation based on word class. """
+    return word
+
+
+def pronoun_for_features(*features):
+    """Return a pronoun matching given features. """
+    choices = pronouns_with_feqtures(*features)
+    if len(choices) == 0:
+        return None
+    prefs_person = [x[1] for x in Person.preference_order]
+    prefs_number = [x[1] for x in Number.preference_order]
+    prefs_pu = [x[1] for x in PU.preference_order]
+    # sort the candidates by a sensible order as defined in the class
+    choices.sort(key=lambda x:
+        prefs_number.index(x.get_feature(str(Number))))
+    choices.sort(key=lambda x:
+        prefs_person.index(x.get_feature(str(Person))))
+    choices.sort(key=lambda x:
+        prefs_pu.index(x.get_feature(str(PU))))
+    return choices[0]
+
+def pronouns_with_feqtures(*features):
+    """Return a pronoun matching given features. """
+    fs = frozenset(features)
+    result = []
+    for k, v in pronouns.items():
+        k_fs = frozenset(k)
+        if (k_fs & fs) == fs:
+            result.append(Pronoun(v, Features(*k)))
+    return result
+
+
+FS = frozenset
+PU = PronounUse
+Singular = Number.singular
+Plural = Number.plural
+
+pronouns = {
+##############################  singular  ######################################
+# subjective use
+    (Number.singular, Person.first, PU.subjective): 'I',
+    (Number.singular, Person.second, PU.subjective): 'you',
+    (Number.singular, Person.third, PU.subjective, Gender.masculine): 'he',
+    (Number.singular, Person.third, PU.subjective, Gender.feminine): 'she',
+    (Number.singular, Person.third, PU.subjective, Gender.neuter): 'it',
+    (Number.singular, Person.third, PU.subjective, Gender.epicene): 'they',
+    (Number.singular, Person.generic, PU.subjective, Register.formal): 'one',
+    (Number.singular, Person.generic, PU.subjective, Register.informal): 'you',
+# objective use
+    (Number.singular, Person.first, PU.objective): 'me',
+    (Number.singular, Person.second, PU.objective): 'you',
+    (Number.singular, Person.third, PU.objective, Gender.masculine): 'him',
+    (Number.singular, Person.third, PU.objective, Gender.feminine): 'her',
+    (Number.singular, Person.third, PU.objective, Gender.neuter): 'it',
+    (Number.singular, Person.third, PU.objective, Gender.epicene): 'them',
+    (Number.singular, Person.generic, PU.objective, Register.formal): 'one',
+    (Number.singular, Person.generic, PU.objective, Register.informal): 'you',
+# reflexive use
+    (Number.singular, Person.first, PU.reflexive): 'myself',
+    (Number.singular, Person.second, PU.reflexive): 'yourself',
+    (Number.singular, Person.third, PU.reflexive, Gender.masculine): 'himself',
+    (Number.singular, Person.third, PU.reflexive, Gender.feminine): 'herself',
+    (Number.singular, Person.third, PU.reflexive, Gender.neuter): 'itself',
+    (Number.singular, Person.third, PU.reflexive, Gender.epicene): 'themself',
+    (Number.singular, Person.generic, PU.reflexive, Register.formal): 'oneself',
+    (Number.singular, Person.generic, PU.reflexive, Register.informal): 'yourself',
+# possessive use
+    (Number.singular, Person.first, PU.possessive): 'mine',
+    (Number.singular, Person.second, PU.possessive): 'yours',
+    (Number.singular, Person.third, PU.possessive, Gender.masculine): 'his',
+    (Number.singular, Person.third, PU.possessive, Gender.feminine): 'hers',
+    (Number.singular, Person.third, PU.possessive, Gender.neuter): 'its',
+    (Number.singular, Person.third, PU.possessive, Gender.epicene): 'theirs',
+    (Number.singular, Person.generic, PU.possessive, Register.formal): 'one\'s',
+    (Number.singular, Person.generic, PU.possessive, Register.informal): 'your',
+################################# plural #######################################
+# subject
+    (Number.plural, Person.first, PU.subjective): 'we',
+    (Number.plural, Person.second, PU.subjective): 'you',
+    (Number.plural, Person.third, PU.subjective): 'they',
+# object
+    (Number.plural, Person.first, PU.objective): 'us',
+    (Number.plural, Person.second, PU.objective): 'you',
+    (Number.plural, Person.third, PU.objective): 'them',
+# reflexive
+    (Number.plural, Person.first, PU.reflexive): 'ourselves',
+    (Number.plural, Person.second, PU.reflexive): 'yourselves',
+    (Number.plural, Person.third, PU.reflexive): 'themselves',
+# possessive
+    (Number.plural, Person.first, PU.possessive): 'ours',
+    (Number.plural, Person.second, PU.possessive): 'yours',
+    (Number.plural, Person.third, PU.possessive): 'theirs',
+}
 
 
 # nouns with irregular plural form

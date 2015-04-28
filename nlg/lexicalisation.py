@@ -3,6 +3,7 @@ import logging
 import numbers
 
 from nlg.structures import *
+from nlg.lexicon import *
 from nlg.aggregation import *
 from nlg.microplanning import *
 import nlg.realisation as realisation

@@ -17,3 +17,15 @@ write simplenlg realiser and str realiser -- allow setting aggregation, REG, etc
 string realiser should check for punctuation.
 
 Test hashing.
+
+implement function 'unify' that univies the features in a phrase
+(eg transfers features from head to its phrase)
+
+change Element.get_feature() to allow better manipulation of features
+at the moment get_feature() returns a string so you can't do things like
+f = e.get_feature(Gender)
+if f == Gender.masculine:
+    pass
+
+probably have get(attr) and set(attr, val) and set_feature(f) and get_feature(Feature)
+Also has(attr, val) and has_feature(Feature.value)

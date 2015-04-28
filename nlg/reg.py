@@ -4,7 +4,10 @@ from copy import deepcopy
 import logging
 
 from nlg.structures import *
-from nlg.microplanning import replace_element
+from nlg.microplanning import replace_element, replace_element_with_id
+import nlg.lexicon as lexicon
+from nlg.lexicon import Case, NP, Pronoun, Gender, Features, PronounUse
+
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -16,7 +19,21 @@ class Context:
     def __init__(self, ontology=None):
         self.ontology = ontology
         self.referents = dict()
-        self.last_referent = None
+        self.referent_stack = []
+        self.history = []
+        self.rfexps = []
+
+    def add_sentence(self, sent):
+        """Add a sentence to the context. """
+        self.history.append(sent)
+        # add potential referents/distractors
+        self._update_referents(sent)
+
+    def _update_referents(self, sent):
+        """Extract NPs and add them on the referent stack. Add subject last. """
+        self.referent_stack.extend(
+            reversed([x for x in sent.constituents()
+                if isinstance(x, NounPhrase)]))
 
 
 def generate_re(msg, context):
@@ -46,9 +63,10 @@ def generate_re(msg, context):
 
 def generate_re_element(element, context):
     get_log().debug('Generating RE for element.')
-    element = deepcopy(element)
-    _replace_placeholders_with_nps(element, context)
-    return element
+    with_refexp = deepcopy(element)
+    _replace_placeholders_with_nps(with_refexp, context)
+    optimise_ref_exp(with_refexp, context)
+    return with_refexp
 
 
 def generate_re_message(msg, context):
@@ -96,30 +114,21 @@ def _replace_placeholders_with_nps(message, context):
         ref = arg.value or arg.id
         refexp = generate_ref_exp(ref, context)
         replace_element(message, arg, refexp)
-
-
-# copied from REG class in NLG - perhaps deprecated?
+#        arg.set_value(refexp)
 
 def generate_ref_exp(referent, context):
-    # can we use a pronoun?
-    # actually, using a pronoun for the last ref can still be ambiguous :-)
-#        if referent == context.last_referent:
-#            return NounPhrase(Word('it', 'PRONOUN'))
-
     result = None
 
     get_log().debug('GRE for "{0}"'.format(referent))
-    
-    if isinstance(referent, String): referent = referent.value
-    if isinstance(referent, Word): referent = referent.word
-    
+    if not (isinstance(referent, String) or isinstance(referent, Word)):
+        return referent
     if referent in context.referents:
         result = _do_repeated_reference(referent, context)
     else:
         result = _do_initial_reference(referent, context)
     return result
 
-def _do_initial_reference(referent, context):
+def _do_initial_reference(target, context):
     result = None
 
     # do we have information about the referent?
@@ -127,8 +136,10 @@ def _do_initial_reference(referent, context):
         onto = context.ontology
         if onto is None:
             get_log().error('GRE does not have ontology!')
-            return String(str(referent))
-
+    
+        if isinstance(target, String): referent = referent.value
+        if isinstance(target, Word): referent = referent.word
+        
         entity_type = onto.best_entity_type(':' + referent)
         entity_type = entity_type.rpartition(':')[2] # strip the ':' at the beginning
         result = NounPhrase(Word(entity_type, 'NOUN'))
@@ -166,11 +177,9 @@ def _do_initial_reference(referent, context):
     except Exception as msg:
         get_log().exception(msg)
         # if we have no info, assume referent is not unique
-        result = NounPhrase(Word(referent, 'NOUN'))
-        context.referents[referent] = (False, result)
-        get_log().debug('GRE for "%s" failed : "%s"' % (referent, str(msg)))
-
-    context.last_referent = referent
+        result = NounPhrase(target, features=target._features)
+        context.referents[target] = (False, result)
+        get_log().debug('GRE for "%s" failed : "%s"' % (target, str(msg)))
     return result
 
 def _do_repeated_reference(referent, context):
@@ -190,6 +199,69 @@ def _count_type_instances(entity_type, object_map):
         if v == entity_type: count += 1
     return count
 
+
+########## new version of REG #############
+
+def optimise_ref_exp(phrase, context):
+    nps = [x for x in phrase.constituents() if isinstance(x, NounPhrase)]
+    pps = [x for x in phrase.constituents()
+                if isinstance(x, PrepositionalPhrase)]
+    uttered = []
+    for np in nps:
+        print('current NP: {}'.format(np))
+        gender = get_phrase_gender(np)
+        print('gender of NP: {}'.format(gender))
+        distractors = [x for x in (context.referent_stack + uttered)
+            if get_phrase_gender(x) == gender]
+        print('distractors of NP:\n\t{}'.format(distractors))
+        if ((np in context.referent_stack or np in uttered)
+            and np == distractors[-1]):
+            # this np is the most salient so prnoominalise it
+            if isinstance(phrase, Clause):
+                if id(np) == id(phrase.subj):
+                    pronoun = pronominalise(np, gender, PronounUse.subjective)
+                elif (np in phrase.subj.constituents() and
+                      np in phrase.vp.constituents()):
+                    pronoun = pronominalise(np, gender, PronounUse.reflexive)
+#                elif any(id(np) in [id(x) for x in pp.constituents()]
+#                            for pp in pps):
+#                    pronoun = pronominalise(np, gender, PronounUse.possessive)
+                elif (np in phrase.vp.constituents()):
+                    pronoun = pronominalise(np, gender, PronounUse.objective)
+            else:
+                pronoun = pronominalise(np, gender, PronounUse.subjective)
+            replace_element_with_id(phrase, id(np), pronoun)
+        uttered.append(np)
+    context.add_sentence(phrase)
+    return phrase
+
+
+def pronominalise(np, *features):
+    """Create a pronoun for the corresponding noun phrase. """
+    # features can be: person, gender, subject|object (case),
+    #   possessive determiner, possessive pronoun, reflexive
+    tmp = [x for x in features if str(Gender) == x[0]]
+    if len(tmp) == 1:
+        gender = tmp[0]
+    else:
+        gender = get_phrase_gender(np)
+    all_features = list(features)
+    all_features.append(gender)
+    all_features.extend(list(np._features.items()))
+    get_log().debug('Phrase features for pronominalisation:\n\t{}'
+                    .format(all_features))
+    res = lexicon.pronoun_for_features(*all_features)
+    return res
+
+
+def get_phrase_gender(phrase):
+    if phrase.has_feature(str(Gender)):
+        gender_val = phrase.get_feature(str(Gender))
+    elif phrase.head.has_feature(str(Gender)):
+        gender_val = phrase.head.get_feature(str(Gender))
+    else:
+        gender_val = lexicon.guess_noun_gender(str(phrase.head))
+    return (str(Gender), gender_val) # FIXME: terrible syntax!
 
 #############################################################################
 ##

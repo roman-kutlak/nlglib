@@ -7,10 +7,10 @@ from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
 from nlg.structures import is_clause_t, is_phrase_t, STRING, WORD
 from nlg.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
 
-from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
-from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
-from nlg.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
-from nlg.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
+#from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
+#from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
+#from nlg.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
+#from nlg.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
 
 def get_log():
     return logging.getLogger(__name__)
@@ -18,240 +18,9 @@ def get_log():
 get_log().addHandler(logging.NullHandler())
 
 
-def Features(*feature_list):
-    """ Create a dictionary of features from given pairs. """
-    return dict(feature_list)
-
-
-# noun features
-class Case:
-    nominative   = ('CASE', 'NOMINATIVE')
-    genitive     = ('CASE', 'GENITIVE')
-    dative       = ('CASE', 'DATIVE')
-    accusative   = ('CASE', 'ACCUSATIVE')
-    vocative     = ('CASE', 'VOCATIVE')
-    locative     = ('CASE', 'LOCATIVE')
-    instrumental = ('CASE', 'INSTRUMENTAL')
-
-
-class Number:
-    singular = ('NUMBER', 'SINGULAR')
-    plural   = ('NUMBER', 'PLURAL')
-    both     = ('NUMBER', 'BOTH')
-
-
-class Gender:
-    masculine = ('GENDER', 'MASCULINE')
-    feminine  = ('GENDER', 'FEMININE')
-    neuter    = ('GENDER', 'NEUTER')
-
-
-# verb features
-class Person:
-    first  = ('PERSON', 'FIRST')
-    second = ('PERSON', 'SECOND')
-    third  = ('PERSON', 'THIRD')
-
-
-class Tense:
-    present = ('TENSE', 'PRESENT')
-    past    = ('TENSE', 'PAST')
-    future  = ('TENSE', 'FUTURE')
-
-# Number -- same as for Nouns
-
-class Aspect:
-    """ http://en.wikipedia.org/wiki/Grammatical_aspect#English """
-    progressive = ('PROGRESSIVE', 'true')
-    perfect     = ('PERFECT', 'true')
-
-
-class Mood:
-    indicative  = ('FORM', 'NORMAL')
-    imperative  = ('FORM', 'IMPERATIVE')
-    subjunctive = ('MODAL', 'would')
-
-
-class Modal:
-     can    = ('MODAL', 'can')
-     could  = ('MODAL', 'could')
-     may    = ('MODAL', 'may')
-     might  = ('MODAL', 'might')
-     must   = ('MODAL', 'must')
-     ought  = ('MODAL', 'ought')
-     shall  = ('MODAL', 'shall')
-     should = ('MODAL', 'should')
-     will   = ('MODAL', 'will')
-     would  = ('MODAL', 'would')
-
-
-class Voice:
-    active  = ('PASSIVE', 'false')
-    passive = ('PASSIVE', 'true')
-
-
-class Form:
-    """ These are defined by SimpleNLG. """
-    bare_infinitive    = ('FORM', 'BARE_INFINITIVE')
-    gerund             = ('FORM', 'GERUND')
-    imperative         = ('FORM', 'IMPERATIVE')
-    infinitive         = ('FORM', 'INFINITIVE')
-    normal             = ('FORM', 'NORMAL')
-    past_participle    = ('FORM', 'PAST_PARTICIPLE')
-    present_participle = ('FORM', 'PRESENT_PARTICIPLE')
-
-
-class InterrogativeType:
-    how      = ('INTERROGATIVE_TYPE', 'HOW')
-    why      = ('INTERROGATIVE_TYPE', 'WHY')
-    where    = ('INTERROGATIVE_TYPE', 'WHERE')
-    how_many = ('INTERROGATIVE_TYPE', 'HOW_MANY')
-    yes_no   = ('INTERROGATIVE_TYPE', 'YES_NO')
-    
-    how_predicate = ('INTERROGATIVE_TYPE', 'HOW_PREDICATE')
-    what_object   = ('INTERROGATIVE_TYPE', 'WHAT_OBJECT')
-    what_subject  = ('INTERROGATIVE_TYPE', 'WHAT_SUBJECT')
-    who_object    = ('INTERROGATIVE_TYPE', 'WHO_OBJECT')
-    who_subject   = ('INTERROGATIVE_TYPE', 'WHO_SUBJECT')
-    who_indirect_object = ('INTERROGATIVE_TYPE', 'WHO_INDIRECT_OBJECT')
-
-
-# functions for creating word elements
-
-# decorator
-def str_or_element(fn):
-    def helper(word, features=None):
-        if isinstance(word, str):
-            return fn(word, features=features)
-        elif isinstance(word, Element):
-            tmp = fn(str(word), features=features)
-            word._features.update(tmp._features)
-            return word
-        else:
-            return fn(str(word), features=features)
-    return helper
-
-@str_or_element
-def Noun(word, features=None):
-    return Word(word, POS_NOUN, features)
-
-@str_or_element
-def Verb(word, features=None):
-    return Word(word, POS_VERB, features)
-
-@str_or_element
-def Adjective(word, features=None):
-    return Word(word, POS_ADJECTIVE, features)
-
-@str_or_element
-def Adverb(word, features=None):
-    return Word(word, POS_ADVERB, features)
-
-@str_or_element
-def Pronoun(word, features=None):
-    return Word(word, POS_PRONOUN, features)
-
-@str_or_element
-def Numeral(word, features=None):
-    return Word(word, POS_NUMERAL, features)
-
-@str_or_element
-def Preposition(word, features=None):
-    return Word(word, POS_PREPOSITION, features)
-
-@str_or_element
-def Conjunction(word, features=None):
-    return Word(word, POS_CONJUNCTION, features)
-
-@str_or_element
-def Determiner(word, features=None):
-    return Word(word, POS_DETERMINER, features)
-
-@str_or_element
-def Exclamation(word, features=None):
-    return Word(word, POS_EXCLAMATION, features)
-    
-@str_or_element
-def Symbol(word, features=None):
-    return Word(word, POS_SYMBOL, features)
-
-
-# functions for creating phrases (mostly based on Penn Treebank tags)
-# https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
-# scroll down for a list of tags
-
-#12.	NN      Noun, singular or mass
-#13.	NNS     Noun, plural
-#14.	NNP     Proper noun, singular
-#15.	NNPS	Proper noun, plural
-
-@str_or_element
-def NN(word, features=None):
-    return Noun(word, features=features)
-
-@str_or_element
-def NNS(word, features=None):
-    o = Noun(word, features=features)
-    o.set_feature('NUMBER', 'PLURAL')
-    return o
-
-@str_or_element
-def NNP(name, features=None):
-    o = Noun(name, features=features)
-    o.set_feature('PROPER', 'true')
-    return o
-
-@str_or_element
-def NNPS(name, features=None):
-    o = Noun(name, features=features)
-    o.set_feature('PROPER', 'true')
-    o.set_feature('NUMBER', 'PLURAL')
-    return o
-
-# phrases
-
-
-def NP(spec, *mods_and_head, features=None, postmods=[]):
-    """ Create a complex noun phrase where the first arg is determiner, then
-    modifiers and head is last. Determiner can be None.
-    The determiner can be ommited if the NP consists of the head noun only.
-    NP('the', 'brown', 'wooden', 'table')
-
-    """
-    
-    if (len(mods_and_head) == 0):
-        words = [spec]
-        spec = None
-    else:
-        words = list(mods_and_head)
-    if spec is None:
-        return NounPhrase(Noun(words[-1]), features=features,
-                   pre_modifiers=[Adjective(x) for x in words[:-1]])
-    else:
-        return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
-                  pre_modifiers=[Adjective(x) for x in words[:-1]])
-
-
-def VP(head, *complements, features=None):
-    return VerbPhrase(Verb(head), *complements, features=features)
-
-
-def PP(head, *complements, features=None):
-    return PrepositionalPhrase(Preposition(head),
-                               *complements, features=features)
-
-
-def AdjP(head, *complements, features=None):
-    return AdjectivePhrase(Adjective(head), *complements, features=features)
-
-
-def AdvP(head, *complements, features=None):
-    return AdverbPhrase(Adverb(head), *complements, features=features)
-
-
-def template(word, lexicon, pos=POS_ANY):
-    """ Create syntactic template for expressing a word. """
-    assert False, "not implemented"
+#def template(word, lexicon, pos=POS_ANY):
+#    """ Create syntactic template for expressing a word. """
+#    assert False, "not implemented"
 
 
 def promote_to_clause(e):
@@ -1019,8 +788,90 @@ def replace_element(sent, elt, replacement=None):
             else:
                 if replace_element(o, elt, replacement):
                     return True
-
     return False
+
+
+def replace_element_with_id(sent, elt_id, replacement=None):
+    if id(sent) == elt_id:
+        return True
+
+    if isinstance(sent, Clause):
+        if id(sent.subj) == elt_id:
+            sent.subj = replacement or Element()
+            return True
+        else:
+            if replace_element_with_id(sent.subj, elt_id, replacement):
+                return True;
+
+        if id(sent.vp) == elt_id:
+            sent.vp = replacement
+            return True
+
+        else:
+            if replace_element_with_id(sent.vp, elt_id, replacement):
+                return True;
+
+    if isinstance(sent, Coordination):
+        for i, o in list(enumerate(sent.coords)):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.coords[i]
+                else:
+                    sent.coords[i] = replacement
+                return True
+
+    if isinstance(sent, Phrase):
+        for i, o in reversed(list(enumerate(sent.post_modifiers))):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.post_modifiers[i]
+                else:
+                    sent.post_modifiers[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+        for i, o in reversed(list(enumerate(sent.complements))):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.complements[i]
+                else:
+                    sent.complements[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+        if id(sent.head) == elt_id:
+            sent.head = replacement
+            return True
+        for i, o in reversed(list(enumerate(sent.pre_modifiers))):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.pre_modifiers[i]
+                else:
+                    sent.pre_modifiers[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+
+        if isinstance(sent, NounPhrase):
+            if (sent.spec) == elt_id:
+                sent.spec = replacement
+                return True
+
+        for i, o in reversed(list(enumerate(sent.front_modifiers))):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.front_modifiers[i]
+                else:
+                    sent.front_modifiers[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+    return False
+
 
 
 # Penn Treebank Tags

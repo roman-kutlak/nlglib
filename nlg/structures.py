@@ -551,7 +551,7 @@ class Element:
         return False
 
     def get_feature(self, feature):
-        """ Return value for given feature or None. """
+        """ Return value for given feature or raise KeyError. """
         return self._features[feature]
 
     def feature(self, feat):
@@ -981,6 +981,7 @@ class Phrase(Element):
         yield from self.yield_head()
         yield from self.yield_complements()
         yield from self.yield_post_modifiers()
+        yield self
 
     # TODO: consider spliting the code below similarly to 'constituents()'
     def replace(self, one, another):
@@ -1079,6 +1080,7 @@ class NounPhrase(Phrase):
         yield from self.yield_head()
         yield from self.yield_complements()
         yield from self.yield_post_modifiers()
+        yield self
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.

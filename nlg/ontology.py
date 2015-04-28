@@ -9,6 +9,8 @@ def get_log():
     return logging.getLogger(__name__)
 
 
+# this is using rdflib; check out owllib
+
 class Ontology:
     """ The class Ontology represents an interface to the underlying RDF
     ontology. It allows querying the ontology for things such as entity
@@ -54,6 +56,17 @@ class Ontology:
         get_log().debug(partition)
         return partition[0]
 
+    def entities(self):
+        """ Return a set of all individuals in the ontology. """
+        query_text = """
+            SELECT DISTINCT ?ind
+            WHERE {
+                ?ind rdf:type owl:NamedIndividual .
+            }
+        """
+        result = self._exec_query(query_text, {})
+        return result
+
     def entities_of_type(self, entity_type):
         result = self.individuals(entity_type)
         return result
@@ -66,43 +79,59 @@ class Ontology:
     def subclasses(self, a):
         """ Return the set of subclasses of a. """
         query_text = """
-SELECT DISTINCT ?x
-WHERE {
-  ?x rdfs:subClassOf* ?a.
-}"""
+            SELECT DISTINCT ?x
+            WHERE {
+              ?x rdfs:subClassOf* ?a.
+            }
+        """
         result = self._exec_query(query_text, {'a': a})
         return result
 
     def superclasses(self, a):
         """ Return the set of superclasses of a. """
         query_text = """
-SELECT ?x
-WHERE {
-  ?a rdfs:subClassOf* ?x.
-}"""
+            SELECT ?x
+            WHERE {
+              ?a rdfs:subClassOf* ?x.
+            }
+        """
         result = self._exec_query(query_text, {'a': a})
         return result
 
     def individuals(self, cls):
         """ Return a set of individuals of a given class (incl subclasses). """
         query_text = """
-SELECT DISTINCT ?x
-WHERE {
-  ?x rdf:type ?type.
-  ?type rdfs:subClassOf* ?cls.
-}"""
+            SELECT DISTINCT ?x
+            WHERE {
+              ?x rdf:type ?type.
+              ?type rdfs:subClassOf* ?cls.
+            }
+        """
         result = self._exec_query(query_text, {'cls': cls})
         return result
 
     def types(self, object):
         """ Return the types which apply to the object. """
         query_text = """
-SELECT DISTINCT ?x
-WHERE {
-    ?object rdf:type ?x.
-}"""
+            SELECT DISTINCT ?x
+            WHERE {
+                ?object rdf:type ?x.
+            }
+        """
         result = self._exec_query(query_text, {'object': object})
         return result
+
+    def properties(self, entity):
+        """Return a list of pairs of properties of the given object. """
+        query_text = """
+            SELECT ?predicate ?object
+            WHERE {
+                ?subject ?predicate ?object.
+            }
+        """
+        result = self._exec_query(query_text, {'subject': entity})
+        return result
+    
 
     def sort(self, classes):
         """ Sort the classes according to a hierarchy. """
@@ -121,39 +150,36 @@ WHERE {
 
     def _exec_query(self, query_text, params):
         """ Take a sparql query and a parameter and run the query.
-        The function only supports query with one varaible in the result
-        and this variable has to be called x.
-        Params is a dict of parameters to bind in the query.
+        The function applies prefixes before the query and strips them 
+        in the result.
+        
         """
         key = (query_text, tuple(params.items()))
         if key in self.cache: return self.cache[key]
         bindings = dict()
         for k, p in params.items():
             bindings[k] = rdflib.URIRef(self._apply_prefix(p))
-
-        query = sparql.prepareQuery(query_text)
+#            bindings[k] = self.graph.namespace_manager.absolutize(p)
+        query = sparql.prepareQuery(query_text, initNs=self.ns)
         qres = self.graph.query(query, initBindings=bindings)
-        result = [str(r.x) for r in qres]
-        result = [self._remove_prefix(x) for x in result]
+        normalise = self.graph.namespace_manager.normalizeUri
+        if len(qres.vars) == 1:
+            result = [normalise(r[0]) for r in qres]
+        else:
+            result = [tuple([normalise(str(x)) for x in r])
+                        for r in qres]
         self.cache[key] = result
         return set(result)
 
     def _apply_prefix(self, entity_name):
         if self.ns is None: return entity_name
 
-        tmp = entity_name.split(':')
+        tmp = entity_name.rsplit(':')
         if len(tmp) > 1:
             prefix = tmp[0]
             if prefix in self.ns:
                 entity_name = entity_name.replace(prefix + ':', self.ns[prefix])
         return entity_name
-
-    def _remove_prefix(self, result):
-        if self.ns is None: return result
-        for k, v in self.ns.items():
-            if result.startswith(v):
-                return result.replace(v, k + ':')
-        return result
 
 
 def subsume_sort(list, ontology):
