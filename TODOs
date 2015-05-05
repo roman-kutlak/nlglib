@@ -1,5 +1,12 @@
 Issue: The parser can't cope with more than 5 quantifiers in a formula.
 
+Add a class RefExp that replaces noun phrases (but keeps the phrases inside?)
+This is to allow for checking if we referred to something already.
+
+Establish a convention (and change the parser) so that terms are lower case
+and predicates are upper case. This will help distinguis between predicate and
+a function (Father(x) --> x is a father vs father(x) --> the father of x)
+
 
 add type of expression to Expr and deduce the type from syntax (EXPR_TERM, ...)
 add __len__ to Expr (1 for terms, sum of args for rest? or count ops as well/only?)
@@ -20,6 +27,7 @@ Test hashing.
 
 implement function 'unify' that univies the features in a phrase
 (eg transfers features from head to its phrase)
+this could be perhaps done through setters
 
 change Element.get_feature() to allow better manipulation of features
 at the moment get_feature() returns a string so you can't do things like

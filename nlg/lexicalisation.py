@@ -52,7 +52,7 @@ def lexicalise_element(elt):
         if result is None: continue
         get_log().debug('Replacing\n{0} in \n{1} by \n{2}.'
                         .format(repr(arg), repr(elt), repr(result)))
-        if isinstance(template, str):
+        if isinstance(result, str):
             result = String(result)
         result.add_features(elt._features)
         if elt == arg:
@@ -257,15 +257,19 @@ move = Clause(you, VerbPhrase(move, [PlaceHolder(0),
                              PrepositionalPhrase(to, PlaceHolder(2)),
                              VerbPhrase(using, PlaceHolder(3))]))
 
+reach = Clause(NP(PlaceHolder(0)), VP('reached', NP(PlaceHolder(1))))
+
 start = Clause(you, VerbPhrase(Word('start', 'VERB')))
-finish = Clause(you, VerbPhrase(Word('finish', 'VERB')))
+end = Clause(you, VerbPhrase(Word('finish', 'VERB')))
 
 
 # UAV domain
 
 uav = Word('UAV', 'NOUN')
 takeOff = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('taking off', 'VERB')))
+liftOff = Clause(PlaceHolder(0), VerbPhrase(Word('is', 'VERB'), Word('taking off', 'VERB')))
 flyToTargetArea = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('flying to the target area', 'VERB')))
+fly_to_position = Clause(PlaceHolder(0), VerbPhrase(Word('is', 'VERB'), Word('flying to ', 'VERB'), PlaceHolder(1)))
 takePhotos = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('taking photos', 'VERB')))
 selectLandingSite = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('selecting landing site', 'VERB')))
 flyToAirfieldA = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('flying to airfield A', 'VERB')))
@@ -275,6 +279,60 @@ Land = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('landing', 'VERB')))
 SelectRunway = Clause(uav, VerbPhrase(Word('is', 'VERB'), 'selecting a runway'))
 LandOnLongRunway = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('landing', 'VERB'), PrepositionalPhrase('on', 'a long runway')))
 LandOnShortRunway = Clause(uav, VerbPhrase(Word('is', 'VERB'), Word('landing', 'VERB'), PrepositionalPhrase('on', 'a short runway')))
+
+
+reroute = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is rerouting')))
+
+establishLink = Clause(Coordination(PlaceHolder(0), PlaceHolder(1)),
+                   VerbPhrase(Verb('are establishing a link')))
+
+requestPermission = Clause(PlaceHolder(0),
+                           VerbPhrase(Verb('is requesting'),
+                                      NounPhrase(head='permission',
+                                         post_modifiers=[PP('to', Verb('engage'))])))
+engage = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is engaging'),
+                          NP('target')))
+disengage = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is disengaging'),
+                          NP('target')))
+abort = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is aborting'),
+                          NP('mission')))
+suppressThreat = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is supperssing'),
+                          NP('threat')))
+endSuppression = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is ending'),
+                          NP('suppression')))
+eliminateThreat = Clause(PlaceHolder(0),
+                       VerbPhrase(Verb('is eliminating'),
+                                  NP('threat')))
+disengageThreat = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is disengaging'),
+                          NP('threat')))
+threatDetected = Clause(PlaceHolder(0),
+                       VerbPhrase(Verb('detected'),
+                                  NP('threat')))
+finish = String('End of scenario')
+
+scan = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is scanning'),
+                          NP('target')))
+
+suppress = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is supperssing'),
+                          NP('target')))
+
+assess = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is assessing'),
+                          NP('target')))
+
+ctn = Clause(PlaceHolder(0),
+             VerbPhrase(Verb('is continuing in original plan')))
+
+
 
 # Workflow summary phrase specifications
 the_workflow = NounPhrase(spec='the', head='workflow')
@@ -347,9 +405,11 @@ class SentenceTemplates:
         self.templates['inputCondition'] = start
         self.templates['outputCondition'] = finish
         self.templates['Start'] = start
+        self.templates['start'] = start
         self.templates['Finish'] = finish
         self.templates['OutputCondition'] = finish
-        self.templates['End'] = finish
+        self.templates['End'] = end
+        self.templates['finish'] = finish
         # logistics
         self.templates['load-truck'] = load_truck
         self.templates['drive-truck'] = drive_truck
@@ -360,7 +420,9 @@ class SentenceTemplates:
         self.templates['move'] = move
         # UAV
         self.templates['takeOff'] = takeOff
+        self.templates['liftoff'] = liftOff
         self.templates['flyToTargetArea'] = flyToTargetArea
+        self.templates['fly_to_position'] = fly_to_position
         self.templates['takePhotos'] = takePhotos
         self.templates['selectLandingSite'] = selectLandingSite
         self.templates['flyToAirfieldA'] = flyToAirfieldA
@@ -377,6 +439,22 @@ class SentenceTemplates:
         self.templates['slsA'] = 'site A is a suitable landing site'
         self.templates['slsB'] = 'site B is a suitable landing site'
         self.templates['CofG'] = 'the centre of gravity shifted'
+        self.templates['reroute'] = reroute
+        self.templates['request_permission'] = requestPermission
+        self.templates['threat_detected'] = threatDetected
+        self.templates['eliminate_threat'] = eliminateThreat
+        self.templates['disengage_threat'] = disengageThreat
+        self.templates['engage'] = engage
+        self.templates['disengage'] = disengage
+        self.templates['abort'] = abort
+        self.templates['suppress_threat'] = suppressThreat
+        self.templates['end_suppression'] = endSuppression
+        self.templates['continue'] = ctn
+        self.templates['scan'] = scan
+        self.templates['establish_link'] = establishLink
+        self.templates['assess'] = assess
+        self.templates['suppress'] = suppress
+        self.templates['reach'] = reach
         # workflow summary
         self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices

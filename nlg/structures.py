@@ -616,6 +616,11 @@ class Element:
             for k, v in kwargs.items():
                 self.replace_argument(k, v)
 
+    @property
+    def string(self):
+        """Return the string inside the value. """
+        return None
+
     @staticmethod
     def _add_to_list(lst, *mods, pos=None):
         """ Add modifiers to the given list. Convert any strings to String. """
@@ -656,6 +661,11 @@ class String(Element):
     def constituents(self):
         return [self]
 
+    @property
+    def string(self):
+        """Return the string inside the value. """
+        return self.value
+
 
 class Word(Element):
     """ Word represents word and its corresponding POS (Part-of-Speech) tag. """
@@ -685,6 +695,11 @@ class Word(Element):
 
     def constituents(self):
         return [self]
+
+    @property
+    def string(self):
+        """Return the word. """
+        return self.word
 
 
 class PlaceHolder(Element):
@@ -726,6 +741,12 @@ class PlaceHolder(Element):
     def set_value(self, val):
         if val is None: val = Word(str(self.id), 'NOUN')
         self.value = String(val) if isinstance(val, str) else val
+        
+    @property
+    def string(self):
+        """Return the string inside the value. """
+        if self.value:
+            return self.value.string
 
 
 class Coordination(Element):
@@ -804,6 +825,7 @@ class Coordination(Element):
                     yield from c.constituents()
                 else:
                     yield c
+        yield self
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.
@@ -816,6 +838,11 @@ class Coordination(Element):
                 else: del self.coords[i]
                 return True
         return False
+
+    @property
+    def string(self):
+        """Return the string inside the value. """
+        return self.coords[0].string
 
 
 # FIXME: incomplete implementation -- who is parent and who is subord child?
@@ -1032,9 +1059,9 @@ class Phrase(Element):
         for i, o in enumerate(self.post_modifiers):
             if o == one:
                 if another is None:
-                    del self.front_modifiers[i]
+                    del self.post_modifiers[i]
                 else:
-                    self.front_modifiers[i] = another
+                    self.post_modifiers[i] = another
                 return True
             else:
                 if o.replace(one, another):

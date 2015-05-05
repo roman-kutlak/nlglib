@@ -175,8 +175,8 @@ def aggregate(msg, limit=5):
     elif isinstance(msg, Document):
         return aggregate_document(msg, limit)
     else:
-        get_log().warning('"%s" is neither a Message nor a MsgInstance' %
-            str(type(msg)))
+#        get_log().warning('"%s" is neither a Message nor a MsgInstance' %
+#            str(type(msg)))
         return msg
 
 

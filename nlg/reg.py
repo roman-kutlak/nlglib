@@ -6,7 +6,7 @@ import logging
 from nlg.structures import *
 from nlg.microplanning import replace_element, replace_element_with_id
 import nlg.lexicon as lexicon
-from nlg.lexicon import Case, NP, Pronoun, Gender, Features, PronounUse
+from nlg.lexicon import Case, NP, Pronoun, Gender, Features, PronounUse, Number
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
@@ -33,7 +33,7 @@ class Context:
         """Extract NPs and add them on the referent stack. Add subject last. """
         self.referent_stack.extend(
             reversed([x for x in sent.constituents()
-                if isinstance(x, NounPhrase)]))
+                if isinstance(x, NounPhrase) or isinstance(x, Coordination)]))
 
 
 def generate_re(msg, context):
@@ -137,8 +137,12 @@ def _do_initial_reference(target, context):
         if onto is None:
             get_log().error('GRE does not have ontology!')
     
-        if isinstance(target, String): referent = referent.value
-        if isinstance(target, Word): referent = referent.word
+        referent = target.string
+        # if referent starts with a capital, assume that it is a proper name
+        if referent[0].isupper():
+            result = NounPhrase(target, features=target._features)
+            result.set_feature('PROPER', 'true')
+            return result
         
         entity_type = onto.best_entity_type(':' + referent)
         entity_type = entity_type.rpartition(':')[2] # strip the ':' at the beginning
@@ -174,12 +178,17 @@ def _do_initial_reference(target, context):
 
             if (number is not None):
                 result.add_complement(Word(number))
+                result.set_feature('PROPER', 'true')
+    except AttributeError:
+        result = NounPhrase(target, features=target._features)
+        context.referents[target] = (False, result)
     except Exception as msg:
         get_log().exception(msg)
         # if we have no info, assume referent is not unique
         result = NounPhrase(target, features=target._features)
         context.referents[target] = (False, result)
-        get_log().debug('GRE for "%s" failed : "%s"' % (target, str(msg)))
+        get_log().error('GRE for "{}" failed : "{}"'.format(target, msg))
+        get_log().error('\tusing expr: "{}"'.format(result))
     return result
 
 def _do_repeated_reference(referent, context):
@@ -191,6 +200,8 @@ def _do_repeated_reference(referent, context):
         result.spec = Word('the', 'DETERMINER')
     else:
         result = re
+        if not result.has_feature('PROPER', 'true'):
+            result.spec = Word('a', 'DETERMINER')
     return result
 
 def _count_type_instances(entity_type, object_map):
@@ -203,18 +214,28 @@ def _count_type_instances(entity_type, object_map):
 ########## new version of REG #############
 
 def optimise_ref_exp(phrase, context):
+    """Replace anaphoric noun phrases with pronouns when possible. """
+    # TODO: include Number in the dicision process (it vs they)
+    # FIXME: Coordinated elements need some special attention
     result = copy(phrase)
-    nps = [x for x in phrase.constituents() if isinstance(x, NounPhrase)]
+    # test for selecting phrases taht can be processed
+    test = lambda x: isinstance(x, NounPhrase) or isinstance(x, Coordination)
+    # reverse so that we start with large phrases first (eg CC)
+    nps = reversed([x for x in phrase.constituents() if test(x)])
     pps = [x for x in phrase.constituents()
                 if isinstance(x, PrepositionalPhrase)]
     uttered = []
+    processed_ids = set()
     for np in nps:
-        print('current NP: {}'.format(np))
+        get_log().debug('current NP: {}'.format(np))
         gender = get_phrase_gender(np)
-        print('gender of NP: {}'.format(gender))
+        get_log().debug('gender of NP: {}'.format(gender))
         distractors = [x for x in (context.referent_stack + uttered)
             if get_phrase_gender(x) == gender]
-        print('distractors of NP:\n\t{}'.format(distractors))
+#        get_log().debug('distractors of NP:\n\t{}'.format(distractors))
+        if id(np) in processed_ids:
+            get_log().debug('current NP: {} was already processed'.format(np))
+            continue
         if ((np in context.referent_stack or np in uttered)
             and np == distractors[-1]):
             # this np is the most salient so prnoominalise it
@@ -229,21 +250,39 @@ def optimise_ref_exp(phrase, context):
 #                    pronoun = pronominalise(np, gender, PronounUse.possessive)
                 elif (np in phrase.vp.constituents()):
                     pronoun = pronominalise(np, gender, PronounUse.objective)
+                else:
+                    pronoun = pronominalise(np, gender, PronounUse.subjective)
             else:
                 pronoun = pronominalise(np, gender, PronounUse.subjective)
             replace_element_with_id(result, id(np), pronoun)
+            # if you replace an element, remove all the subphrases from the list
+        processed = [y for y in np.constituents()]
+        processed_ids.update([id(x) for x in processed])
         uttered.append(np)
+#        optimise_determiner(np, distractors, context)
     context.add_sentence(phrase)
     return result
 
 
-def optimise_ref_exp2(phrase, context):
-    """Replace anaphoric noun phrases with pronouns when possible. """
-    if isinstance(phrase, np):
-        nps = [x for x in phrase.constituents() if isinstance(x, NounPhrase)]
-    
-    
-    context.add_sentence(phrase)
+def optimise_determiner(phrase, distractors, context):
+    """Select the approrpiate determiner. """
+    if (not isinstance(phrase, NounPhrase)):
+        return phrase
+
+    if (phrase.has_feature('PROPER', 'true') or
+        phrase.head.has_feature('cat', 'PRONOUN')):
+            phrase.spec = Element()
+
+    elif (distractors and distractors[-1] == phrase and
+          not phrase.head.has_feature('cat', 'PRONOUN')):
+              phrase.head.spec = Word('the', 'DETERMINER')
+        
+    elif (not phrase.head.has_feature('cat', 'PRONOUN')):
+          if phrase.head.string[0] in "aeiouy":
+              phrase.head.spec = Word('an', 'DETERMINER')
+          else:
+              phrase.head.spec = Word('a', 'DETERMINER')
+
     return phrase
 
 
@@ -257,21 +296,27 @@ def pronominalise(np, *features):
     else:
         gender = get_phrase_gender(np)
     all_features = list(features)
-    all_features.append(gender)
+    if gender == Gender.epicene:
+        all_features.append(Number.plural)
+    else:
+        all_features.append(gender)
     all_features.extend(list(np._features.items()))
     get_log().debug('Phrase features for pronominalisation:\n\t{}'
                     .format(all_features))
     res = lexicon.pronoun_for_features(*all_features)
+    get_log().debug('\tresult:{}'.format(res))
     return res
 
 
 def get_phrase_gender(phrase):
+    if isinstance(phrase, Coordination):
+        return Gender.epicene
     if phrase.has_feature(str(Gender)):
         gender_val = phrase.get_feature(str(Gender))
     elif phrase.head.has_feature(str(Gender)):
         gender_val = phrase.head.get_feature(str(Gender))
     else:
-        gender_val = lexicon.guess_noun_gender(str(phrase.head))
+        gender_val = lexicon.guess_noun_gender(str(phrase.head))[1]
     return (str(Gender), gender_val) # FIXME: terrible syntax!
 
 #############################################################################
