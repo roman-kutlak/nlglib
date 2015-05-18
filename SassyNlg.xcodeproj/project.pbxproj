@@ -65,9 +65,11 @@
 				3020ECCB1A4C739A00270661 /* __init__.py */,
 				309ED1661A58351F006157F5 /* fol.py */,
 				302887701ACC7BAE00C8D551 /* qm.py */,
+				30344DEC1AD6926D00DB775C /* simplifications.py */,
 				30344DEB1AD6897A00DB775C /* prover.py */,
 				3020ECDE1A4C739A00270661 /* nlg.py */,
 				3020ECE71A4C739A00270661 /* structures.py */,
+				3020ECDC1A4C739A00270661 /* lexicon.py */,
 				3020ECDD1A4C739A00270661 /* macroplanning.py */,
 				3020ED031A4C87C600270661 /* microplanning.py */,
 				3020ECDB1A4C739A00270661 /* lexicalisation.py */,
@@ -77,11 +79,9 @@
 				3020ECE61A4C739A00270661 /* simplenlg.py */,
 				3020ECE01A4C739A00270661 /* realisation.py */,
 				3020ECDA1A4C739A00270661 /* format.py */,
-				3020ECDC1A4C739A00270661 /* lexicon.py */,
 				3020ECE21A4C739A00270661 /* resources */,
 				3020ED021A4C739A00270661 /* utils.py */,
 				3020ECE81A4C739A00270661 /* test */,
-				30344DEC1AD6926D00DB775C /* simplifications.py */,
 			);
 			path = nlg;
 			sourceTree = "<group>";

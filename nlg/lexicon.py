@@ -69,7 +69,7 @@ class FeatureMeta(type):
 	@property
 	def attribute(cls):
 		"""Use the first element in the first feature tuple
-		For example ('CASE', 'X') would return the str 'CASE'. This can be 
+		For example ('CASE', 'X') would return the str 'CASE'. This can be
 		used as a key in a dictionary of features.
 		
 		"""
@@ -757,9 +757,23 @@ def inflection(word, **features):
 
 def pronoun_for_features(*features):
     """Return a pronoun matching given features. """
-    choices = pronouns_with_feqtures(*features)
-    if len(choices) == 0:
-        return None
+#    choices = pronouns_with_feqtures(*features)
+#    if len(choices) == 0:
+#        return None
+    fs = frozenset(features)
+    max = 0
+    choices = []
+    for k, v in pronouns.items():
+        k_fs = frozenset(k)
+        intersect = (k_fs & fs)
+        if intersect:
+            choices.append( (Pronoun(v, Features(*k)), len(intersect)) )
+            new_len = len(intersect)
+            if max < new_len:
+                max = new_len
+
+    choices = [x[0] for x in choices if x[1] == max]
+
     prefs_person = [x[1] for x in Person.preference_order]
     prefs_number = [x[1] for x in Number.preference_order]
     prefs_pu = [x[1] for x in PU.preference_order]

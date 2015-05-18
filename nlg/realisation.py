@@ -234,6 +234,7 @@ class RealisationVisitor:
 
     def visit_clause(self, node):
         # do a bit of coordination
+        get_log().debug('Clause is "{0}"'.format(repr(node)))
         node.vp.add_features(node._features)
         if node.subj.has_feature('NUMBER'):
             node.vp.set_feature('NUMBER', node.subj.get_feature('NUMBER'))
@@ -241,6 +242,8 @@ class RealisationVisitor:
             node.vp.set_feature('GENDER', node.subj.get_feature('GENDER'))
         if node.subj.has_feature('CASE'):
             node.vp.set_feature('CASE', node.subj.get_feature('CASE'))
+        if node.has_feature('NEGATED'):
+            node.vp.set_feature('NEGATED', node.get_feature('NEGATED'))
         for o in node.front_modifiers: o.accept(self)
         node.subj.accept(self)
         for o in node.pre_modifiers: o.accept(self)
@@ -288,12 +291,22 @@ class RealisationVisitor:
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
-        get_log().debug('head of VP is "{0}"'.format(head))
+        get_log().debug('VP is "{0}"'.format(repr(node)))
+        get_log().debug('  head of VP is "{0}"'.format(head))
+        modals = [f for f in lexicon.Modal.values]
+        get_log().warning('Modals: {}'.format(modals))
         if node.has_feature('MODAL'):
           self.text += ' ' + node.get_feature('MODAL') + ' '
           if node.has_feature('NEGATED', 'true'):
                 self.text += 'not '
           node.head.accept(self)
+        # hs the head a modal verb?
+        elif head in modals:
+          self.text += ' '
+          node.head.accept(self)
+          self.text += ' '
+          if node.has_feature('NEGATED', 'true'):
+                self.text += 'not '
         elif head == 'have':
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'do not have '
@@ -306,9 +319,15 @@ class RealisationVisitor:
                 self.text += 'has '
         elif (head == 'be' or head == 'is'):
             if node.has_feature('NUMBER', 'PLURAL'):
-                self.text += 'are '
+                if node.has_feature('TENSE', 'PAST'):
+                    self.text += 'were '
+                else:
+                    self.text += 'are '
             else:
-                self.text += 'is '
+                if node.has_feature('TENSE', 'PAST'):
+                    self.text += 'was '
+                else:
+                    self.text += 'is '
             if node.has_feature('NEGATED', 'true'):
                 self.text += 'not '
         else:

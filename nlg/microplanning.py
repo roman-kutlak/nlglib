@@ -273,6 +273,11 @@ class ReprVisitor(PrintVisitor):
         # restore the indent
 #        self.indent = self.indent[:-len(name + '=(')]
 
+    
+    def visit_msg_spec(self, node):
+        if self.do_indent: self.data += self.indent
+        self.data += '{0}'.format(repr(node))
+    
     def visit_element(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Element()'
@@ -421,6 +426,10 @@ class StrVisitor(PrintVisitor):
         super().__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
+    
+    def visit_msg_spec(self, node):
+        if self.do_indent: self.data += self.indent
+        self.data += '{0}'.format(node)
     
     def visit_element(self, node):
         self.data += ''
@@ -709,6 +718,7 @@ def aggregation_sentence_iterator(sent):
         yield (sent)
 
 
+# TODO: find out if it is used and probably deprecate
 def replace_element(sent, elt, replacement=None):
     if sent == elt:
         return True
@@ -737,6 +747,9 @@ def replace_element(sent, elt, replacement=None):
                 else:
                     sent.coords[i] = replacement
                 return True
+            else:
+                if replace_element(o, elt, replacement):
+                    return True
 
     if isinstance(sent, Phrase):
         for i, o in reversed(list(enumerate(sent.post_modifiers))):
@@ -819,6 +832,9 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                 else:
                     sent.coords[i] = replacement
                 return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
 
     if isinstance(sent, Phrase):
         for i, o in reversed(list(enumerate(sent.post_modifiers))):

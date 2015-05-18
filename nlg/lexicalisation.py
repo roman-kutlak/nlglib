@@ -102,7 +102,7 @@ def lexicalise_message_spec(msg):
 # RST relations to connect the clauses when applicable.
 def lexicalise_message(msg, parenthesis=False):
     """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
-    get_log().debug('Lexicalising message.')
+    get_log().debug('Lexicalising message {0}'.format(msg))
     if msg is None: return None
     if isinstance(msg.nucleus, list):
         nucleus = [lexicalise(x) for x in msg.nucleus if x is not None]
@@ -132,6 +132,11 @@ def lexicalise_message(msg, parenthesis=False):
         result = promote_to_phrase(nucleus)
         compl = promote_to_phrase(satelites[0])
         compl.set_feature('COMPLEMENTISER', 'if')
+        result.add_complement(compl)
+    elif msg.rst == 'Unless':
+        result = promote_to_phrase(nucleus)
+        compl = promote_to_phrase(satelites[0])
+        compl.set_feature('COMPLEMENTISER', 'unless')
         result.add_complement(compl)
     elif msg.rst == 'Equality':
         result = Clause()
@@ -309,6 +314,9 @@ endSuppression = Clause(PlaceHolder(0),
 eliminateThreat = Clause(PlaceHolder(0),
                        VerbPhrase(Verb('is eliminating'),
                                   NP('threat')))
+engageThreat = Clause(PlaceHolder(0),
+               VerbPhrase(Verb('is engaging'),
+                          NP('threat')))
 disengageThreat = Clause(PlaceHolder(0),
                VerbPhrase(Verb('is disengaging'),
                           NP('threat')))
@@ -455,6 +463,40 @@ class SentenceTemplates:
         self.templates['assess'] = assess
         self.templates['suppress'] = suppress
         self.templates['reach'] = reach
+        self.templates['discovered'] = Clause(uav, VP('was', 'discovered'))
+        self.templates['can_suppress_threat'] = \
+            Clause(uav, VP('can', 'suppress', NP('threat')))
+        self.templates['should_suppress_threat'] = \
+            Clause(uav, VP('should', 'suppress', NP('threat')))
+        self.templates['can_eliminate_threat'] = \
+            Clause(uav, VP('can', 'eliminate', NP('threat')))
+        self.templates['should_eliminate_threat'] = \
+            Clause(uav, VP('should', 'eliminate', NP('threat')))
+        self.templates['can_abort'] = Clause(uav, VP('can', 'abort'))
+        self.templates['should_abort'] = Clause(uav, VP('should', 'abort'))
+        self.templates['can_reroute'] = Clause(uav, VP('can', 'reroute'))
+        self.templates['reroute_exists'] = Clause(NP('there'), VP('exists', NP('a', 'route')))
+        self.templates['should_reroute'] = Clause(uav, VP('should', 'reroute'))
+        self.templates['abort'] = Clause(uav, VP('is', 'aborting'))
+        self.templates['reroute'] = Clause(uav, VP('is', 'rerouting'))
+        self.templates['suppress_threat'] = \
+            Clause(uav, VP('is', 'suppressing', NP('threat')))
+        self.templates['eliminate_threat'] = \
+            Clause(uav, VP('is', 'eliminating', NP('threat')))
+        self.templates['prefer_eliminate_threat'] = \
+            Clause(NP('eliminating the threat'), VP('is',
+            'preffered over suppressing it'))
+        self.templates['can_delay'] = Clause(uav, VP('can', 'delay'))
+        self.templates['permission_to_engage_threat_granted'] = \
+            Clause(NP('permission to engage the threat'), VP('is', 'granted', features=Features(Tense.past)))
+        self.templates['permission_to_engage'] = \
+            Clause(NP('permission to engage the target'), VP('is', 'granted', features=Features(Tense.past)))
+        self.templates['engage_threat'] = engageThreat
+        self.templates['disengage_threat'] = disengageThreat
+        self.templates['threat_neutralised'] = \
+            Clause(NP('threat'), VP('was', 'neutralised'))
+        self.templates['prefer_passive_device'] = \
+            Clause(NP(NNS('pasive devices')), VP('are', 'preffered over', NP(NNS('active devices'))))
         # workflow summary
         self.templates['SummariseNumTasks'] = SummariseNumTasks
         self.templates['SummariseNumChoices'] = SummariseNumChoices

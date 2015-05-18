@@ -221,7 +221,11 @@ def optimise_ref_exp(phrase, context):
     # test for selecting phrases taht can be processed
     test = lambda x: isinstance(x, NounPhrase) or isinstance(x, Coordination)
     # reverse so that we start with large phrases first (eg CC)
-    nps = reversed([x for x in phrase.constituents() if test(x)])
+    print('-='*40)
+    print(list(phrase.constituents()))
+    # TODO: reveresed generates cataphora but not reversing skips over coordinations
+#    nps = reversed([x for x in phrase.constituents() if test(x)])
+    nps = [x for x in phrase.constituents() if test(x)]
     pps = [x for x in phrase.constituents()
                 if isinstance(x, PrepositionalPhrase)]
     uttered = []

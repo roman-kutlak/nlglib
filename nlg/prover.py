@@ -2,10 +2,34 @@ import os
 import logging
 import subprocess
 
-from nlg.fol import to_prover_str
+from nlg.fol import deepen
+from nlg.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from nlg.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+
 
 def get_log():
     return logging.getLogger(__name__)
+
+prover_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prover9')
+
+
+print("Path at terminal when executing this file")
+print(os.getcwd() + "\n")
+
+print("This file path, relative to os.getcwd()")
+print(__file__ + "\n")
+
+print("This file full path (following symlinks)")
+full_path = os.path.realpath(__file__)
+print(full_path + "\n")
+
+print("This file directory and name")
+path, file = os.path.split(full_path)
+print(path + ' --> ' + file + "\n")
+
+print("This file directory only")
+print(os.path.dirname(os.path.realpath(__file__)))
 
 
 prover_tplt = (
@@ -54,7 +78,7 @@ def run_prover(formula, axioms):
                                      formula=formula_str)
 #    get_log().debug('Formula for prover9:\n{0}'.format(theorem_str))
     try:
-        out = subprocess.check_output('../prover9',
+        out = subprocess.check_output(prover_path,
                   input=theorem_str,
                   universal_newlines=True,
                   stderr=subprocess.STDOUT)
@@ -70,3 +94,58 @@ def run_prover(formula, axioms):
                             .format(os.getcwd()))
         raise ProverException from ex
     return ('THEOREM PROVED' in out)
+
+
+
+def to_prover_str(f):
+    """ Return a string representation of f that can be parsed by Prover9. """
+    def to_prover(f):
+        """ Function assumes each op has at most two args. """
+        if f.op == OP_TRUE:
+            return '(TRUE | -TRUE)' # no constant for true?
+        elif f.op == OP_FALSE:
+            return '(TRUE & -TRUE)' # no constant for false?
+        elif f.op == OP_NOT:
+            return ('-({arg})'.format(arg=to_prover(f.args[0])))
+        elif f.op == OP_AND:
+            return ('({arg1} & {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_OR:
+            return ('({arg1} | {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_IMPLIES:
+            return ('({arg1} -> {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_IMPLIED_BY:
+            return ('({arg2} -> {arg1})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_EQUIVALENT:
+            return ('({arg1} <-> {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_EQUALS:
+            return ('({arg1} = {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_NOTEQUALS:
+            return ('({arg1} != {arg2})'
+                    .format(arg1=to_prover(f.args[0]),
+                            arg2=to_prover(f.args[1])))
+        elif f.op == OP_FORALL:
+            return ('all {var} ({arg})'
+                    .format(var=to_prover(f.vars[0]),
+                            arg=to_prover(f.args[0])))
+        elif f.op == OP_EXISTS:
+            return ('exists {var} ({arg})'
+                    .format(var=to_prover(f.vars[0]),
+                            arg=to_prover(f.args[0])))
+        else:
+            return str(f)
+    # first make sure each op has at most two args and then use the helper.
+    return to_prover(deepen(f))
+
+

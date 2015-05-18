@@ -4,7 +4,6 @@ from urllib.parse import quote_plus
 import json
 import inspect
 
-
 def get_log():
     return logging.getLogger(__name__)
 
@@ -275,6 +274,7 @@ class MsgSpec:
     def __init__(self, name, features=None):
         self.name = name
         self._features = features or {}
+        self._visitor_name = 'visit_msg_spec'
 
     def __repr__(self):
         return 'MsgSpec({0}, {1})'.format(self.name, self._features)
@@ -296,6 +296,27 @@ class MsgSpec:
             raise ValueError('Error: cannot call the method "%s"' %
                                 data_member)
         return m()
+        
+    def accept(self, visitor, element='Element'):
+        """Implementation of the Visitor pattern."""
+        if self._visitor_name == None:
+            raise ValueError('Error: visit method of uninitialized visitor '
+                             'called!')
+        # get the appropriate method of the visitor instance
+        m = getattr(visitor, self._visitor_name)
+        # ensure that the method is callable
+        if not hasattr(m, '__call__'):
+            raise ValueError('Error: cannot call undefined method: %s on '
+                             'visitor' % self._visitor_name)
+        sig = inspect.signature(m)
+        # and finally call the callback
+        if len(sig.parameters) == 1:
+            return m(self)
+        if len(sig.parameters) == 2:
+            return m(self, element)
+
+    def constituents(self):
+        return [self]
 
     @classmethod
     def instantiate(Klass, data):
@@ -607,7 +628,7 @@ class Element:
 
         """
         # FIXME: this does not look correct...
-        if len(args) > 0 and len(args) > 1:
+        if len(args) > 1:
             raise ValueError('too many parameters')
         elif len(args) > 0:
             for k, v in args[0]:
@@ -659,6 +680,8 @@ class String(Element):
         return self.hash
 
     def constituents(self):
+        if hasattr(self.value, 'constituents'):
+            yield from self.value.constituents()
         return [self]
 
     @property
@@ -832,11 +855,16 @@ class Coordination(Element):
         Return True if successful.
 
         """
+        get_log().info('Replacing "{}" in "{}" by "{}.'
+                        .format(one, self, another))
         for i, o in enumerate(self.coords):
             if o == one:
                 if another: self.coords[i] = another
                 else: del self.coords[i]
                 return True
+            else:
+                if o.replace(one, another):
+                    return True
         return False
 
     @property
@@ -975,31 +1003,31 @@ class Phrase(Element):
         """ Iterate through front modifiers. """
         for o in self.front_modifiers:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
     def yield_pre_modifiers(self):
         """ Iterate through pre-modifiers. """
         for o in self.pre_modifiers:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
     def yield_head(self):
         """ Iterate through the elements composing the head. """
         if self.head is not None:
             for x in self.head.constituents():
-                yield x
+                yield from x.constituents()
 
     def yield_complements(self):
         """ Iterate through complements. """
         for o in self.complements:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
     def yield_post_modifiers(self):
         """ Iterate throught post-modifiers. """
         for o in self.post_modifiers:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
@@ -1096,12 +1124,12 @@ class NounPhrase(Phrase):
         """ Set the specifier (e.g., determiner) of the NounPhrase. """
         if spec is None: spec = Element()
         # convert str to String if necessary
-        self.spec = String(spec) if isinstance(spec, str) else spec
+        self.spec = String(spec) if isinstance(spec, str) else spec # use raise_to_element
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
         if self.spec is not None:
-            for c in self.spec.constituents(): yield c
+            for c in self.spec.constituents(): yield from c.constituents()
         yield from self.yield_front_modifiers()
         yield from self.yield_pre_modifiers()
         yield from self.yield_head()
@@ -1198,8 +1226,8 @@ class Clause(Element):
         super().__init__(CLAUSE, features)
         self.front_modifiers = list()
         self.pre_modifiers = list()
-        self.set_subj(subj)
-        self.set_vp(vp)
+        self.set_subj(raise_to_np(subj))
+        self.set_vp(raise_to_vp(vp))
         self.complements = list()
         self.post_modifiers = list()
         # see if anything was passed from above...
@@ -1253,6 +1281,7 @@ class Clause(Element):
         yield from self.yield_pre_modifiers()
         yield from self.subj.constituents()
         yield from self.vp.constituents()
+        yield from self.yield_complements()
         yield from self.yield_post_modifiers()
 
     def replace(self, one, another):
@@ -1290,7 +1319,7 @@ class Clause(Element):
         """ Iterate through pre-modifiers. """
         for o in self.front_modifiers:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
     
     def set_pre_modifiers(self, *mods):
         """ Set pre-modifiers to the passed parameters. """
@@ -1308,7 +1337,7 @@ class Clause(Element):
         """ Iterate through pre-modifiers. """
         for o in self.pre_modifiers:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
     def set_complements(self, *mods):
         """ Set complemets to the given ones. """
@@ -1326,7 +1355,7 @@ class Clause(Element):
         """ Iterate through complements. """
         for o in self.complements:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
     def set_post_modifiers(self, *mods):
         """ Set post-modifiers to the given parameters. """
@@ -1344,8 +1373,51 @@ class Clause(Element):
         """ Iterate through pre-modifiers. """
         for o in self.post_modifiers:
             for x in o.constituents():
-                yield x
+                yield from x.constituents()
 
+
+
+def raise_to_np(phrase):
+    """Take the current phrase and raise it to an NP. 
+    If `phrase` is a Noun it will be promoted to NP and used as a head;
+    If `phrase` is a CC its coordinants will be raised to NPs
+    
+    """
+    if isinstance(phrase, Coordination):
+        phrase.coords = [raise_to_np(c) for c in phrase.coords]
+        return phrase
+    if isinstance(phrase, String):
+        return NounPhrase(head=phrase)
+    if isinstance(phrase, Word):
+        return NounPhrase(head=phrase)
+    if isinstance(phrase, PlaceHolder):
+        return NounPhrase(head=phrase)
+    return phrase
+
+
+def raise_to_vp(phrase):
+    """Take the current phrase and raise it to a VP.
+    If `phrase` is a Word it will be promoted to VP and used as a head;
+    If `phrase` is a CC its coordinants will be raised to VPs
+    
+    """
+    if isinstance(phrase, Coordination):
+        phrase.coords = [raise_to_vp(c) for c in phrase.coords]
+        return phrase
+    if isinstance(phrase, String):
+        return VerbPhrase(head=phrase)
+    if isinstance(phrase, Word):
+        return VerbPhrase(head=phrase)
+    if isinstance(phrase, PlaceHolder):
+        return VerbPhrase(head=phrase)
+    return phrase
+
+
+def raise_to_element(element):
+    """Raise the given thing to an element (e.g., String). """
+    if not isinstance(element, Element):
+        return String(str(element)) # use str() in case of numbers
+    return element
 
 #############################################################################
 #
