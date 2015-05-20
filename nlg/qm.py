@@ -141,8 +141,8 @@ def merge(i, j):
 
 
 if __name__ == '__main__':
-	from optparse import *
-	from sys import *
+	from optparse import Option, OptionParser, IndentedHelpFormatter
+	import sys
 
 	def main():
 		options = [
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 		optparser = OptionParser(description=__doc__, formatter=f)
 		optparser.add_options(options)
 		opts, args = optparser.parse_args()
-		if len(argv) == 1 or args:
+		if len(sys.argv) == 1 or args:
 			optparser.print_help()
 			exit()
 		
@@ -171,10 +171,10 @@ if __name__ == '__main__':
 	
 		soln = qm(dc=opts.dc, ones=opts.ones, zeros=opts.zeros)
 		if len(soln) == 0:
-			stdout.write('contradiction\n')			
+			sys.stdout.write('contradiction\n')
 		elif len(soln) == 1 and soln[0].count('X') == len(soln[0]):
-			stdout.write('tautology\n')
+			sys.stdout.write('tautology\n')
 		else:
-			stdout.write(' '.join(soln) + '\n')
+			sys.stdout.write(' '.join(soln) + '\n')
 
 	main()

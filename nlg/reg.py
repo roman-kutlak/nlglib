@@ -3,10 +3,13 @@ import re
 from copy import deepcopy, copy
 import logging
 
-from nlg.structures import *
+from nlg.structures import Clause, Coordination, Document, Element, Message
+from nlg.structures import MsgSpec, NounPhrase, Paragraph
+from nlg.structures import PrepositionalPhrase, Section, String, Word
 from nlg.microplanning import replace_element, replace_element_with_id
 import nlg.lexicon as lexicon
-from nlg.lexicon import Case, NP, Pronoun, Gender, Features, PronounUse, Number
+from nlg.lexicon import Person, Case, Number, Gender, Features, PronounUse
+from nlg.lexicon import Pronoun, POS_NOUN
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
@@ -20,8 +23,54 @@ class Context:
         self.ontology = ontology
         self.referents = dict()
         self.referent_stack = []
+        self.np_stack = []
         self.history = []
         self.rfexps = []
+        # this can be used for direct speach or system/user customisation
+        self.speakers = []
+        self.hearers = []
+    
+    def is_speaker(self, element):
+        """Return True if the element is a speaker. """
+        return element in self.speakers
+    
+    def is_last_speaker(self, element):
+        """Return True if the element is the current (last) speaker. """
+        return element in self.speakers[-1:]
+    
+    def add_speaker(self, element):
+        """Add the `element` to the list of speakers as the last speaker. """
+        self.speakers.append(element)
+    
+    def remove_speaker(self, element):
+        """Delete the `element` from the list of speakers. """
+        self.speakers.remove(element)
+    
+    def remove_last_speaker(self):
+        """If there are any speakers, remove the last one and return it. """
+        if self.speakers:
+            return self.speakers.pop()
+    
+    def is_hearer(self, element):
+        """Return True if the given elemen is a hearer. """
+        return element in self.hearers
+    
+    def is_last_hearer(self, element):
+        """Return True if the given elemen is the current (last) hearer. """
+        return element in self.hearers[:-1]
+    
+    def add_hearer(self, element):
+        """Add the `element` to the list of hearers as the last hearer. """
+        self.hearers.append(element)
+    
+    def remove_hearer(self, element):
+        """Delete the `element` from the list of hearers. """
+        self.hearers.remove(element)
+    
+    def remove_last_hearer(self):
+        """If there are any hearers, remove the last one and return it. """
+        if self.hearers:
+            return self.hearers.pop()
 
     def add_sentence(self, sent):
         """Add a sentence to the context. """
@@ -31,10 +80,17 @@ class Context:
 
     def _update_referents(self, sent):
         """Extract NPs and add them on the referent stack. Add subject last. """
-        self.referent_stack.extend(
-            reversed([x for x in sent.constituents()
-                if isinstance(x, NounPhrase) or isinstance(x, Coordination)]))
-
+        nps = [x for x in sent.constituents()
+                   if isinstance(x, NounPhrase) or
+                      (isinstance(x, Coordination) and
+                       isinstance(x.coords[0], NounPhrase))]
+        for np in nps:
+            nouns = [x for x in np.constituents()
+                        if (isinstance(x, Word) and x.pos == POS_NOUN)]
+            self.referent_stack.extend(reversed(nouns))
+            unspec_np = deepcopy(np)
+            unspec_np.spec = Element()
+            self.np_stack.append(unspec_np)
 
 def generate_re(msg, context):
     """ Perform lexicalisation on the message depending on the type. """
@@ -221,72 +277,101 @@ def optimise_ref_exp(phrase, context):
     # test for selecting phrases taht can be processed
     test = lambda x: isinstance(x, NounPhrase) or isinstance(x, Coordination)
     # reverse so that we start with large phrases first (eg CC)
-    print('-='*40)
-    print(list(phrase.constituents()))
-    # TODO: reveresed generates cataphora but not reversing skips over coordinations
-#    nps = reversed([x for x in phrase.constituents() if test(x)])
+    get_log().debug('-='*40)
+    get_log().debug('constituents:')
+    for x in phrase.constituents():
+        get_log().debug('\t {}'.format(' '.join(repr(x).split())))
     nps = [x for x in phrase.constituents() if test(x)]
-    pps = [x for x in phrase.constituents()
-                if isinstance(x, PrepositionalPhrase)]
     uttered = []
     processed_ids = set()
     for np in nps:
+        replaced = False
         get_log().debug('current NP: {}'.format(np))
-        gender = get_phrase_gender(np)
+        gender = lexicon.guess_phrase_gender(np)
         get_log().debug('gender of NP: {}'.format(gender))
-        distractors = [x for x in (context.referent_stack + uttered)
-            if get_phrase_gender(x) == gender]
+        number = lexicon.guess_phrase_number(np)
+        get_log().debug('number of NP: {}'.format(number))
+        if not np.has_feature('PERSON'):
+            if context.is_last_speaker(np):
+                person = Person.first
+            else:
+                person = Person.third
+        else:
+            person = ('PERSON', np.get_feature('PERSON'))
+        phrases = [x for x in (context.np_stack + uttered)
+            if lexicon.guess_phrase_gender(x) == gender]
 #        get_log().debug('distractors of NP:\n\t{}'.format(distractors))
         if id(np) in processed_ids:
             get_log().debug('current NP: {} was already processed'.format(np))
             continue
-        if ((np in context.referent_stack or np in uttered)
-            and np == distractors[-1]):
-            # this np is the most salient so prnoominalise it
+#        if ((np in context.np_stack or np in uttered) and np == phrases[-1]):
+        if (np in phrases[-1:]):
+            # this np is the most salient so pronominalise it
             if isinstance(phrase, Clause):
                 if id(np) == id(phrase.subj):
-                    pronoun = pronominalise(np, gender, PronounUse.subjective)
+                    pronoun = pronominalise(np, gender, PronounUse.subjective, person)
                 elif (np in phrase.subj.constituents() and
                       np in phrase.vp.constituents()):
-                    pronoun = pronominalise(np, gender, PronounUse.reflexive)
+                    pronoun = pronominalise(np, gender, PronounUse.reflexive, person)
+                # TODO: implement -- possessive will be used if it is a complement of an NP?
 #                elif any(id(np) in [id(x) for x in pp.constituents()]
 #                            for pp in pps):
 #                    pronoun = pronominalise(np, gender, PronounUse.possessive)
                 elif (np in phrase.vp.constituents()):
-                    pronoun = pronominalise(np, gender, PronounUse.objective)
+                    pronoun = pronominalise(np, gender, PronounUse.objective, person)
                 else:
-                    pronoun = pronominalise(np, gender, PronounUse.subjective)
+                    pronoun = pronominalise(np, gender, PronounUse.subjective, person)
             else:
-                pronoun = pronominalise(np, gender, PronounUse.subjective)
+                pronoun = pronominalise(np, gender, PronounUse.subjective, person)
+            get_log().debug('replacing {}:{} with {}'.format(id(np), np, pronoun))
             replace_element_with_id(result, id(np), pronoun)
-            # if you replace an element, remove all the subphrases from the list
+            replaced = True
+        # if you replace an element, remove all the subphrases from the list
         processed = [y for y in np.constituents()]
         processed_ids.update([id(x) for x in processed])
-        uttered.append(np)
-#        optimise_determiner(np, distractors, context)
+        unspec_np = deepcopy(np)
+        unspec_np.spec = Element()
+        uttered.append(unspec_np)
+        if not replaced:
+            # fix determiners in the processed NP
+            optimise_determiner(np, phrases, context)
     context.add_sentence(phrase)
     return result
 
 
-def optimise_determiner(phrase, distractors, context):
+def optimise_determiner(phrase, np_phrases, context):
     """Select the approrpiate determiner. """
+    get_log().debug('Fixing determiners: {}'.format(phrase))
     if (not isinstance(phrase, NounPhrase)):
+        get_log().debug('...not an NP')
         return phrase
 
-    if (phrase.has_feature('PROPER', 'true') or
+    get_log().debug('NPs: {}'
+        .format(' '.join([str(x) for x in np_phrases])))
+
+    # FIXME: this whould look at all modifiers
+    distractors = [x for x in np_phrases if phrase.head == x.head]
+    get_log().debug('distractors: {}'
+        .format(' '.join([str(x) for x in distractors])))
+
+    if (phrase.head.has_feature('PROPER', 'true') or
         phrase.head.has_feature('cat', 'PRONOUN')):
+            get_log().debug('...proper or pronoun')
             phrase.spec = Element()
 
-    elif (distractors and distractors[-1] == phrase and
-          not phrase.head.has_feature('cat', 'PRONOUN')):
-              phrase.head.spec = Word('the', 'DETERMINER')
-        
-    elif (not phrase.head.has_feature('cat', 'PRONOUN')):
+    elif (not phrase.head.has_feature('cat', 'PRONOUN') and
+              phrase in distractors[-1:] and
+              len(distractors) == 1):
+          get_log().debug('...unpronominalised phrase that is last mentioned')
+          phrase.spec = Word('the', 'DETERMINER')
+    
+    elif (lexicon.guess_phrase_number(phrase) != Number.plural and
+              not phrase.head.has_feature('cat', 'PRONOUN')):
+          get_log().debug('...indefinite')
           if phrase.head.string[0] in "aeiouy":
-              phrase.head.spec = Word('an', 'DETERMINER')
+              phrase.spec = Word('an', 'DETERMINER')
           else:
-              phrase.head.spec = Word('a', 'DETERMINER')
-
+              phrase.spec = Word('a', 'DETERMINER')
     return phrase
 
 
@@ -298,9 +383,10 @@ def pronominalise(np, *features):
     if len(tmp) == 1:
         gender = tmp[0]
     else:
-        gender = get_phrase_gender(np)
+        gender = lexicon.guess_phrase_gender(np)
     all_features = list(features)
     if gender == Gender.epicene:
+        all_features = [x for x in all_features if x != Number.singular]
         all_features.append(Number.plural)
     else:
         all_features.append(gender)
@@ -312,16 +398,6 @@ def pronominalise(np, *features):
     return res
 
 
-def get_phrase_gender(phrase):
-    if isinstance(phrase, Coordination):
-        return Gender.epicene
-    if phrase.has_feature(str(Gender)):
-        gender_val = phrase.get_feature(str(Gender))
-    elif phrase.head.has_feature(str(Gender)):
-        gender_val = phrase.head.get_feature(str(Gender))
-    else:
-        gender_val = lexicon.guess_noun_gender(str(phrase.head))[1]
-    return (str(Gender), gender_val) # FIXME: terrible syntax!
 
 #############################################################################
 ##

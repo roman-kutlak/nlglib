@@ -680,8 +680,6 @@ class String(Element):
         return self.hash
 
     def constituents(self):
-        if hasattr(self.value, 'constituents'):
-            yield from self.value.constituents()
         return [self]
 
     @property
@@ -842,13 +840,12 @@ class Coordination(Element):
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
-        if self.coords is not None:
-            for c in self.coords:
-                if hasattr(c, 'constituents'):
-                    yield from c.constituents()
-                else:
-                    yield c
         yield self
+        for c in self.coords:
+            if hasattr(c, 'constituents'):
+                yield from c.constituents()
+            else:
+                yield c
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.
@@ -1031,12 +1028,12 @@ class Phrase(Element):
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
+        yield self
         yield from self.yield_front_modifiers()
         yield from self.yield_pre_modifiers()
         yield from self.yield_head()
         yield from self.yield_complements()
         yield from self.yield_post_modifiers()
-        yield self
 
     # TODO: consider spliting the code below similarly to 'constituents()'
     def replace(self, one, another):
@@ -1128,6 +1125,7 @@ class NounPhrase(Phrase):
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
+        yield self
         if self.spec is not None:
             for c in self.spec.constituents(): yield from c.constituents()
         yield from self.yield_front_modifiers()
@@ -1135,7 +1133,6 @@ class NounPhrase(Phrase):
         yield from self.yield_head()
         yield from self.yield_complements()
         yield from self.yield_post_modifiers()
-        yield self
 
     def replace(self, one, another):
         """ Replace first occurance of one with another.
@@ -1278,6 +1275,7 @@ class Clause(Element):
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
+        yield self
         yield from self.yield_pre_modifiers()
         yield from self.subj.constituents()
         yield from self.vp.constituents()

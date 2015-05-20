@@ -11,9 +11,6 @@ def get_log():
     return logging.getLogger(__name__)
 
 
-from nlg.qm import qm
-
-
 #______________________________________________________________________________
 
 OP_NOT = '~'

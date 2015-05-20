@@ -6,6 +6,7 @@ from nlg.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
 from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
 from nlg.structures import is_clause_t, is_phrase_t, STRING, WORD
 from nlg.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
+from nlg.lexicon import POS_VERB, POS_ADVERB
 
 #from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
 #from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
@@ -808,7 +809,30 @@ def replace_element_with_id(sent, elt_id, replacement=None):
     if id(sent) == elt_id:
         return True
 
+    if isinstance(sent, Coordination):
+        for i, o in list(enumerate(sent.coords)):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.coords[i]
+                else:
+                    sent.coords[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+
     if isinstance(sent, Clause):
+        for i, o in reversed(list(enumerate(sent.pre_modifiers))):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.pre_modifiers[i]
+                else:
+                    sent.pre_modifiers[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+                    
         if id(sent.subj) == elt_id:
             sent.subj = replacement or Element()
             return True
@@ -824,13 +848,23 @@ def replace_element_with_id(sent, elt_id, replacement=None):
             if replace_element_with_id(sent.vp, elt_id, replacement):
                 return True;
 
-    if isinstance(sent, Coordination):
-        for i, o in list(enumerate(sent.coords)):
+        for i, o in reversed(list(enumerate(sent.complements))):
             if (id(o) == elt_id):
                 if replacement is None:
-                    del sent.coords[i]
+                    del sent.complements[i]
                 else:
-                    sent.coords[i] = replacement
+                    sent.complements[i] = replacement
+                return True
+            else:
+                if replace_element_with_id(o, elt_id, replacement):
+                    return True
+
+        for i, o in reversed(list(enumerate(sent.post_modifiers))):
+            if (id(o) == elt_id):
+                if replacement is None:
+                    del sent.post_modifiers[i]
+                else:
+                    sent.post_modifiers[i] = replacement
                 return True
             else:
                 if replace_element_with_id(o, elt_id, replacement):

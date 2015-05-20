@@ -400,6 +400,32 @@ def guess_noun_gender(word):
     return Gender.neuter
 
 
+def guess_phrase_gender(phrase):
+    if isinstance(phrase, Coordination):
+        return Gender.epicene
+    if phrase.has_feature(str(Gender)):
+        gender_val = phrase.get_feature(str(Gender))
+    elif phrase.head.has_feature(str(Gender)):
+        gender_val = phrase.head.get_feature(str(Gender))
+    else:
+        gender_val = guess_noun_gender(str(phrase.head))[1]
+    return (str(Gender), gender_val) # FIXME: terrible syntax!
+
+
+def guess_phrase_number(phrase):
+    """Guess the gender of the given phrase. """
+    if phrase.has_feature('NUMBER'):
+        return ('NUMBER', phrase.get_feature('NUMBER'))
+    if isinstance(phrase, Phrase) and phrase.head.has_feature('NUMBER'):
+        return ('NUMBER', phrase.head.get_feature('NUMBER'))
+    if isinstance(phrase, Coordination):
+        return Number.plural
+    return Number.singular
+
+
+# TODO: implement guess_phrase_person that can be used in pronominalisation
+
+
 ################################################################################
 #                                                                              #
 #                                Lexicon                                       #
@@ -757,9 +783,6 @@ def inflection(word, **features):
 
 def pronoun_for_features(*features):
     """Return a pronoun matching given features. """
-#    choices = pronouns_with_feqtures(*features)
-#    if len(choices) == 0:
-#        return None
     fs = frozenset(features)
     max = 0
     choices = []
@@ -810,7 +833,7 @@ pronouns = {
     (Number.singular, Person.third, PU.subjective, Gender.masculine): 'he',
     (Number.singular, Person.third, PU.subjective, Gender.feminine): 'she',
     (Number.singular, Person.third, PU.subjective, Gender.neuter): 'it',
-    (Number.singular, Person.third, PU.subjective, Gender.epicene): 'they',
+#    (Number.singular, Person.third, PU.subjective, Gender.epicene): 'they',
     (Number.singular, Person.generic, PU.subjective, Register.formal): 'one',
     (Number.singular, Person.generic, PU.subjective, Register.informal): 'you',
 # objective use
@@ -819,7 +842,7 @@ pronouns = {
     (Number.singular, Person.third, PU.objective, Gender.masculine): 'him',
     (Number.singular, Person.third, PU.objective, Gender.feminine): 'her',
     (Number.singular, Person.third, PU.objective, Gender.neuter): 'it',
-    (Number.singular, Person.third, PU.objective, Gender.epicene): 'them',
+#    (Number.singular, Person.third, PU.objective, Gender.epicene): 'them',
     (Number.singular, Person.generic, PU.objective, Register.formal): 'one',
     (Number.singular, Person.generic, PU.objective, Register.informal): 'you',
 # reflexive use
@@ -828,7 +851,7 @@ pronouns = {
     (Number.singular, Person.third, PU.reflexive, Gender.masculine): 'himself',
     (Number.singular, Person.third, PU.reflexive, Gender.feminine): 'herself',
     (Number.singular, Person.third, PU.reflexive, Gender.neuter): 'itself',
-    (Number.singular, Person.third, PU.reflexive, Gender.epicene): 'themself',
+#    (Number.singular, Person.third, PU.reflexive, Gender.epicene): 'themself',
     (Number.singular, Person.generic, PU.reflexive, Register.formal): 'oneself',
     (Number.singular, Person.generic, PU.reflexive, Register.informal): 'yourself',
 # possessive use
@@ -837,26 +860,26 @@ pronouns = {
     (Number.singular, Person.third, PU.possessive, Gender.masculine): 'his',
     (Number.singular, Person.third, PU.possessive, Gender.feminine): 'hers',
     (Number.singular, Person.third, PU.possessive, Gender.neuter): 'its',
-    (Number.singular, Person.third, PU.possessive, Gender.epicene): 'theirs',
+#    (Number.singular, Person.third, PU.possessive, Gender.epicene): 'theirs',
     (Number.singular, Person.generic, PU.possessive, Register.formal): 'one\'s',
     (Number.singular, Person.generic, PU.possessive, Register.informal): 'your',
 ################################# plural #######################################
 # subject
-    (Number.plural, Person.first, PU.subjective): 'we',
-    (Number.plural, Person.second, PU.subjective): 'you',
-    (Number.plural, Person.third, PU.subjective): 'they',
+    (Number.plural, Person.first, PU.subjective, Gender.epicene): 'we',
+    (Number.plural, Person.second, PU.subjective, Gender.epicene): 'you',
+    (Number.plural, Person.third, PU.subjective, Gender.epicene): 'they',
 # object
-    (Number.plural, Person.first, PU.objective): 'us',
-    (Number.plural, Person.second, PU.objective): 'you',
-    (Number.plural, Person.third, PU.objective): 'them',
+    (Number.plural, Person.first, PU.objective, Gender.epicene): 'us',
+    (Number.plural, Person.second, PU.objective, Gender.epicene): 'you',
+    (Number.plural, Person.third, PU.objective, Gender.epicene): 'them',
 # reflexive
-    (Number.plural, Person.first, PU.reflexive): 'ourselves',
-    (Number.plural, Person.second, PU.reflexive): 'yourselves',
-    (Number.plural, Person.third, PU.reflexive): 'themselves',
+    (Number.plural, Person.first, PU.reflexive, Gender.epicene): 'ourselves',
+    (Number.plural, Person.second, PU.reflexive, Gender.epicene): 'yourselves',
+    (Number.plural, Person.third, PU.reflexive, Gender.epicene): 'themselves',
 # possessive
-    (Number.plural, Person.first, PU.possessive): 'ours',
-    (Number.plural, Person.second, PU.possessive): 'yours',
-    (Number.plural, Person.third, PU.possessive): 'theirs',
+    (Number.plural, Person.first, PU.possessive, Gender.epicene): 'ours',
+    (Number.plural, Person.second, PU.possessive, Gender.epicene): 'yours',
+    (Number.plural, Person.third, PU.possessive, Gender.epicene): 'theirs',
 }
 
 
