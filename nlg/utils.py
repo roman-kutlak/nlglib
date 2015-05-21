@@ -1,6 +1,6 @@
-
 import os
 import logging
+import threading
 
 
 def get_log():
@@ -59,6 +59,49 @@ def find_files(dir, extension):
                  result.append( (root, file) )
     return result
 
+
+class LogPipe(threading.Thread):
+    """ A pipe that runs in a separate thread and logs comming messages.
+    codereview.stackexchange.com/questions/6567/
+    how-to-redirect-a-subprocesses-output-stdout-and-stderr-to-logging-module
+    
+    """
+    
+    def __init__(self, log_fn):
+        """Setup the object with a logger and a loglevel
+        and start the thread
+        """
+        threading.Thread.__init__(self)
+        self.daemon = False
+        self.log_fn = log_fn
+        self.fdRead, self.fdWrite = os.pipe()
+        self.pipeReader = os.fdopen(self.fdRead)
+
+    def fileno(self):
+        """Return the write file descriptor of the pipe
+        """
+        return self.fdWrite
+
+    def run(self):
+        """Run the thread, logging everything.
+        """
+        for line in iter(self.pipeReader.readline, ''):
+            self.log_fn(line.strip('\n'))
+
+        self.pipeReader.close()
+
+    def close(self):
+        """Close the write end of the pipe.
+        """
+        os.close(self.fdWrite)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.close()
+        return False
 
 
 #############################################################################

@@ -696,6 +696,7 @@ class Word(Element):
         self.pos = pos
         self.base = base or word
         self.do_inflection = False
+        self.set_feature('cat', pos)
     
     def __bool__(self):
         """ Return True """

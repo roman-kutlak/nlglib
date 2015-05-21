@@ -159,10 +159,9 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         word = node.word
         if word == 'is': word = 'be'
         features = node.features_to_xml_attributes()
-        text = ('{outer}<{tag} xsi:type="WordElement" cat="{cat}"{f}>{sep}'
+        text = ('{outer}<{tag} xsi:type="WordElement" {f}>{sep}'
                 '{inner}<base>{word}</base>{sep}'
-                '{outer}</{tag}>{sep}').format(cat=quote_plus(str(node.pos)),
-                                               word=quote_plus(str(word)),
+                '{outer}</{tag}>{sep}').format(word=quote_plus(str(word)),
                                                **self._get_args(f=features))
         self.xml += text
 

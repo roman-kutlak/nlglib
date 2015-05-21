@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import subprocess
 
@@ -6,12 +7,19 @@ from nlg.fol import deepen
 from nlg.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
 from nlg.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
 from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from nlg.utils import LogPipe
 
 
 def get_log():
     return logging.getLogger(__name__)
 
-prover_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'prover9')
+
+if getattr(sys, 'frozen', False): # frozen
+    mod_path = os.path.dirname(sys.executable)
+else: # unfrozen
+    mod_path = os.path.dirname(os.path.realpath(__file__))
+
+prover_path = os.path.join(mod_path, 'prover9')
 
 
 print("Path at terminal when executing this file")
@@ -77,23 +85,25 @@ def run_prover(formula, axioms):
     theorem_str = prover_tplt.format(axioms=axioms_str,
                                      formula=formula_str)
 #    get_log().debug('Formula for prover9:\n{0}'.format(theorem_str))
-    try:
-        out = subprocess.check_output(prover_path,
-                  input=theorem_str,
-                  universal_newlines=True,
-                  stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as ex:
-        if ex.returncode != 1 and ex.returncode != 2:
-            get_log().exception('Theorem prover failed to execute.')
+    with LogPipe(logging.getLogger('nlg.prover.prover').error) as error_log:
+        try:
+            get_log().warning('Running: {}'.format(prover_path))
+            out = subprocess.check_output(prover_path,
+                      input=theorem_str,
+                      stderr=error_log,
+                      universal_newlines=True)
+        except subprocess.CalledProcessError as ex:
+            if ex.returncode != 1 and ex.returncode != 2:
+                get_log().exception('Theorem prover failed to execute.')
+                raise ProverException from ex
+            else:
+    #            get_log().exception(str(ex))
+                return False
+        except FileNotFoundError as ex:
+            get_log().exception('Could not find prover from path "{0}".'
+                                .format(os.getcwd()))
             raise ProverException from ex
-        else:
-#            get_log().exception(str(ex))
-            return False
-    except FileNotFoundError as ex:
-        get_log().exception('Could not find prover from path "{0}".'
-                            .format(os.getcwd()))
-        raise ProverException from ex
-    return ('THEOREM PROVED' in out)
+        return ('THEOREM PROVED' in out)
 
 
 

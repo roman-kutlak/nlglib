@@ -13,6 +13,8 @@ def get_log(name=__name__):
     return logging.getLogger(name)
 
 
+from nlg.utils import LogPipe
+
 # simplenlg_path = 'nlg/resources/simplenlg.jar'
 #
 # if not (os.path.isfile(simplenlg_path) and os.access(simplenlg_path, os.R_OK)):
@@ -138,43 +140,6 @@ class SimplenlgClient:
             return urllib.parse.unquote_plus(result, encoding='utf-8')
 
 
-class LogPipe(threading.Thread):
-    """ A pipe that runs in a separate thread and logs comming messages.
-    codereview.stackexchange.com/questions/6567/
-    how-to-redirect-a-subprocesses-output-stdout-and-stderr-to-logging-module
-    
-    """
-    
-    def __init__(self, log_fn):
-        """Setup the object with a logger and a loglevel
-        and start the thread
-        """
-        threading.Thread.__init__(self)
-        self.daemon = False
-        self.log_fn = log_fn
-        self.fdRead, self.fdWrite = os.pipe()
-        self.pipeReader = os.fdopen(self.fdRead)
-        self.start()
-
-    def fileno(self):
-        """Return the write file descriptor of the pipe
-        """
-        return self.fdWrite
-
-    def run(self):
-        """Run the thread, logging everything.
-        """
-        for line in iter(self.pipeReader.readline, ''):
-            self.log_fn(line.strip('\n'))
-
-        self.pipeReader.close()
-
-    def close(self):
-        """Close the write end of the pipe.
-        """
-        os.close(self.fdWrite)
-
-
 class SimpleNLGServer(threading.Thread):
     """ A class that can be used as a SimpleNLG server. The actual java server
     is started as a subprocess and listens on the port 50007 for incoming XML
@@ -214,27 +179,28 @@ class SimpleNLGServer(threading.Thread):
 
         """
         args = ['java', '-Xmx512m', '-jar', self.jar_path, self.port]
-        with subprocess.Popen(args,
-                              stdin=subprocess.PIPE,
-                              stdout=self.output_log,
-                              stderr=self.error_log,
-                              universal_newlines=True) as proc:
-            # use a condition variable to signal that the process is running
-            time.sleep(1)
-            self._signal_startup_done()
+        with self.error_log, self.output_log:
+            with subprocess.Popen(args,
+                                  stdin=subprocess.PIPE,
+                                  stdout=self.output_log,
+                                  stderr=self.error_log,
+                                  universal_newlines=True) as proc:
+                # use a condition variable to signal that the process is running
+                time.sleep(1)
+                self._signal_startup_done()
 
-            self._wait_for_shutdown()
+                self._wait_for_shutdown()
 
-            try:
-                out, errs = proc.communicate('exit\n', timeout=5)
-                if out:
-                    get_log().debug('Server output: "{0}"'.format(out))
-                if errs:
-                    get_log().error('Server errors: "{0}"'.format(errs))
-            except subprocess.TimeoutExpired:
-                proc.kill()
-            self.output_log.close()
-            self.error_log.close()
+                try:
+                    out, errs = proc.communicate('exit\n', timeout=5)
+                    if out:
+                        get_log().debug('Server output: "{0}"'.format(out))
+                    if errs:
+                        get_log().error('Server errors: "{0}"'.format(errs))
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+#            self.output_log.close()
+#            self.error_log.close()
 
     def is_ready(self):
         """ Return true if the server is initialised. """
