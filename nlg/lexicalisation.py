@@ -71,6 +71,7 @@ def lexicalise_message_spec(msg):
     get_log().debug('Lexicalising message specs: {0}'.format(repr(msg)))
     try:
         template = templates.template(msg.name)
+        # TODO: should MessageSpec correspond to a clause?
         if template is None:
             get_log().warning('No sentence template for "%s"' % msg.name)
             result = String(str(msg))

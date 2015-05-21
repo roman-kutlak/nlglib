@@ -368,7 +368,7 @@ def optimise_determiner(phrase, np_phrases, context):
     elif (lexicon.guess_phrase_number(phrase) != Number.plural and
               not phrase.head.has_feature('cat', 'PRONOUN')):
           get_log().debug('...indefinite')
-          if phrase.head.string[0] in "aeiouy":
+          if phrase.head.string and phrase.head.string[0] in "aeiouy":
               phrase.spec = Word('an', 'DETERMINER')
           else:
               phrase.spec = Word('a', 'DETERMINER')

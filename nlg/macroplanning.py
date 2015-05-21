@@ -5,7 +5,7 @@ from nlg.fol import is_predicate, is_variable, is_function
 
 from nlg.structures import Message, MsgSpec, Word, String, PlaceHolder
 from nlg.structures import NounPhrase, DiscourseContext, OperatorContext
-
+from nlg.lexicon import NNP
 
 
 import logging
@@ -217,7 +217,7 @@ def formula_to_rst(f):
                     PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
     else:
         get_log().debug('None: ' + repr(f))
-        return PlaceHolder(f.op)
+        return NNP(f.op)
 
 
 def fol_to_synt(f, do_parent=True):
