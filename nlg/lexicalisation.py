@@ -19,7 +19,7 @@ def lexicalise(msg):
     if msg is None:
         return None
     elif isinstance(msg, numbers.Number):
-        return numeral(msg)
+        return Numeral(msg)
     elif isinstance(msg, str):
         return String(msg)
     elif isinstance(msg, Element):
@@ -90,6 +90,11 @@ def lexicalise_message_spec(msg):
             get_log().debug('Replacing\n{0} in \n{1}.'
                             .format(str(arg), repr(template)))
             val = msg.value_for(arg.id)
+#           check if value is a template
+            if isinstance(val, Word) or isinstance(val, String):
+                t = templates.template(val.string)
+                if t:
+                    val = t
             get_log().debug(' val = {0}'.format(repr(val)))
             template.replace(arg, lexicalise(val))
         return template

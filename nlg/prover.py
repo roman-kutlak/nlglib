@@ -7,37 +7,14 @@ from nlg.fol import deepen
 from nlg.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
 from nlg.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
 from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
-from nlg.utils import LogPipe
+from nlg.utils import LogPipe, find_data_file
 
 
 def get_log():
     return logging.getLogger(__name__)
 
 
-if getattr(sys, 'frozen', False): # frozen
-    mod_path = os.path.dirname(sys.executable)
-else: # unfrozen
-    mod_path = os.path.dirname(os.path.realpath(__file__))
-
-prover_path = os.path.join(mod_path, 'prover9')
-
-
-print("Path at terminal when executing this file")
-print(os.getcwd() + "\n")
-
-print("This file path, relative to os.getcwd()")
-print(__file__ + "\n")
-
-print("This file full path (following symlinks)")
-full_path = os.path.realpath(__file__)
-print(full_path + "\n")
-
-print("This file directory and name")
-path, file = os.path.split(full_path)
-print(path + ' --> ' + file + "\n")
-
-print("This file directory only")
-print(os.path.dirname(os.path.realpath(__file__)))
+prover_path = find_data_file('resources', 'prover9')
 
 
 prover_tplt = (
@@ -100,8 +77,9 @@ def run_prover(formula, axioms):
     #            get_log().exception(str(ex))
                 return False
         except FileNotFoundError as ex:
-            get_log().exception('Could not find prover from path "{0}".'
-                                .format(os.getcwd()))
+            get_log().exception('Could not find theorem prover:'
+                                '\n\tCWD: {0}\n\texpected path: {1}'
+                                .format(os.getcwd(), prover_path))
             raise ProverException from ex
         return ('THEOREM PROVED' in out)
 

@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import threading
 
@@ -28,17 +29,15 @@ class Settings:
                     if len(kv) > 1:
                         self.table[kv[0]] = kv[1]
 
-        except IOError:
-            # This should probably log the exception...
-            get_log().exception("Something wrong with the file '%s'" % filename)
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             get_log().exception("Could not find settings file '%s'" % filename)
-
-    def get_setting(self, key):
-        if key in self.table:
-            return self.table[key]
-        else:
-            return None
+            raise e
+        except IOError as e:
+            get_log().exception("Something wrong with the file '%s'" % filename)
+            raise e
+            
+    def get_setting(self, key, default=None):
+        return self.table.get(key, default)
 
 """
     Look for a default settings file in $HOME/.sassy/sassy.prefs
@@ -102,6 +101,18 @@ class LogPipe(threading.Thread):
     def __exit__(self, exc_type, exc, tb):
         self.close()
         return False
+
+
+# http://cx-freeze.readthedocs.org/en/latest/faq.html
+def find_data_file(*path_chunks):
+    if getattr(sys, 'frozen', False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+    return os.path.join(datadir, *path_chunks)
 
 
 #############################################################################

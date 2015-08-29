@@ -704,6 +704,10 @@ def bfs(f, h, operators, max=0):
 
 def minimise_search(f, h_file, ops=LOGIC_OPS, max=-1):
     """Return a formula minimised using the breadth first search. """
+    if prover.test_tautology(f, []):
+        return Expr(OP_TRUE)
+    if prover.test_contradiction(f, []):
+        return Expr(OP_FALSE)
     h = Heuristic(h_file)
     return bfs(f, h, ops, max)
 

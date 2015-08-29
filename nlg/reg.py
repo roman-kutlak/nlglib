@@ -286,7 +286,7 @@ def optimise_ref_exp(phrase, context):
     processed_ids = set()
     for np in nps:
         replaced = False
-        get_log().debug('current NP: {}'.format(np))
+        get_log().debug('current NP:\n{}'.format(np))
         gender = lexicon.guess_phrase_gender(np)
         get_log().debug('gender of NP: {}'.format(gender))
         number = lexicon.guess_phrase_number(np)
@@ -350,7 +350,9 @@ def optimise_determiner(phrase, np_phrases, context):
         .format(' '.join([str(x) for x in np_phrases])))
 
     # FIXME: this whould look at all modifiers
-    distractors = [x for x in np_phrases if phrase.head == x.head]
+    distractors = [x for x in np_phrases
+                    if (hasattr(x, 'head') and
+                        hasattr(phrase, 'head') and phrase.head == x.head)]
     get_log().debug('distractors: {}'
         .format(' '.join([str(x) for x in distractors])))
 
@@ -379,6 +381,7 @@ def pronominalise(np, *features):
     """Create a pronoun for the corresponding noun phrase. """
     # features can be: person, gender, subject|object (case),
     #   possessive determiner, possessive pronoun, reflexive
+    get_log().info('Doing pronominalisation on {0}'.format(repr(np)))
     tmp = [x for x in features if str(Gender) == x[0]]
     if len(tmp) == 1:
         gender = tmp[0]

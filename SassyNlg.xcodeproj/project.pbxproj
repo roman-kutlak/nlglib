@@ -40,6 +40,7 @@
 		3020ED041A4CA24D00270661 /* test_microplanning.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = test_microplanning.py; sourceTree = "<group>"; };
 		3020ED051A4CAB7D00270661 /* test_lexicon.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = test_lexicon.py; sourceTree = "<group>"; };
 		302887701ACC7BAE00C8D551 /* qm.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = qm.py; sourceTree = "<group>"; };
+		3030B57D1B1C9F9D004424D9 /* prover9 */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = prover9; sourceTree = "<group>"; };
 		30344DEB1AD6897A00DB775C /* prover.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = prover.py; sourceTree = "<group>"; };
 		30344DEC1AD6926D00DB775C /* simplifications.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = simplifications.py; sourceTree = "<group>"; };
 		306C41451A65E89E00C533F5 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -89,6 +90,7 @@
 		3020ECE21A4C739A00270661 /* resources */ = {
 			isa = PBXGroup;
 			children = (
+				3030B57D1B1C9F9D004424D9 /* prover9 */,
 				3020ECE31A4C739A00270661 /* log.config.yaml */,
 				3020ECE41A4C739A00270661 /* simplenlg.jar */,
 				3020ECE51A4C739A00270661 /* simplenlg.settings */,
