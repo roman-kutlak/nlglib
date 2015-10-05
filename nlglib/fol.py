@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numbers
 import random
 from pyparsing import (nums, alphas, alphanums, restOfLine, Word,
@@ -93,7 +94,7 @@ class Expr:
 
     Exprs can be constructed with operator overloading: if x and y are Exprs,
     then so are x + y and x & y, etc.
-    
+
     WARNING: x == y and x != y are NOT Exprs.  The reason is that we want
     to write code that tests 'if x == y:' and if x == y were the same
     as Expr('==', x, y), then the result would always be true; not what a
@@ -169,15 +170,15 @@ class Expr:
     def __mul__(self, other):    return Expr('*',  self, other)
     def __div__(self, other):    return Expr('/',  self, other)
     def __truediv__(self, other):return Expr('/',  self, other)
-    
+
     def __invert__(self):        return Expr(OP_NOT,  self)
     def __and__(self, other):    return Expr(OP_AND,  self, other)
     def __or__(self, other):     return Expr(OP_OR,  self, other)
-    
+
     def __lshift__(self, other): return Expr(OP_IMPLIED_BY, self, other)
     def __rshift__(self, other): return Expr(OP_IMPLIES, self, other)
     def __pow__(self, other):    return Expr(OP_EQUIVALENT, self, other)
-    
+
     def __mod__(self, other):    return Expr(OP_EQUALS,  self, other)
     def __xor__(self, other):    return Expr(OP_NOTEQUALS,  self, other)
 
@@ -203,7 +204,7 @@ class Quantifier(Expr):
         return '{0} {1}: ({2})'.format(self.op,
                                 ', '.join(map(str, self.vars)),
                                 ', '.join(map(str, self.args)))
-    
+
     def __eq__(self, other):
         """x and y are equal iff their ops and args are equal."""
         return (isinstance(other, Quantifier) and
@@ -362,14 +363,14 @@ def generalise(f):
 
 
 def variant(x, vars):
-    """ Create a variant of a variable name. If the variable x appears 
+    """ Create a variant of a variable name. If the variable x appears
     in the set of variables, add an apostrophe and try again.
-    
+
     >>> variant('x', ['y', 'z'])
     "x"
     >>> variant('x', ['x', 'y', 'z'])
     "x'"
-    
+
     """
     if x in vars: return variant(Expr(x.op + "'", *x.args), vars)
     else: return x
@@ -377,13 +378,13 @@ def variant(x, vars):
 
 def subst(mappings, tm):
     """ Substitute terms in a formula.
-    
+
     For example, to substitute 'c' by 'x' the variable in forall x has to be
     renamed to something else (x' in our case).
-    
+
     >>> subst({Expr('c'): Expr('x')}, expr('forall x: c > 0 -> x + c > x'))
     #   --> "forall x': x > 0 -> x' + x > x'"
-    
+
     """
     if is_variable(tm):
         if tm in mappings: return mappings[tm]
@@ -407,7 +408,7 @@ def deepen(f):
     """ Return a copy of f where each operator takes at most 2 arguments.
     >>> flatten(expr('A & B & C')) == expr('A & (B & C))
     True
-    
+
     """
     if is_quantified(f):
         if len(f.vars) > 1:
@@ -436,7 +437,7 @@ def flatten(f):
     as possible.
     >>> flatten(expr('A & (B & C)')) == expr('A & B & C)
     True
-    
+
     """
 #    print('flatten({0})'.format(str(f)))
     if is_quantified(f):
@@ -462,10 +463,10 @@ def flatten(f):
 
 
 def generate_subformulas(f):
-    """ Create a generator that returns variants of the formula. 
+    """ Create a generator that returns variants of the formula.
     >>> list(generate_subformulas(Expr('P') & Expr('Q')))
     [Expr('P'), Expr('Q'), Expr('P) & Expr('Q')]
-    
+
     """
     def subformulas(f):
         if is_quantified(f):
@@ -498,7 +499,7 @@ def var_for_idx(idx, padding=-1):
     padding -- integer, default = -1: padding (zeros) for the counter
     >>> var_for_idx(0, 3)
     'A000'
-    
+
     """
     num_letters = 26 # ord('Z') - ord('A') = 25 for ASCII
     ctr = idx // num_letters
@@ -557,13 +558,13 @@ class FOLBinOp:
         if PARSE_DEBUG:
             print('created binop "{0}"'.format(self.op))
             print('\targs "{0}"'.format(self.args))
-        
+
     def __str__(self):
         sep = " %s " % self.op
         return "(" + sep.join(map(str,self.args)) + ")"
-    
+
     __repr__ = __str__
-        
+
     def to_expr(self):
         return Expr(self.op, *self.args)
 
@@ -575,7 +576,7 @@ class FOLUnOp:
         if PARSE_DEBUG:
             print('created unop "{0}"'.format(self.op))
             print('\targs "{0}"'.format(self.args))
-        
+
     def __str__(self):
         return (str(self.op) + "(" + str(self.args) + ")")
 
@@ -592,7 +593,7 @@ class FOLPred:
         if PARSE_DEBUG:
             print('created pred "{0}"'.format(self.op))
             print('\targs "{0}"'.format(self.args))
-        
+
     def __str__(self):
         return (str(self.op) + "(" + ', '.join(map(str,self.args)) + ")")
 
@@ -719,7 +720,7 @@ def expr(s):
 #>>> def oops(s, loc, expr, err):
 #...     print ("s={0!r} loc={1!r} expr={2!r}\nerr={3!r}".format(
 #...            s, loc, expr, err))
-#... 
+#...
 #>>> fail = pp.NoMatch().setName('fail-parser').setFailAction(oops)
 #>>> r = fail.parseString("None shall pass!")
 #s='None shall pass!' loc=0 expr=fail-parser

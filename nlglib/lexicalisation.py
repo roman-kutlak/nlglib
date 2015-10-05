@@ -2,11 +2,11 @@ from copy import deepcopy
 import logging
 import numbers
 
-from nlg.structures import *
-from nlg.lexicon import *
-from nlg.aggregation import *
-from nlg.microplanning import *
-import nlg.realisation as realisation
+from .structures import *
+from .lexicon import *
+from .aggregation import *
+from .microplanning import *
+from . import realisation
 
 def get_log():
     return logging.getLogger(__name__)
@@ -424,6 +424,9 @@ class SentenceTemplates:
         self.templates['OutputCondition'] = finish
         self.templates['End'] = end
         self.templates['finish'] = finish
+
+        self.templates['Happy'] = Clause(NounPhrase(PlaceHolder(0, Word('0', 'NOUN', {'cat': 'NOUN'}))), VerbPhrase(Word('is', 'VERB', {'cat': 'VERB'}), Word('happy', 'ADJECTIVE', {'cat': 'ADJECTIVE'})))
+        self.templates['roman'] = Word('Roman', 'NOUN', {'cat': 'NOUN', 'GENDER': 'MASCULINE', 'PROPER': 'true'})
         # logistics
         self.templates['load-truck'] = load_truck
         self.templates['drive-truck'] = drive_truck

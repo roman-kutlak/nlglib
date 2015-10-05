@@ -1,11 +1,11 @@
 import logging
 from urllib.parse import unquote_plus
 
-import nlg
-from nlg.structures import *
-import nlg.lexicon as lexicon
-from nlg.microplanning import XmlVisitor
-from nlg.simplenlg import SimplenlgClient
+import nlglib
+from .structures import *
+from . import lexicon
+from .microplanning import XmlVisitor
+from .simplenlg import SimplenlgClient
 
 """ This package provides functionality for surface realising NLG Elements.
 
@@ -26,10 +26,10 @@ def get_log():
 class Realiser:
     def __init__(self, simple=False):
         self.simple = simple
-    
+
     def __enter__(self):
         pass
-    
+
     def __exit__(self, type, value, traceback):
         pass
 
@@ -49,7 +49,7 @@ class Realiser:
 
     def realise_element(self, elt):
         """ Realise NLG element. """
-        if nlg.nlg.simplenlg_client is not None and not self.simple:
+        if nlglib.nlg.simplenlg_client is not None and not self.simple:
             get_log().debug('Realising element (SimpleNLG realisation):\n{0}'
                             .format(repr(elt)))
             return simpleNlg_realisation(elt)
@@ -204,7 +204,7 @@ class RealisationVisitor:
     """
     def __init__(self):
         self.text = ''
-    
+
     def __str__(self):
         tmp = self.text.replace(' ,', ',')
         tmp = tmp.split(' ')
@@ -212,7 +212,7 @@ class RealisationVisitor:
 
     def visit_element(self, node):
         pass
-    
+
     def visit_string(self, node):
         if node.has_feature('NEGATED', 'true'):
             self.text += 'not '
@@ -254,7 +254,7 @@ class RealisationVisitor:
                 self.text += ' '
         for c in node.complements: c.accept(self)
         for o in node.post_modifiers: o.accept(self)
-    
+
     def visit_coordination(self, node):
         if node.coords is None or len(node.coords) == 0: return ''
         if len(node.coords) == 1:
@@ -284,7 +284,7 @@ class RealisationVisitor:
                 self.text += ' '
         for c in node.complements: c.accept(self)
         for c in node.post_modifiers: c.accept(self)
-    
+
     def visit_vp(self, node):
         for c in node.front_modifiers: c.accept(self)
         for c in node.pre_modifiers: c.accept(self)
@@ -341,13 +341,13 @@ class RealisationVisitor:
         for c in node.complements:
             c.accept(self)
         for c in node.post_modifiers: c.accept(self)
-    
+
     def visit_pp(self, node):
         self.visit_phrase(node)
-    
+
     def visit_adjp(self, node):
         self.visit_phrase(node)
-    
+
     def visit_advp(self, node):
         self.visit_phrase(node)
 
@@ -363,18 +363,18 @@ class RealisationVisitor:
 
 def simpleNlg_realisation(struct):
     """ Use the simpleNLG server to create a surface realisation of an Element.
-    
+
     """
     v = XmlVisitor()
     struct.accept(v)
     get_log().debug('XML for realisation:\n{0}'.format(v.to_xml()))
-    result = nlg.nlg.simplenlg_client.xml_request(v.to_xml())
+    result = nlglib.nlg.simplenlg_client.xml_request(v.to_xml())
     return result.replace(' ,', ',')
 
 def simple_realisation(struct):
     """ Use the RealisationVisitor that performs only the most basic realisation
     and return the created surface realisation as a string.
-    
+
     """
     v = RealisationVisitor()
     struct.accept(v)

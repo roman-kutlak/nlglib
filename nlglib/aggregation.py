@@ -2,8 +2,8 @@
 import logging
 
 from copy import deepcopy
-from nlg.structures import *
-from nlg.microplanning import sentence_iterator
+from .structures import *
+from .microplanning import sentence_iterator
 
 
 # add default logger

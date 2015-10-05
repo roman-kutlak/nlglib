@@ -1,11 +1,11 @@
-from nlg.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
-from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
-from nlg.fol import OP_EXISTS, OP_FORALL
-from nlg.fol import is_predicate, is_variable, is_function
+from .fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
+from .fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
+from .fol import OP_EXISTS, OP_FORALL
+from .fol import is_predicate, is_variable, is_function
 
-from nlg.structures import Message, MsgSpec, Word, String, PlaceHolder
-from nlg.structures import NounPhrase, DiscourseContext, OperatorContext
-from nlg.lexicon import NNP
+from .structures import Message, MsgSpec, Word, String, PlaceHolder
+from .structures import NounPhrase, DiscourseContext, OperatorContext
+from .lexicon import NNP
 
 
 import logging
@@ -16,7 +16,7 @@ def get_log():
 
 class SignatureError(Exception):
     pass
-    
+
 # TODO: deprecate?
 class PredicateMsgSpec(MsgSpec):
     """ This class is used for instantiating Predicate as message spec. """
@@ -24,7 +24,7 @@ class PredicateMsgSpec(MsgSpec):
     def __init__(self, pred, features=None):
         """ Keep a reference to the corresponding predicate so that
         we can look up arguments for any variables.
-        
+
         """
         super().__init__('{0}/{1}'.format(pred.op, len(pred.args)))
         self.predicate = pred
@@ -45,7 +45,7 @@ class PredicateMsgSpec(MsgSpec):
     def value_for(self, param):
         """ Return a replacement for a placeholder with id param.
         Predicates have two types of parameters - type_N and var_N, which
-        correspond to the type and variable on position N respectively 
+        correspond to the type and variable on position N respectively
         (e.g., ?pkg - package).
         The function returns the type for type_N and the name of the variable
         for N at position N or throws SignatureError.
@@ -157,34 +157,34 @@ def formula_to_rst(f):
         m.marker = 'or'
         return m
     if f.op == OP_IMPLIES:
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Imply', msgs[0], msgs[1])
         return m
     if f.op == OP_IMPLIED_BY:
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Imply', msgs[1], msgs[0])
         return m
     if f.op == OP_EQUIVALENT:
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Equivalent', msgs[0], msgs[1])
         return m
     if f.op == OP_EQUALS:
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Equality', msgs[0], *msgs[1:])
         return m
     if f.op == OP_NOTEQUALS:
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Inequality', msgs[0], *msgs[1:])
         return m
     if f.op == OP_FORALL:
         vars = [formula_to_rst(x) for x in f.vars]
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Quantifier', vars, *msgs)
         m.marker = 'for all'
         return m
     if f.op == OP_EXISTS:
         vars = [formula_to_rst(x) for x in f.vars]
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Quantifier', vars, *msgs)
         if len(f.vars) == 1:
             m.marker = 'there exists'
@@ -204,7 +204,7 @@ def formula_to_rst(f):
         return m
     if f.op == OP_NOT:
         get_log().debug('negated formula: ' + str(f))
-        msgs = [formula_to_rst(x) for x in f.args] 
+        msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Negation', msgs[0], *msgs[1:])
         m.marker = 'it is not the case that'
         return m

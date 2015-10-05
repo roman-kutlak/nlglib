@@ -1,12 +1,12 @@
 import logging
 from urllib.parse import quote_plus
 
-from nlg.structures import Element, Word, Clause, Phrase, Coordination
-from nlg.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
-from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
-from nlg.structures import is_clause_t, is_phrase_t, STRING, WORD
-from nlg.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
-from nlg.lexicon import POS_VERB, POS_ADVERB
+from .structures import Element, Word, Clause, Phrase, Coordination
+from .structures import NounPhrase, VerbPhrase, PrepositionalPhrase
+from .structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
+from .structures import is_clause_t, is_phrase_t, STRING, WORD
+from .structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
+from .lexicon import POS_VERB, POS_ADVERB
 
 #from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
 #from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
@@ -67,11 +67,11 @@ class PrintVisitor:
         """ Increase the indentation level and set 'tag' as the ancestor. """
         self.ancestors.append(tag)
         self.depth += 1
-    
+
     def exit(self):
         """ Decrease the indentation level and pop the last ancestor.
         Throws Exception if depth would be less than 0.
-        
+
         """
         if len(self.ancestors) == 0:
             raise Exception('Attempting to exit an element at the top level')
@@ -81,24 +81,24 @@ class PrintVisitor:
     def _process_element(self, node, attr, name=None):
         """ Get the element of the node specified by attr and process it.
         Assumption: the element is an instance of Element.
-        
+
         """
         if name is None: name = attr
         self.enter(name)
         e = getattr(node, attr)
         e.accept(self)
         self.exit()
-    
+
     def _process_elements(self, node, attr, name):
-        """ Get the list of elements of the node specified by attr 
+        """ Get the list of elements of the node specified by attr
         and process them.
-        
+
         """
         self.enter(name)
         elts = getattr(node, attr)
         for e in elts: e.accept(self)
         self.exit()
-    
+
     def _get_args(self, **kwargs):
         args = {'tag': self.ancestors[-1],
                 'outer': self.indent * self.depth,
@@ -107,7 +107,7 @@ class PrintVisitor:
                 }
         for k, v in kwargs.items(): args[k] = v
         return args
-    
+
     def visit_element(self):
         pass
 
@@ -208,10 +208,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_pp(self, node):
         self.visit_phrase(node, 'PPPhraseSpec')
-        
+
     def visit_adjp(self, node):
         self.visit_phrase(node, 'AdjPhraseSpec')
-        
+
     def visit_advp(self, node):
         self.visit_phrase(node, 'AdvPhraseSpec')
 
@@ -242,17 +242,17 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
 
 class ReprVisitor(PrintVisitor):
-    """ Create a string representation of an element and its subelements. 
-    The representation of an element should create the same element 
+    """ Create a string representation of an element and its subelements.
+    The representation of an element should create the same element
     when passed to eval().
-    
+
     """
 
     def __init__(self, data = '', depth = 0, indent='', sep=',\n'):
         super().__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
-    
+
     def _process_elements(self, node, name):
         attr = getattr(node, name)
         if len(attr) == 0: return
@@ -273,15 +273,15 @@ class ReprVisitor(PrintVisitor):
         # restore the indent
 #        self.indent = self.indent[:-len(name + '=(')]
 
-    
+
     def visit_msg_spec(self, node):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(repr(node))
-    
+
     def visit_element(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Element()'
-    
+
     def visit_string(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0}'.format(repr(node.value))
@@ -325,7 +325,7 @@ class ReprVisitor(PrintVisitor):
         self._process_elements(node, 'post_modifiers')
         self.data += ')'
         self.indent = self.indent[:-len('NounPhrase(')]
-    
+
     def visit_phrase(self, node, name=''):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
@@ -357,13 +357,13 @@ class ReprVisitor(PrintVisitor):
 
     def visit_pp(self, node):
         self.visit_phrase(node, 'PrepositionalPhrase')
-    
+
     def visit_adjp(self, node):
         self.visit_phrase(node, 'AdjectivePhrase')
 
     def visit_advp(self, node):
         self.visit_phrase(node, 'AdverbPhrase')
-    
+
     def visit_clause(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Clause('
@@ -382,7 +382,7 @@ class ReprVisitor(PrintVisitor):
         self._process_elements(node, 'post_modifiers')
         self.data += ')'
         self.indent = self.indent[:-len('Clause(')]
-    
+
     def visit_coordination(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Coordination('
@@ -404,7 +404,7 @@ class ReprVisitor(PrintVisitor):
 
     def clear(self):
         self.data = ''
-    
+
     def not_indented_str(self):
         """ Return the representation on a single line instead of indented. """
         return ' '.join(str(self).split())
@@ -417,23 +417,23 @@ class ReprVisitor(PrintVisitor):
 
 
 class StrVisitor(PrintVisitor):
-    """ Create a string representation of an element and its subelements. 
+    """ Create a string representation of an element and its subelements.
     The representation shows only the basic info (no features, mods, etc).
-    
+
     """
 
     def __init__(self, data = '', depth = 0, indent='', sep=',\n'):
         super().__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
-    
+
     def visit_msg_spec(self, node):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(node)
-    
+
     def visit_element(self, node):
         self.data += ''
-    
+
     def visit_string(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0})'.format(repr(node.value))
@@ -462,7 +462,7 @@ class StrVisitor(PrintVisitor):
         self.data += ')'
         self.do_indent = True
         self.indent = self.indent[:-len('NounPhrase(')]
-    
+
     def visit_phrase(self, node, name=''):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
@@ -488,13 +488,13 @@ class StrVisitor(PrintVisitor):
 
     def visit_pp(self, node):
         self.visit_phrase(node, 'PrepositionalPhrase')
-    
+
     def visit_adjp(self, node):
         self.visit_phrase(node, 'AdjectivePhrase')
 
     def visit_advp(self, node):
         self.visit_phrase(node, 'AdverbPhrase')
-    
+
     def visit_clause(self, node):
         self.data += self.indent
         self.data += 'Clause('
@@ -506,7 +506,7 @@ class StrVisitor(PrintVisitor):
         node.vp.accept(self)
         self.data += ')'
         self.indent = self.indent[:-len('Clause(')]
-    
+
     def visit_coordination(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Coordination('
@@ -567,7 +567,7 @@ class ElementVisitor:
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
         self._process_elements(node, 'post_modifiers')
-    
+
     def visit_phrase(self, node):
         self._process_elements(node, 'front_modifiers')
         self._process_elements(node, 'pre_modifiers')
@@ -626,7 +626,7 @@ class ConstituentVisitor:
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
         self._process_elements(node, 'post_modifiers')
-    
+
     def visit_phrase(self, node):
         self.elements.append(self)
         self._process_elements(node, 'front_modifiers')
@@ -831,7 +831,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
             else:
                 if replace_element_with_id(o, elt_id, replacement):
                     return True
-                    
+
         if id(sent.subj) == elt_id:
             sent.subj = replacement or Element()
             return True

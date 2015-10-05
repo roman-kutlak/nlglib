@@ -4,12 +4,12 @@ from copy import deepcopy
 from pickle import load
 import xml.etree.ElementTree as ET
 
-from nlg.structures import Element, Word, Clause, Phrase, Coordination
-from nlg.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
-from nlg.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
-from nlg.structures import is_clause_t, is_phrase_t, STRING, WORD
-from nlg.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
-from nlg.gender import gender # name genders; first names as keys are in caps
+from .structures import Element, Word, Clause, Phrase, Coordination
+from .structures import NounPhrase, VerbPhrase, PrepositionalPhrase
+from .structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
+from .structures import is_clause_t, is_phrase_t, STRING, WORD
+from .structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
+from . import gender # name genders; first names as keys are in caps
 
 
 def get_log():
@@ -18,7 +18,7 @@ def get_log():
 get_log().addHandler(logging.NullHandler())
 
 """ This module serves as a simple lexicon. It allows the user to create
-word elements of the appropriate category easily. 
+word elements of the appropriate category easily.
 
 """
 
@@ -65,13 +65,13 @@ def Features(*feature_list):
 
 class FeatureMeta(type):
 	"""A metaclass that allows specifying properties for the Feature class. """
-    
+
 	@property
 	def attribute(cls):
 		"""Use the first element in the first feature tuple
 		For example ('CASE', 'X') would return the str 'CASE'. This can be
 		used as a key in a dictionary of features.
-		
+
 		"""
 		return cls.features[0][0]
 
@@ -82,10 +82,10 @@ class FeatureMeta(type):
 
 	@property
 	def features(cls):
-		"""Return a list of all features defined in this class. 
+		"""Return a list of all features defined in this class.
 		This function assumes that a class attribute is a feature iff it
 		is a tuple and the name does not start with '_'.
-		
+
 		"""
 		return [getattr(cls, x) for x in dir(cls)
 				if (not x.startswith('_') and
@@ -98,7 +98,7 @@ class FeatureMeta(type):
 class Feature(metaclass=FeatureMeta):
 	"""A base class used for features.
 	It provides some basic properties.
-	
+
 	"""
 	preference_order = []
 
@@ -106,7 +106,7 @@ class Feature(metaclass=FeatureMeta):
 	def feature_preference_value(feature):
 		"""Return the index of the given feature in a preference order.
 		If there is no preference order for this class, return -1.
-		
+
 		"""
 		try:
 			return Feature.preference_order.index(feature)
@@ -217,7 +217,7 @@ class InterrogativeType(Feature):
     where    = ('INTERROGATIVE_TYPE', 'WHERE')
     how_many = ('INTERROGATIVE_TYPE', 'HOW_MANY')
     yes_no   = ('INTERROGATIVE_TYPE', 'YES_NO')
-    
+
     how_predicate = ('INTERROGATIVE_TYPE', 'HOW_PREDICATE')
     what_object   = ('INTERROGATIVE_TYPE', 'WHAT_OBJECT')
     what_subject  = ('INTERROGATIVE_TYPE', 'WHAT_SUBJECT')
@@ -230,7 +230,7 @@ class Register(Feature):
     """Register refers to the kind of language (eg formal, informal)
     Ideally, types would be taken from some standard such as ISO 12620
         - http://en.wikipedia.org/wiki/ISO_12620
-    
+
     """
     formal   = ('REGISTER', 'FORMAL')
     informal = ('REGISTER', 'INFORMAL')
@@ -243,7 +243,7 @@ class PronounUse(Feature):
     objective  = ('PRONOUN_USE', 'OBJECT')
     reflexive  = ('PRONOUN_USE', 'REFLEXIVE')
     possessive = ('PRONOUN_USE', 'POSSESSIVE')
-    
+
     preference_order = [subjective, objective, reflexive, possessive]
 
 
@@ -306,7 +306,7 @@ def Determiner(word, features=None):
 @str_or_element
 def Exclamation(word, features=None):
     return Word(word, POS_EXCLAMATION, features)
-    
+
 @str_or_element
 def Symbol(word, features=None):
     return Word(word, POS_SYMBOL, features)
@@ -354,7 +354,7 @@ def NP(spec, *mods_and_head, features=None, postmods=[]):
     NP('the', 'brown', 'wooden', 'table')
 
     """
-    
+
     if (len(mods_and_head) == 0):
         words = [spec]
         spec = None
@@ -462,16 +462,16 @@ class Lexicon:
         except Exception:
             get_log().exception('Could not load pickled tagger.')
             self.tagger = None
-    
+
     def word(self, string, pos=POS_ANY, default=None):
-        """ Return a word element corresponding to the given POS or None. 
+        """ Return a word element corresponding to the given POS or None.
         When default is set to the string 'new' the method returns
         a new element with the given tag when no corresponding word
         exists in the lexicon.
-        
+
         When pos is set to POS_ANY, the method picks the most likely POS tag
         for the given word.
-        
+
         # assuming foo is not in lexicon
         >>> w = lexicon.word('foo', POS_NOUN)
         None
@@ -479,7 +479,7 @@ class Lexicon:
         Word('foo', 'NOUN')
         >>> w = lexicon.word('foo')
         Word('foo', X) # X determined by tagger
-        
+
         """
         if POS_ANY == pos:
             ids = list(self._variants[string])
@@ -517,7 +517,7 @@ class Lexicon:
     def adverb(self, string):
         """ Return a word as an adverb. """
         return self.word(string, POS_ADVERB, 'new')
-    
+
     def auxiliary(self, string):
         """ Return a word as an auxiliary. """
         return self.word(string, POS_AUXILIARY, 'new')
@@ -586,15 +586,15 @@ class Lexicon:
         """ Find the most likely features for the given variant. """
         # FIXME: implement
         return {}
-    
+
     def autotagged_word(self, word):
-        """ Find the most likely tag for the given word. 
+        """ Find the most likely tag for the given word.
         This method will try to uses NLTK tagger if NLTK is available.
         Otherwise it will search for the given word in this order:
         nouns, verbs, adjectives, adverbs, pronouns, prepositions, conjunctions,
         complementisers, numeral, symbol. If the word is not in the lexicon,
         it is tagged as a POS_SYMBOL.
-        
+
         """
         if self.tagger is not None:
             w, tag = self.tagger.tag([word])
@@ -642,7 +642,7 @@ class Lexicon:
         If the tag is not in the lookup table, return POS_SYMBOL.
         The function simplifies most combinations of tags eg.
         MD+HV = modal auxillary + verb "to have" as in "shouldda" -> POS_MODAL.
-        
+
         """
         if tag.startswith('A'): return POS_DETERMINER
         if tag.startswith('B'): return POS_VERB # be, is, was, isn't, ...
@@ -679,8 +679,8 @@ class Lexicon:
 
     def insert_word(self, word):
         """ Insert a word into the lexicon.
-        The word should have base, id and pos. 
-        
+        The word should have base, id and pos.
+
         """
         assert (word.base is not None and word.base != '')
         assert (word.pos is not None and word.pos != '')
@@ -691,7 +691,7 @@ class Lexicon:
         map[word.id] = word
         self._words[word.id] = word
         self._variants[word.base].add(word.id)
-    
+
     def insert_variant(self, word, variant):
         """ Insert a variant of an existing word element. """
         self._variants[variant].add(word.id)
@@ -713,7 +713,7 @@ class Lexicon:
     def template_for_noun(self, word):
         """ Assuming word is an instance of Word() that can be used as a noun,
         create a template with this word.
-        
+
         """
         pass
 
@@ -762,7 +762,7 @@ def declension(word, **features):
     This function can be applied to word classes that can be inflected.
     These differ by language but can usually be:
         nouns, adjectives, pronouns, numerals
-    
+
     """
     return word
 
@@ -771,7 +771,7 @@ def conjugation(word, **features):
     """Perform a word declension given features such as person, gender, number.
     This function can be applied to word classes that can be inflected.
     In English, these are: nouns, adjectives, pronouns
-    
+
     """
     return word
 

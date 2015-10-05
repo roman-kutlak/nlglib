@@ -1,7 +1,7 @@
 
 import logging
 
-from nlg.structures import *
+from .structures import *
 
 """ This package provides functionality for formatting NLG Elements.
 

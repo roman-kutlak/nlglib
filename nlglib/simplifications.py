@@ -2,15 +2,15 @@ import re
 import logging
 from collections import defaultdict
 
-from nlg import prover
-from nlg.fol import flatten, var_for_idx
-from nlg.fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
-from nlg.fol import is_predicate, is_quantified, is_true, is_false, is_variable
-from nlg.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
-from nlg.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
-from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
-from nlg.fol import LOGIC_OPS, BINARY_LOGIC_OPS
-from nlg.qm import qm
+import .prover
+from .fol import flatten, var_for_idx
+from .fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
+from .fol import is_predicate, is_quantified, is_true, is_false, is_variable
+from .fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from .fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from .fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from .fol import LOGIC_OPS, BINARY_LOGIC_OPS
+from .qm import qm
 
 def get_log():
     return logging.getLogger(__name__)
@@ -157,9 +157,9 @@ def remove_conditionals(f):
 
 
 def push_neg(f):
-    """ Return a copy of f that has negation as close to terms as possible. 
+    """ Return a copy of f that has negation as close to terms as possible.
     Unlike nnf(), push_neg() leaves conditionals as they are.
-    
+
     """
     if f.op == OP_NOT:
         arg = f.args[0]
@@ -201,7 +201,7 @@ def push_neg(f):
         return Quantifier(f.op, f.vars, push_neg(f.args[0]))
     else:
         return f
-        
+
 
 def nnf(f):
     """ Create a Negated Normal Form """
@@ -212,7 +212,7 @@ def unique_vars(f):
     """ Rename variable so that each variable appears only once per formula.
     >>> unique_vars(expr('(forall x: P(x)) | (forall x: Q(x)))')
     expr("(forall x: P(x)) | (forall x': Q(x'))")
-    
+
     """
     def helper(f, used, substs):
         if is_variable(f):
@@ -243,11 +243,11 @@ def unique_vars(f):
 
 def pull_quants(f):
     """ Pull out quantifiers to the front of the formula f.
-    The function assumes that all operators have at most two arguments 
-    and all quantifiers have at most one variable 
+    The function assumes that all operators have at most two arguments
+    and all quantifiers have at most one variable
     (this can be achieved using the function deepen()).
     Also, each variabl name can be used only once per formula.
-    
+
     """
     def rename_and_pull(f, quant, old_var1, old_var2, arg1, arg2):
         """ Helper function that renames given variable in a formula. """
@@ -354,7 +354,7 @@ def push_quants(f):
     """Return formula f' equivalent to f in which quantifiers have the smallest
     possible scope. Function assumes that each quantifier has only one variable
     and each operator has at most two arguments. Use deepen() to do that.
-    
+
     """
     def pushquants(f):
     #    print('pushquant({0})'.format(f))
@@ -466,7 +466,7 @@ class EvaluationError(Exception):
 def evaluate_prop(f, assignment):
     """Evaluate a propositional formula with respect to the given assignment.
 #    The assignment should be a dict with 2 keys: 'True' and 'False'. The values
-#    for those keys should be a collection of strings corresponding to 
+#    for those keys should be a collection of strings corresponding to
 #    the operator names - predicates with 0 arity (acting as propositions).
     The assignment maps propositions (0-ary predicates) to True or False.
 
@@ -532,8 +532,8 @@ def mk_assignment(val, propositions):
 def calculate_output(f):
     """Calculate the output of the given propositional formula.
     Return 3 lists of numbers corresponsing to when a formula evaluates to
-    True, False and don't cate based on alphabetically sorted predicates. 
-    
+    True, False and don't cate based on alphabetically sorted predicates.
+
     """
     propositions = collect_propositions(f)
     num_props = len(propositions)
@@ -554,7 +554,7 @@ def mk_formula_from(ones, vars=None):
     """Return a formula corresponding to the output of QM algorithm.
     >>> mk_formula_from(['X100', '1X11', '10X0'])
     ((B & ~C & ~D) | (A & C & D) | (A & ~B & ~D))
-    
+
     """
     # is it a contradiction?
     if ones == []:
@@ -586,7 +586,7 @@ def mk_product(string, vars=None):
 def minimise_qm(f):
     """Calculate the output of a predicate logic formula and return a minimal
     form created by the Quine-McCluskey algorithm.
-    
+
     """
     return kleene(mk_formula_from(
         qm(*(calculate_output(f))), collect_propositions(f)))
@@ -596,7 +596,7 @@ def create_combinations(f, atoms, ops):
     """Return a generator of formulas `f` extended by operators and atoms.
     >>>list(create_combinations(expr('P'), [expr('Q')], LOGIC_OPS))
     [(~ P), (& P, Q), (| P, Q), (==> P, Q), (<== P, Q), (<=> P, Q)]
-    
+
     """
     for op in ops:
         if op == OP_NOT:
@@ -610,7 +610,7 @@ class Heuristic:
     """Create a new heuristic instance that uses costs from a file
     or a default cost of 1 if the file cannot be read or path is None.
     See `read_costs` for file layout.
-    
+
     """
 
     def __init__(self, path=None):
@@ -622,9 +622,9 @@ class Heuristic:
 
     def operator_cost(self, op, context):
         """Return the cost of the operator `op` given the `context`.
-        The `context` is just a `str` representation of 
+        The `context` is just a `str` representation of
         the formula (eg 'p & q' when the operator is '&').
-        
+
         """
         if op in self.costs:
             for ctx, cost in self.costs[op]:
@@ -647,7 +647,7 @@ class Heuristic:
         return 0
 
     def read_costs(self, path):
-        """Read a cost file given by `path` and return a dict with costs. 
+        """Read a cost file given by `path` and return a dict with costs.
         The dictionary has operators as keys and pairs as values.
         The pairs have a string as the first element and a cost (int)
         as the second element.
@@ -657,7 +657,7 @@ class Heuristic:
         The "don't care" pattern is the underscore. If an op is not in
         the dict, use the default value, which is 1 unless specified by
         the pattern _ _ n.
-        
+
         """
         result = defaultdict(list)
         with open(path, 'r') as f:

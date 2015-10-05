@@ -3,13 +3,13 @@ import re
 from copy import deepcopy, copy
 import logging
 
-from nlg.structures import Clause, Coordination, Document, Element, Message
-from nlg.structures import MsgSpec, NounPhrase, Paragraph
-from nlg.structures import PrepositionalPhrase, Section, String, Word
-from nlg.microplanning import replace_element, replace_element_with_id
-import nlg.lexicon as lexicon
-from nlg.lexicon import Person, Case, Number, Gender, Features, PronounUse
-from nlg.lexicon import Pronoun, POS_NOUN
+from .structures import Clause, Coordination, Document, Element, Message
+from .structures import MsgSpec, NounPhrase, Paragraph
+from .structures import PrepositionalPhrase, Section, String, Word
+from .microplanning import replace_element, replace_element_with_id
+from . import lexicon
+from .lexicon import Person, Case, Number, Gender, Features, PronounUse
+from .lexicon import Pronoun, POS_NOUN
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
@@ -29,44 +29,44 @@ class Context:
         # this can be used for direct speach or system/user customisation
         self.speakers = []
         self.hearers = []
-    
+
     def is_speaker(self, element):
         """Return True if the element is a speaker. """
         return element in self.speakers
-    
+
     def is_last_speaker(self, element):
         """Return True if the element is the current (last) speaker. """
         return element in self.speakers[-1:]
-    
+
     def add_speaker(self, element):
         """Add the `element` to the list of speakers as the last speaker. """
         self.speakers.append(element)
-    
+
     def remove_speaker(self, element):
         """Delete the `element` from the list of speakers. """
         self.speakers.remove(element)
-    
+
     def remove_last_speaker(self):
         """If there are any speakers, remove the last one and return it. """
         if self.speakers:
             return self.speakers.pop()
-    
+
     def is_hearer(self, element):
         """Return True if the given elemen is a hearer. """
         return element in self.hearers
-    
+
     def is_last_hearer(self, element):
         """Return True if the given elemen is the current (last) hearer. """
         return element in self.hearers[:-1]
-    
+
     def add_hearer(self, element):
         """Add the `element` to the list of hearers as the last hearer. """
         self.hearers.append(element)
-    
+
     def remove_hearer(self, element):
         """Delete the `element` from the list of hearers. """
         self.hearers.remove(element)
-    
+
     def remove_last_hearer(self):
         """If there are any hearers, remove the last one and return it. """
         if self.hearers:
@@ -192,14 +192,14 @@ def _do_initial_reference(target, context):
         onto = context.ontology
         if onto is None:
             get_log().error('GRE does not have ontology!')
-    
+
         referent = target.string
         # if referent starts with a capital, assume that it is a proper name
         if referent[0].isupper():
             result = NounPhrase(target, features=target._features)
             result.set_feature('PROPER', 'true')
             return result
-        
+
         entity_type = onto.best_entity_type(':' + referent)
         entity_type = entity_type.rpartition(':')[2] # strip the ':' at the beginning
         result = NounPhrase(Word(entity_type, 'NOUN'))
@@ -366,7 +366,7 @@ def optimise_determiner(phrase, np_phrases, context):
               len(distractors) == 1):
           get_log().debug('...unpronominalised phrase that is last mentioned')
           phrase.spec = Word('the', 'DETERMINER')
-    
+
     elif (lexicon.guess_phrase_number(phrase) != Number.plural and
               not phrase.head.has_feature('cat', 'PRONOUN')):
           get_log().debug('...indefinite')

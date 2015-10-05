@@ -13,7 +13,7 @@ def get_log(name=__name__):
     return logging.getLogger(name)
 
 
-from nlg.utils import LogPipe
+from .utils import LogPipe
 
 # simplenlg_path = 'nlg/resources/simplenlg.jar'
 #

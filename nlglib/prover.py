@@ -3,11 +3,11 @@ import sys
 import logging
 import subprocess
 
-from nlg.fol import deepen
-from nlg.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
-from nlg.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
-from nlg.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
-from nlg.utils import LogPipe, find_data_file
+from .fol import deepen
+from .fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from .fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from .fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from .utils import LogPipe, find_data_file
 
 
 def get_log():
@@ -52,8 +52,8 @@ def test_contradiction(f, axioms):
 
 def run_prover(formula, axioms):
     """ Give the formula and the axioms to the theorem prover and return True
-    if the theorem was proved. 
-    
+    if the theorem was proved.
+
     """
     get_log().debug('Running theorem prover with formula:\n{0}'.format(formula))
     get_log().debug('Running theorem prover with axioms:\n{0}'.format(axioms))
@@ -135,5 +135,3 @@ def to_prover_str(f):
             return str(f)
     # first make sure each op has at most two args and then use the helper.
     return to_prover(deepen(f))
-
-

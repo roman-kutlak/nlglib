@@ -39,7 +39,7 @@ RST = enum('Elaboration', 'Exemplification',
 
 
 def _flatten(lst):
-    """ Return a list where all elemts are items. 
+    """ Return a list where all elemts are items.
     Any encountered iterable will be expanded. Method is recursive.
 
     """
@@ -296,7 +296,7 @@ class MsgSpec:
             raise ValueError('Error: cannot call the method "%s"' %
                                 data_member)
         return m()
-        
+
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
         if self._visitor_name == None:
@@ -321,7 +321,7 @@ class MsgSpec:
     @classmethod
     def instantiate(Klass, data):
         return None
-    
+
     def del_feature(self, feat, val=None):
         """ Delete a feature, if the element has it else do nothing.
         If val is None, delete whathever value is assigned to the feature.
@@ -374,29 +374,29 @@ class ElemntCoder(json.JSONEncoder):
     @staticmethod
     def from_json(json_object):
         if '__class__' in json_object:
-            if json_object['__class__'] == "<class 'nlg.structures.Element'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.Element'>":
                 return Element.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.String'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.String'>":
                 return String.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.Word'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.Word'>":
                 return Word.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.PlaceHolder'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.PlaceHolder'>":
                 return PlaceHolder.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.Phrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.Phrase'>":
                 return Phrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.Clause'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.Clause'>":
                 return Clause.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.NounPhrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.NounPhrase'>":
                 return NounPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.VerbPhrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.VerbPhrase'>":
                 return VerbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.PrepositionalPhrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.PrepositionalPhrase'>":
                 return PrepositionalPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.AdjectivePhrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.AdjectivePhrase'>":
                 return AdjectivePhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.AdverbPhrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.AdverbPhrase'>":
                 return AdverbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlg.structures.Coordination'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.Coordination'>":
                 return Coordination.from_dict(json_object['__value__'])
 
         return json_object
@@ -447,9 +447,9 @@ def is_element_t(o):
 
 
 def is_phrase_t(o):
-    """ An object is a phrase type if it is a phrase or a coordination of 
+    """ An object is a phrase type if it is a phrase or a coordination of
     phrases.
-    
+
     """
     return (is_element_t(o) and
             (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJPHRASE, ADVPHRASE} or
@@ -458,9 +458,9 @@ def is_phrase_t(o):
 
 
 def is_clause_t(o):
-    """ An object is a clause type if it is a clause, subordination or 
-    a coordination of clauses. 
-    
+    """ An object is a clause type if it is a clause, subordination or
+    a coordination of clauses.
+
     """
     return (is_element_t(o) and
             ((o._type in {CLAUSE, SUBORDINATION}) or
@@ -515,13 +515,13 @@ class Element:
         return json.dumps(self, default=lambda o: o.__dict__, indent=4)
 
     def __repr__(self):
-        from nlg.microplanning import ReprVisitor
+        from .microplanning import ReprVisitor
         v = ReprVisitor()
         self.accept(v)
         return str(v)
 
     def __str__(self):
-        from nlg.microplanning import StrVisitor
+        from .microplanning import StrVisitor
         v = StrVisitor()
         self.accept(v)
         return str(v)
@@ -561,10 +561,10 @@ class Element:
         self._features[feature] = value
 
     def has_feature(self, feature, value=None):
-        """ Return True if the element has the given feature. 
+        """ Return True if the element has the given feature.
         If a value is given, return true if the feature matches the value,
         otherwise return true if the element has some value for the feature.
-        
+
         """
         if feature in self._features:
             if value is None: return True
@@ -667,13 +667,13 @@ class String(Element):
     def __bool__(self):
         """ Return True if the string is non-empty. """
         return len(self.value) > 0
-    
+
     def __eq__(self, other):
         if (not isinstance(other, String)):
             return False
         return (self.value == other.value and
                 super().__eq__(other))
-                
+
     def __hash__(self):
         if self.hash == -1:
             self.hash = (11*super().__hash__()) ^ hash(self.value)
@@ -697,7 +697,7 @@ class Word(Element):
         self.base = base or word
         self.do_inflection = False
         self.set_feature('cat', pos)
-    
+
     def __bool__(self):
         """ Return True """
         return True
@@ -708,7 +708,7 @@ class Word(Element):
         return (self.word == other.word and
                 self.pos == other.pos and
                 super().__eq__(other))
-                
+
     def __hash__(self):
         if self.hash == -1:
             self.hash = ((11*super().__hash__()) ^
@@ -738,7 +738,7 @@ class PlaceHolder(Element):
         super().__init__(PLACEHOLDER, features)
         self.id = id
         self.set_value(obj)
-    
+
     def __bool__(self):
         """ Return True """
         return True
@@ -763,7 +763,7 @@ class PlaceHolder(Element):
     def set_value(self, val):
         if val is None: val = Word(str(self.id), 'NOUN')
         self.value = String(val) if isinstance(val, str) else val
-        
+
     @property
     def string(self):
         """Return the string inside the value. """
@@ -812,7 +812,7 @@ class Coordination(Element):
         if not is_phrase_t(self.coords[0]):
             self.coords[0] = NounPhrase(self.coords[0])
         self.coords[0].add_front_modifier(*mods, pos=pos)
-    
+
     def add_pre_modifier(self, *mods, pos=0):
         """ Add pre-modifiers to the first element. """
         # promote the element to a phrase
@@ -833,7 +833,7 @@ class Coordination(Element):
         if not is_phrase_t(self.coords[0]):
             self.coords[-1] = NounPhrase(self.coords[-1])
         self.coords[-1].add_post_modifier(*mods, pos=pos)
-    
+
     def add_coordinate(self, *elts):
         """ Add one or more elements as a co-ordinate in the clause. """
         for e in str_to_elt(*elts):
@@ -1319,7 +1319,7 @@ class Clause(Element):
         for o in self.front_modifiers:
             for x in o.constituents():
                 yield from x.constituents()
-    
+
     def set_pre_modifiers(self, *mods):
         """ Set pre-modifiers to the passed parameters. """
         self.pre_modifiers = list(str_to_elt(*mods))
@@ -1377,10 +1377,10 @@ class Clause(Element):
 
 
 def raise_to_np(phrase):
-    """Take the current phrase and raise it to an NP. 
+    """Take the current phrase and raise it to an NP.
     If `phrase` is a Noun it will be promoted to NP and used as a head;
     If `phrase` is a CC its coordinants will be raised to NPs
-    
+
     """
     if isinstance(phrase, Coordination):
         phrase.coords = [raise_to_np(c) for c in phrase.coords]
@@ -1398,7 +1398,7 @@ def raise_to_vp(phrase):
     """Take the current phrase and raise it to a VP.
     If `phrase` is a Word it will be promoted to VP and used as a head;
     If `phrase` is a CC its coordinants will be raised to VPs
-    
+
     """
     if isinstance(phrase, Coordination):
         phrase.coords = [raise_to_vp(c) for c in phrase.coords]
