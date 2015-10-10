@@ -148,7 +148,7 @@ def lexicalise_message(msg, parenthesis=False):
         result = Clause()
         result.set_subj(nucleus)
         object = satelites[0]
-        tmp_vp = VP('equal', object, features=features)
+        tmp_vp = VP('is', object, features=features)
         get_log().debug('Setting VP:\n' + repr(tmp_vp))
         result.set_vp(tmp_vp)
     elif msg.rst == 'Inequality':
@@ -156,7 +156,7 @@ def lexicalise_message(msg, parenthesis=False):
         result.set_subj(nucleus)
         object = satelites[0]
         features['NEGATED'] = 'true'
-        result.set_vp(VP('equal', object, features=features))
+        result.set_vp(VP('is', object, features=features))
     elif msg.rst == 'Quantifier':
         # quantifiers have multiple nuclei (variables)
         quant = msg.marker
@@ -739,6 +739,8 @@ def del_template(k, silent=True):
     del templates.templates[k]
 
 
+def string_to_template(s):
+    return eval(s)
 
 
 

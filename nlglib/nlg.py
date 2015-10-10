@@ -44,6 +44,10 @@ class Nlg:
 
     def process_nlg_doc2(self, doc, ontology, context=None):
         get_log().debug('Processing document v2.')
+        # check if context has templates and if so, use them
+        if hasattr(context, 'templates'):
+            for name, tplt in context.templates.items():
+                lexicalisation.add_template(name, tplt)
         summary = doc
         if context is None:
             get_log().debug('Creating new context for REG')

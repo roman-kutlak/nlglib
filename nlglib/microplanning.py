@@ -40,8 +40,8 @@ def promote_to_phrase(e):
     if e._type == STRING: return NounPhrase(e, features=e._features)
     if e._type == PLACEHOLDER: return NounPhrase(e, features=e._features)
     if e._type == WORD:
-        if e.cat == POS_VERB: return VerbPhrase(e, features=e._features)
-        if e.cat == POS_ADVERB: return VerbPhrase(e, features=e._features)
+        if e.pos == POS_VERB: return VerbPhrase(e, features=e._features)
+        if e.pos == POS_ADVERB: return VerbPhrase(e, features=e._features)
         return NounPhrase(e, features=e._features)
     if e._type == COORDINATION:
         return Coordination(*[promote_to_phrase(x) for x in e.coords],

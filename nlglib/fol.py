@@ -406,9 +406,9 @@ def subst(mappings, tm):
 
 def deepen(f):
     """ Return a copy of f where each operator takes at most 2 arguments.
-    >>> flatten(expr('A & B & C')) == expr('A & (B & C))
-    True
-
+    This transforms a flat structure into a nested structure.
+    For example, (P & Q & R) becomes ((P & Q) & R).
+    This can help with reducing ambiguity.
     """
     if is_quantified(f):
         if len(f.vars) > 1:
@@ -434,10 +434,9 @@ def deepen(f):
 
 def flatten(f):
     """ Return a copy of f where each operator takes as many arguments
-    as possible.
-    >>> flatten(expr('A & (B & C)')) == expr('A & B & C)
-    True
-
+    as possible. This transforms a nested structure into a flat structure.
+    For example, ((P & Q) & R) becomes (P & Q & R).
+    This helps with aggregation.
     """
 #    print('flatten({0})'.format(str(f)))
     if is_quantified(f):
@@ -711,7 +710,7 @@ def expr(s):
         return to_expr(result[0])
     except (ParseException, ParseSyntaxException) as err:
         msg=("Syntax error: {0!r}\n{0.line}\n{1}^".\
-             format(err, " " * (err.column)))
+             format(err, " " * (err.column-1)))
         raise FormulaParseError(msg)
     except RuntimeError:
         raise FormulaParseError("Infinite loop in parse.")

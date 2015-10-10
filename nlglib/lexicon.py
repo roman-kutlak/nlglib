@@ -9,7 +9,7 @@ from .structures import NounPhrase, VerbPhrase, PrepositionalPhrase
 from .structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
 from .structures import is_clause_t, is_phrase_t, STRING, WORD
 from .structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
-from . import gender # name genders; first names as keys are in caps
+from .gender import gender # name genders; first names as keys are in caps
 
 
 def get_log():

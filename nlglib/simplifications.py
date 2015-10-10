@@ -2,7 +2,7 @@ import re
 import logging
 from collections import defaultdict
 
-import .prover
+from . import prover
 from .fol import flatten, var_for_idx
 from .fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
 from .fol import is_predicate, is_quantified, is_true, is_false, is_variable
@@ -12,12 +12,10 @@ from .fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
 from .fol import LOGIC_OPS, BINARY_LOGIC_OPS
 from .qm import qm
 
+
 def get_log():
     return logging.getLogger(__name__)
 
-if __name__ == '__main__':
-    import logging.config
-    logging.basicConfig(level=logging.DEBUG)
 
 def kleene(f):
     """ Take a FOL formula and try to simplify it. """
@@ -710,6 +708,28 @@ def minimise_search(f, h_file, ops=LOGIC_OPS, max=-1):
         return Expr(OP_FALSE)
     h = Heuristic(h_file)
     return bfs(f, h, ops, max)
+
+
+simplification_ops = {
+    'NNF': nnf,
+    'PNF': pnf,
+    'Deepen': deepen,
+    'Flatten': flatten,
+    'Kleene': kleene,
+    'Push Negation': push_neg,
+    'Miniscope': miniscope,
+    'Drop Quantifiers': drop_quant,
+    'Pull Quantifiers': pull_quants,
+    'Push Quantifiers': push_quants,
+    'Remove Conditionals': remove_conditionals,
+    # 'use_axioms': .use_axioms,
+    # 'search': lambda x: minimise_search(x, heur),
+    'Quine-McCluskey': minimise_qm,
+}
+
+
+# define what gets imported with `from simplifications import *`
+__all__ = list(simplification_ops.keys())
 
 
 #############################################################################
