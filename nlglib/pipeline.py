@@ -8,15 +8,17 @@ from .reg import Context
 
 def translate(formula, templates=[], simplifications=[]):
     if isinstance(formula, str):
-        formula = expr(formula)
+        formulas = [expr(f) for f in formula.split(';') if f.strip()]
     pipeline = Nlg()
     if simplifications:
         for s in filter(lambda x: x in simplification_ops, simplifications):
             formula = simplification_ops[s](formula)
-    doc = formula_to_rst(formula)
     context = Context(ontology=None)
     context.templates = templates
-    text = pipeline.process_nlg_doc2(doc, None, context)
-    return text
+    translations = []
+    for f in formulas:
+        doc = formula_to_rst(f)
+        translations.append(pipeline.process_nlg_doc2(doc, None, context))
+    return ' '.join(translations)
 
 # def minimise_search(f, h_file, ops=LOGIC_OPS, max=-1):
