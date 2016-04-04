@@ -17,6 +17,14 @@ def get_log():
     return logging.getLogger(__name__)
 
 
+# define what gets imported with `from simplifications import *`
+__all__ = ['kleene', 'remove_conditionals',
+           'push_neg',
+           'nnf', 'pnf', 'miniscope',
+           'push_quants', 'pull_quants',  'drop_quants',
+           'minimise_qm', 'minimise_search']
+
+
 def kleene(f):
     """ Take a FOL formula and try to simplify it. """
 #    print('\nSimplifying op "{0}" args "{1}"'.format(f.op, f.args))
@@ -447,7 +455,7 @@ def miniscope(f):
     return flatten(push_quants(nnf(f)))
 
 
-def drop_quant(f):
+def drop_quants(f):
     """Remove quantifiers from a formula. """
     def drop(f):
         if is_quantified(f):
@@ -718,7 +726,7 @@ simplification_ops = {
     'Kleene': kleene,
     'Push Negation': push_neg,
     'Miniscope': miniscope,
-    'Drop Quantifiers': drop_quant,
+    'Drop Quantifiers': drop_quants,
     'Pull Quantifiers': pull_quants,
     'Push Quantifiers': push_quants,
     'Remove Conditionals': remove_conditionals,
@@ -727,9 +735,6 @@ simplification_ops = {
     'Quine-McCluskey': minimise_qm,
 }
 
-
-# define what gets imported with `from simplifications import *`
-__all__ = list(simplification_ops.keys())
 
 
 #############################################################################
