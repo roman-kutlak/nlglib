@@ -534,7 +534,7 @@ class FOLQuant:
     def __init__(self, t):
         tmp = t[0].asDict()
         self.op = get_op(tmp['quantifier'])
-        self.vars = tmp['vars'].asList()
+        self.vars = tmp['vars']
         self.args = [tmp['args']]
         if PARSE_DEBUG:
             print('created quant "{0}"'.format(self.op))
