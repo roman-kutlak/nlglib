@@ -7,7 +7,7 @@ class TestLexicon(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        path = 'nlg/test/data/nih_lexicon_extract.xml'
+        path = 'tests/data/nih_lexicon_extract.xml'
         cls.lexicon = lexicon_from_nih_xml(path)
 
     def test_nih_build(self):

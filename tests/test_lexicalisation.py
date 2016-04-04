@@ -1,7 +1,8 @@
 import unittest
 
 from nlglib.structures import MsgSpec, Message, Paragraph, Section, Document
-from nlglib.structures import String, PlaceHolder, Clause, NounPhrase, VerbPhrase, StringMsgSpec
+from nlglib.structures import String, PlaceHolder, Clause, NounPhrase, VerbPhrase
+from nlglib.macroplanning import StringMsgSpec
 
 from nlglib.lexicalisation import templates
 from nlglib.lexicalisation import lexicalise_message_spec
