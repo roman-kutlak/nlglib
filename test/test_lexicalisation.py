@@ -1,16 +1,16 @@
 import unittest
 
-from nlg.structures import MsgSpec, Message, Paragraph, Section, Document
-from nlg.structures import String, PlaceHolder, Clause, NounPhrase, VerbPhrase, StringMsgSpec
+from nlglib.structures import MsgSpec, Message, Paragraph, Section, Document
+from nlglib.structures import String, PlaceHolder, Clause, NounPhrase, VerbPhrase, StringMsgSpec
 
-from nlg.lexicalisation import templates
-from nlg.lexicalisation import lexicalise_message_spec
-from nlg.lexicalisation import lexicalise_message
-from nlg.lexicalisation import lexicalise_paragraph
-from nlg.lexicalisation import lexicalise_section
-from nlg.lexicalisation import lexicalise_document
+from nlglib.lexicalisation import templates
+from nlglib.lexicalisation import lexicalise_message_spec
+from nlglib.lexicalisation import lexicalise_message
+from nlglib.lexicalisation import lexicalise_paragraph
+from nlglib.lexicalisation import lexicalise_section
+from nlglib.lexicalisation import lexicalise_document
 
-from nlg.realisation import simple_realisation as real
+from nlglib.realisation import simple_realisation as real
 
 
 class DummyMsg(MsgSpec):

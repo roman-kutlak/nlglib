@@ -1,6 +1,6 @@
 import unittest
 
-from nlg.lexicon import *
+from nlglib.lexicon import *
 
 
 class TestLexicon(unittest.TestCase):

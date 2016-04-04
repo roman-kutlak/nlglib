@@ -1,6 +1,6 @@
 import unittest
 
-from nlg.structures import *
+from nlglib.structures import *
 
 
 class TestRhetRep(unittest.TestCase):

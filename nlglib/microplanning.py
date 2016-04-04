@@ -8,10 +8,10 @@ from .structures import is_clause_t, is_phrase_t, STRING, WORD
 from .structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
 from .lexicon import POS_VERB, POS_ADVERB
 
-#from nlg.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
-#from nlg.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
-#from nlg.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
-#from nlg.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
+#from nlglib.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
+#from nlglib.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
+#from nlglib.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
+#from nlglib.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
 
 def get_log():
     return logging.getLogger(__name__)
@@ -132,7 +132,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 '''
 
     def __init__(self, xml='', depth = 0, indent='  ', sep='\n'):
-        super().__init__(depth, indent, sep)
+        super(XmlVisitor, self).__init__(depth, indent, sep)
         self.xml = xml
         self.ancestors.append('child')
 
@@ -249,7 +249,7 @@ class ReprVisitor(PrintVisitor):
     """
 
     def __init__(self, data = '', depth = 0, indent='', sep=',\n'):
-        super().__init__(depth, indent, sep)
+        super(ReprVisitor, self).__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
 
@@ -423,7 +423,7 @@ class StrVisitor(PrintVisitor):
     """
 
     def __init__(self, data = '', depth = 0, indent='', sep=',\n'):
-        super().__init__(depth, indent, sep)
+        super(StrVisitor, self).__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
 

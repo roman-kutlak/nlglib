@@ -1,6 +1,6 @@
 import unittest
 
-import nlg.simplenlg as snlg
+import nlglib.simplenlg as snlg
 
 
 test_data = """<?xml version="1.0" encoding="utf-8"?>

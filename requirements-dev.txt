@@ -1,6 +1,2 @@
 -r requirements.txt
-pytest
-pytest-cov
-pytest-pep8
-pytest-mock
 tox

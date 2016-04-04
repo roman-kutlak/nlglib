@@ -1,6 +1,6 @@
 import unittest
 
-from nlg.ontology import Ontology
+from nlglib.ontology import Ontology
 
 
 path = 'nlg/test/data/test.ttl'

@@ -1,8 +1,8 @@
 import unittest
 
-import nlg.realisation as realisation
-from nlg.structures import *
-from nlg.realisation import RealisationVisitor
+import nlglib.realisation as realisation
+from nlglib.structures import *
+from nlglib.realisation import RealisationVisitor
 
 
 def get_clause():

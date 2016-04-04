@@ -1,7 +1,7 @@
 import unittest
 
-from nlg.microplanning import *
-from nlg.lexicon import *
+from nlglib.microplanning import *
+from nlglib.lexicon import *
 
 
 class TestXmlFormatting(unittest.TestCase):

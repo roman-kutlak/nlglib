@@ -1,7 +1,7 @@
 import unittest
 
-from nlg.nlg import *
-from nlg.structures import *
+from nlglib.nlg import *
+from nlglib.structures import *
 
 
 #class TestGre(unittest.TestCase):

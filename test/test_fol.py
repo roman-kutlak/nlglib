@@ -2,8 +2,8 @@ import unittest
 import time
 
 
-from nlg import prover
-from nlg.fol import *
+from nlglib import prover
+from nlglib.fol import *
 
 
 class TestFOL(unittest.TestCase):

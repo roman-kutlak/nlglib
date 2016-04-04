@@ -1,7 +1,7 @@
 import unittest
 
-from nlg.fol import expr, Expr
-from nlg.macroplanning import formula_to_rst, PredicateMsg
+from nlglib.fol import expr, Expr
+from nlglib.macroplanning import formula_to_rst, PredicateMsg
 
 
 class TestPredicateMsg(unittest.TestCase):

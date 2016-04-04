@@ -2,9 +2,9 @@ import unittest
 from copy import deepcopy
 
 
-from nlg.structures import *
-from nlg.aggregation import *
-from nlg.realisation import simple_realisation
+from nlglib.structures import *
+from nlglib.aggregation import *
+from nlglib.realisation import simple_realisation
 
 
 class TestAggregation(unittest.TestCase):
