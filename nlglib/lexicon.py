@@ -1,19 +1,18 @@
 import logging
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
 from pickle import load
-import xml.etree.ElementTree as ET
 
-from .structures import Element, Word, Clause, Phrase, Coordination
-from .structures import NounPhrase, VerbPhrase, PrepositionalPhrase
-from .structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
-from .structures import is_clause_t, is_phrase_t, STRING, WORD
-from .structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
-from .gender import gender # name genders; first names as keys are in caps
+from nlglib.gender import gender # name genders; first names as keys are in caps
+from nlglib.structures import AdjectivePhrase, AdverbPhrase
+from nlglib.structures import Element, Word, Phrase, Coordination
+from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
 
 
 def get_log():
     return logging.getLogger(__name__)
+
 
 get_log().addHandler(logging.NullHandler())
 
@@ -21,7 +20,6 @@ get_log().addHandler(logging.NullHandler())
 word elements of the appropriate category easily.
 
 """
-
 
 POS_ANY = 'ANY'
 POS_ADJECTIVE = 'ADJECTIVE'
@@ -64,64 +62,64 @@ def Features(*feature_list):
 
 
 class FeatureMeta(type):
-	"""A metaclass that allows specifying properties for the Feature class. """
+    """A metaclass that allows specifying properties for the Feature class. """
 
-	@property
-	def attribute(cls):
-		"""Use the first element in the first feature tuple
-		For example ('CASE', 'X') would return the str 'CASE'. This can be
-		used as a key in a dictionary of features.
+    @property
+    def attribute(cls):
+        """Use the first element in the first feature tuple
+        For example ('CASE', 'X') would return the str 'CASE'. This can be
+        used as a key in a dictionary of features.
 
-		"""
-		return cls.features[0][0]
+        """
+        return cls.features[0][0]
 
-	@property
-	def values(cls):
-		"""Return the list of definded values."""
-		return [x[1] for x in cls.features]
+    @property
+    def values(cls):
+        """Return the list of definded values."""
+        return [x[1] for x in cls.features]
 
-	@property
-	def features(cls):
-		"""Return a list of all features defined in this class.
-		This function assumes that a class attribute is a feature iff it
-		is a tuple and the name does not start with '_'.
+    @property
+    def features(cls):
+        """Return a list of all features defined in this class.
+        This function assumes that a class attribute is a feature iff it
+        is a tuple and the name does not start with '_'.
 
-		"""
-		return [getattr(cls, x) for x in dir(cls)
-				if (not x.startswith('_') and
-					isinstance(getattr(cls, x), tuple))]
+        """
+        return [getattr(cls, x) for x in dir(cls)
+                if (not x.startswith('_') and
+                    isinstance(getattr(cls, x), tuple))]
 
-	def __str__(self):
-		return self.attribute
+    def __str__(self):
+        return self.attribute
 
 
 class Feature(metaclass=FeatureMeta):
-	"""A base class used for features.
-	It provides some basic properties.
+    """A base class used for features.
+    It provides some basic properties.
 
-	"""
-	preference_order = []
+    """
+    preference_order = []
 
-	@staticmethod
-	def feature_preference_value(feature):
-		"""Return the index of the given feature in a preference order.
-		If there is no preference order for this class, return -1.
+    @staticmethod
+    def feature_preference_value(feature):
+        """Return the index of the given feature in a preference order.
+        If there is no preference order for this class, return -1.
 
-		"""
-		try:
-			return Feature.preference_order.index(feature)
-		except ValueError:
-			return -1
+        """
+        try:
+            return Feature.preference_order.index(feature)
+        except ValueError:
+            return -1
 
 
 # noun features
 class Case(Feature):
-    nominative   = ('CASE', 'NOMINATIVE')
-    genitive     = ('CASE', 'GENITIVE')
-    dative       = ('CASE', 'DATIVE')
-    accusative   = ('CASE', 'ACCUSATIVE')
-    vocative     = ('CASE', 'VOCATIVE')
-    locative     = ('CASE', 'LOCATIVE')
+    nominative = ('CASE', 'NOMINATIVE')
+    genitive = ('CASE', 'GENITIVE')
+    dative = ('CASE', 'DATIVE')
+    accusative = ('CASE', 'ACCUSATIVE')
+    vocative = ('CASE', 'VOCATIVE')
+    locative = ('CASE', 'LOCATIVE')
     instrumental = ('CASE', 'INSTRUMENTAL')
 
     preference_order = [nominative, accusative, genitive,
@@ -130,37 +128,38 @@ class Case(Feature):
 
 class Number(Feature):
     singular = ('NUMBER', 'SINGULAR')
-    plural   = ('NUMBER', 'PLURAL')
-    both     = ('NUMBER', 'BOTH')
+    plural = ('NUMBER', 'PLURAL')
+    both = ('NUMBER', 'BOTH')
 
     preference_order = [singular, plural, both]
 
 
 class Gender(Feature):
-    masculine = ('GENDER', 'MASCULINE') # masculine - 'he'
-    feminine  = ('GENDER', 'FEMININE')  # feminine  - 'she'
-    neuter    = ('GENDER', 'NEUTER')    # neuter    - 'it'
-    epicene   = ('GENDER', 'EPICENE')   # gender neutral - singular 'they'
+    masculine = ('GENDER', 'MASCULINE')  # masculine - 'he'
+    feminine = ('GENDER', 'FEMININE')  # feminine  - 'she'
+    neuter = ('GENDER', 'NEUTER')  # neuter    - 'it'
+    epicene = ('GENDER', 'EPICENE')  # gender neutral - singular 'they'
 
     preference_order = [masculine, feminine, neuter, epicene]
+
 
 # TODO: missing possessive?
 
 
 # verb features
 class Person(Feature):
-    first   = ('PERSON', 'FIRST')
-    second  = ('PERSON', 'SECOND')
-    third   = ('PERSON', 'THIRD')
-    generic = ('PERSON', 'GENERIC') # used for pronouns eg 'you' in
-                                    # "Brushing 'your' teeth is healthy"
+    first = ('PERSON', 'FIRST')
+    second = ('PERSON', 'SECOND')
+    third = ('PERSON', 'THIRD')
+    generic = ('PERSON', 'GENERIC')  # used for pronouns eg 'you' in
+    # "Brushing 'your' teeth is healthy"
     preference_order = [first, second, third, generic]
 
 
 class Tense(Feature):
     present = ('TENSE', 'PRESENT')
-    past    = ('TENSE', 'PAST')
-    future  = ('TENSE', 'FUTURE')
+    past = ('TENSE', 'PAST')
+    future = ('TENSE', 'FUTURE')
 
     preference_order = [present, past, future]
 
@@ -168,33 +167,33 @@ class Tense(Feature):
 class Aspect(Feature):
     """ http://en.wikipedia.org/wiki/Grammatical_aspect#English """
     progressive = ('PROGRESSIVE', 'true')
-    perfect     = ('PERFECT', 'true')
+    perfect = ('PERFECT', 'true')
 
 
 # FIXME: the key is inconsistent -- remove?
 class Mood(Feature):
-    indicative  = ('FORM', 'NORMAL')
-    imperative  = ('FORM', 'IMPERATIVE')
+    indicative = ('FORM', 'NORMAL')
+    imperative = ('FORM', 'IMPERATIVE')
     subjunctive = ('MODAL', 'would')
 
     preference_order = [indicative, imperative, subjunctive]
 
 
 class Modal(Feature):
-     can    = ('MODAL', 'can')
-     could  = ('MODAL', 'could')
-     may    = ('MODAL', 'may')
-     might  = ('MODAL', 'might')
-     must   = ('MODAL', 'must')
-     ought  = ('MODAL', 'ought')
-     shall  = ('MODAL', 'shall')
-     should = ('MODAL', 'should')
-     will   = ('MODAL', 'will')
-     would  = ('MODAL', 'would')
+    can = ('MODAL', 'can')
+    could = ('MODAL', 'could')
+    may = ('MODAL', 'may')
+    might = ('MODAL', 'might')
+    must = ('MODAL', 'must')
+    ought = ('MODAL', 'ought')
+    shall = ('MODAL', 'shall')
+    should = ('MODAL', 'should')
+    will = ('MODAL', 'will')
+    would = ('MODAL', 'would')
 
 
 class Voice(Feature):
-    active  = ('PASSIVE', 'false')
+    active = ('PASSIVE', 'false')
     passive = ('PASSIVE', 'true')
 
     preference_order = [active, passive]
@@ -202,27 +201,27 @@ class Voice(Feature):
 
 class Form(Feature):
     """ These are defined by SimpleNLG. """
-    bare_infinitive    = ('FORM', 'BARE_INFINITIVE')
-    gerund             = ('FORM', 'GERUND')
-    imperative         = ('FORM', 'IMPERATIVE')
-    infinitive         = ('FORM', 'INFINITIVE')
-    normal             = ('FORM', 'NORMAL')
-    past_participle    = ('FORM', 'PAST_PARTICIPLE')
+    bare_infinitive = ('FORM', 'BARE_INFINITIVE')
+    gerund = ('FORM', 'GERUND')
+    imperative = ('FORM', 'IMPERATIVE')
+    infinitive = ('FORM', 'INFINITIVE')
+    normal = ('FORM', 'NORMAL')
+    past_participle = ('FORM', 'PAST_PARTICIPLE')
     present_participle = ('FORM', 'PRESENT_PARTICIPLE')
 
 
 class InterrogativeType(Feature):
-    how      = ('INTERROGATIVE_TYPE', 'HOW')
-    why      = ('INTERROGATIVE_TYPE', 'WHY')
-    where    = ('INTERROGATIVE_TYPE', 'WHERE')
+    how = ('INTERROGATIVE_TYPE', 'HOW')
+    why = ('INTERROGATIVE_TYPE', 'WHY')
+    where = ('INTERROGATIVE_TYPE', 'WHERE')
     how_many = ('INTERROGATIVE_TYPE', 'HOW_MANY')
-    yes_no   = ('INTERROGATIVE_TYPE', 'YES_NO')
+    yes_no = ('INTERROGATIVE_TYPE', 'YES_NO')
 
     how_predicate = ('INTERROGATIVE_TYPE', 'HOW_PREDICATE')
-    what_object   = ('INTERROGATIVE_TYPE', 'WHAT_OBJECT')
-    what_subject  = ('INTERROGATIVE_TYPE', 'WHAT_SUBJECT')
-    who_object    = ('INTERROGATIVE_TYPE', 'WHO_OBJECT')
-    who_subject   = ('INTERROGATIVE_TYPE', 'WHO_SUBJECT')
+    what_object = ('INTERROGATIVE_TYPE', 'WHAT_OBJECT')
+    what_subject = ('INTERROGATIVE_TYPE', 'WHAT_SUBJECT')
+    who_object = ('INTERROGATIVE_TYPE', 'WHO_OBJECT')
+    who_subject = ('INTERROGATIVE_TYPE', 'WHO_SUBJECT')
     who_indirect_object = ('INTERROGATIVE_TYPE', 'WHO_INDIRECT_OBJECT')
 
 
@@ -232,7 +231,7 @@ class Register(Feature):
         - http://en.wikipedia.org/wiki/ISO_12620
 
     """
-    formal   = ('REGISTER', 'FORMAL')
+    formal = ('REGISTER', 'FORMAL')
     informal = ('REGISTER', 'INFORMAL')
 
     preference_order = [formal, informal]
@@ -240,18 +239,18 @@ class Register(Feature):
 
 class PronounUse(Feature):
     subjective = ('PRONOUN_USE', 'SUBJECT')
-    objective  = ('PRONOUN_USE', 'OBJECT')
-    reflexive  = ('PRONOUN_USE', 'REFLEXIVE')
+    objective = ('PRONOUN_USE', 'OBJECT')
+    reflexive = ('PRONOUN_USE', 'REFLEXIVE')
     possessive = ('PRONOUN_USE', 'POSSESSIVE')
 
     preference_order = [subjective, objective, reflexive, possessive]
 
 
-################################################################################
+###############################################################################
 #                                                                              #
 #                      functions for creating word elements                    #
 #                                                                              #
-################################################################################
+###############################################################################
 
 
 # decorator
@@ -265,47 +264,59 @@ def str_or_element(fn):
             return word
         else:
             return fn(str(word), features=features)
+
     return helper
+
 
 @str_or_element
 def Noun(word, features=None):
     return Word(word, POS_NOUN, features)
 
+
 @str_or_element
 def Verb(word, features=None):
     return Word(word, POS_VERB, features)
+
 
 @str_or_element
 def Adjective(word, features=None):
     return Word(word, POS_ADJECTIVE, features)
 
+
 @str_or_element
 def Adverb(word, features=None):
     return Word(word, POS_ADVERB, features)
+
 
 @str_or_element
 def Pronoun(word, features=None):
     return Word(word, POS_PRONOUN, features)
 
+
 @str_or_element
 def Numeral(word, features=None):
     return Word(word, POS_NUMERAL, features)
+
 
 @str_or_element
 def Preposition(word, features=None):
     return Word(word, POS_PREPOSITION, features)
 
+
 @str_or_element
 def Conjunction(word, features=None):
     return Word(word, POS_CONJUNCTION, features)
+
 
 @str_or_element
 def Determiner(word, features=None):
     return Word(word, POS_DETERMINER, features)
 
+
 @str_or_element
 def Exclamation(word, features=None):
     return Word(word, POS_EXCLAMATION, features)
+
 
 @str_or_element
 def Symbol(word, features=None):
@@ -316,14 +327,15 @@ def Symbol(word, features=None):
 # https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
 # scroll down for a list of tags
 
-#12.	NN      Noun, singular or mass
-#13.	NNS     Noun, plural
-#14.	NNP     Proper noun, singular
-#15.	NNPS	Proper noun, plural
+# 12.	NN      Noun, singular or mass
+# 13.	NNS     Noun, plural
+# 14.	NNP     Proper noun, singular
+# 15.	NNPS	Proper noun, plural
 
 @str_or_element
 def NN(word, features=None):
     return Noun(word, features=features)
+
 
 @str_or_element
 def NNS(word, features=None):
@@ -331,11 +343,13 @@ def NNS(word, features=None):
     o.set_feature('NUMBER', 'PLURAL')
     return o
 
+
 @str_or_element
 def NNP(name, features=None):
     o = Noun(name, features=features)
     o.set_feature('PROPER', 'true')
     return o
+
 
 @str_or_element
 def NNPS(name, features=None):
@@ -343,6 +357,7 @@ def NNPS(name, features=None):
     o.set_feature('PROPER', 'true')
     o.set_feature('NUMBER', 'PLURAL')
     return o
+
 
 # phrases
 
@@ -362,10 +377,10 @@ def NP(spec, *mods_and_head, features=None, postmods=[]):
         words = list(mods_and_head)
     if spec is None:
         return NounPhrase(Noun(words[-1]), features=features,
-                   pre_modifiers=[Adjective(x) for x in words[:-1]])
+                          pre_modifiers=[Adjective(x) for x in words[:-1]])
     else:
         return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
-                  pre_modifiers=[Adjective(x) for x in words[:-1]])
+                          pre_modifiers=[Adjective(x) for x in words[:-1]])
 
 
 def VP(head, *complements, features=None):
@@ -409,7 +424,7 @@ def guess_phrase_gender(phrase):
         gender_val = phrase.head.get_feature(str(Gender))
     else:
         gender_val = guess_noun_gender(str(phrase.head))[1]
-    return (str(Gender), gender_val) # FIXME: terrible syntax!
+    return (str(Gender), gender_val)  # FIXME: terrible syntax!
 
 
 def guess_phrase_number(phrase):
@@ -426,11 +441,11 @@ def guess_phrase_number(phrase):
 # TODO: implement guess_phrase_person that can be used in pronominalisation
 
 
-################################################################################
+###############################################################################
 #                                                                              #
 #                                Lexicon                                       #
 #                                                                              #
-################################################################################
+###############################################################################
 
 
 class Lexicon:
@@ -483,7 +498,8 @@ class Lexicon:
         """
         if POS_ANY == pos:
             ids = list(self._variants[string])
-            if len(ids) == 0: return Word(string, POS_ANY)
+            if len(ids) == 0:
+                return Word(string, POS_ANY)
             elif len(ids) == 1:
                 w = deepcopy(self._words[ids[0]])
                 w.word = string
@@ -504,8 +520,10 @@ class Lexicon:
                     for k, v in fs: w.set_feature(k, v)
                     return w
             # if we didn't find anything, return the default
-            if 'new' == default: return Word(string, pos)
-            else:                return default
+            if 'new' == default:
+                return Word(string, pos)
+            else:
+                return default
         else:
             # an unknown tag passed -- try to find the correct one
             raise Exception('Unknown tag')
@@ -567,19 +585,32 @@ class Lexicon:
         ids = self._variants[string]
         tags = set()
         for id in ids:
-            if   id in self._verb: tags.add(POS_VERB)
-            elif id in self._aux: tags.add(POS_VERB)
-            elif id in self._modal: tags.add(POS_VERB)
-            elif id in self._noun: tags.add(POS_NOUN)
-            elif id in self._pron: tags.add(POS_PRONOUN)
-            elif id in self._adj: tags.add(POS_ADJECTIVE)
-            elif id in self._adv: tags.add(POS_ADVERB)
-            elif id in self._prep: tags.add(POS_PREPOSITION)
-            elif id in self._conj: tags.add(POS_CONJUNCTION)
-            elif id in self._compl: tags.add(POS_COMPLEMENTISER)
-            elif id in self._det: tags.add(POS_DETERMINER)
-            elif id in self._num: tags.add(POS_NUMERAL)
-            elif id in self._sym: tags.add(POS_SYMBOL)
+            if id in self._verb:
+                tags.add(POS_VERB)
+            elif id in self._aux:
+                tags.add(POS_VERB)
+            elif id in self._modal:
+                tags.add(POS_VERB)
+            elif id in self._noun:
+                tags.add(POS_NOUN)
+            elif id in self._pron:
+                tags.add(POS_PRONOUN)
+            elif id in self._adj:
+                tags.add(POS_ADJECTIVE)
+            elif id in self._adv:
+                tags.add(POS_ADVERB)
+            elif id in self._prep:
+                tags.add(POS_PREPOSITION)
+            elif id in self._conj:
+                tags.add(POS_CONJUNCTION)
+            elif id in self._compl:
+                tags.add(POS_COMPLEMENTISER)
+            elif id in self._det:
+                tags.add(POS_DETERMINER)
+            elif id in self._num:
+                tags.add(POS_NUMERAL)
+            elif id in self._sym:
+                tags.add(POS_SYMBOL)
         return tags
 
     def features_for_variant(self, word, variant):
@@ -645,15 +676,15 @@ class Lexicon:
 
         """
         if tag.startswith('A'): return POS_DETERMINER
-        if tag.startswith('B'): return POS_VERB # be, is, was, isn't, ...
+        if tag.startswith('B'): return POS_VERB  # be, is, was, isn't, ...
         if tag == 'CC' or tag == 'CS': return POS_CONJUNCTION
         if tag.startswith('CD'): return POS_NUMERAL
-        if tag.startswith('DO'): return POS_VERB # do, did, didn't, ...
+        if tag.startswith('DO'): return POS_VERB  # do, did, didn't, ...
         if tag.startswith('DT'): return POS_DETERMINER
-        if tag.startswith('EX'): return POS_ADVERB # existential 'there'
+        if tag.startswith('EX'): return POS_ADVERB  # existential 'there'
         # ignore foreign words -- use the attached tag (FW-JJ -> JJ)
         if tag.startswith('FW-'): return self.brown_tag_to_standard_tag(tag[3:])
-        if tag.startswith('HV'): return POS_VERB # has, had, didn't have, ...
+        if tag.startswith('HV'): return POS_VERB  # has, had, didn't have, ...
         if tag.startswith('IN'): return POS_PREPOSITION
         if tag.startswith('J'): return POS_ADJECTIVE
         if tag.startswith('MD'): return POS_MODAL
@@ -686,7 +717,7 @@ class Lexicon:
         assert (word.pos is not None and word.pos != '')
         assert (word.id is not None and word.id != '')
         map = self._get_wordmap_for_tag(word.pos)
-        if map is None: raise Exception('Unknown POS tag "{0}" for word "{1}"'\
+        if map is None: raise Exception('Unknown POS tag "{0}" for word "{1}"' \
                                         .format(word.pos, word.word))
         map[word.id] = word
         self._words[word.id] = word
@@ -697,18 +728,30 @@ class Lexicon:
         self._variants[variant].add(word.id)
 
     def _get_wordmap_for_tag(self, pos):
-        if   POS_VERB == pos: return self._verb
-        elif POS_NOUN == pos: return self._noun
-        elif POS_PRONOUN == pos: return self._pron
-        elif POS_ADJECTIVE == pos: return self._adj
-        elif POS_ADVERB == pos: return self._adv
-        elif POS_PREPOSITION == pos: return self._prep
-        elif POS_CONJUNCTION == pos: return self._conj
-        elif POS_COMPLEMENTISER == pos: return self._compl
-        elif POS_DETERMINER == pos: return self._det
-        elif POS_NUMERAL == pos: return self._num
-        elif POS_SYMBOL == pos: return self._sym
-        else: return None
+        if POS_VERB == pos:
+            return self._verb
+        elif POS_NOUN == pos:
+            return self._noun
+        elif POS_PRONOUN == pos:
+            return self._pron
+        elif POS_ADJECTIVE == pos:
+            return self._adj
+        elif POS_ADVERB == pos:
+            return self._adv
+        elif POS_PREPOSITION == pos:
+            return self._prep
+        elif POS_CONJUNCTION == pos:
+            return self._conj
+        elif POS_COMPLEMENTISER == pos:
+            return self._compl
+        elif POS_DETERMINER == pos:
+            return self._det
+        elif POS_NUMERAL == pos:
+            return self._num
+        elif POS_SYMBOL == pos:
+            return self._sym
+        else:
+            return None
 
     def template_for_noun(self, word):
         """ Assuming word is an instance of Word() that can be used as a noun,
@@ -721,20 +764,20 @@ class Lexicon:
 def lexicon_from_nih_xml(path):
     """ Create a new instance of a Lexicon from the NIH lexicon in XML. """
     nih_tag_map = {
-        '' : POS_ANY, # not in NIH
-        'adj' : POS_ADJECTIVE,
-        'adv' : POS_ADVERB,
-        'aux' : POS_AUXILIARY,
-        'compl' : POS_COMPLEMENTISER,
-        'conj' : POS_CONJUNCTION,
-        'det' : POS_DETERMINER,
-        'modal' : POS_MODAL,
-        'noun' : POS_NOUN,
-        'num' : POS_NUMERAL,
-        'prep' : POS_PREPOSITION,
-        'pron' : POS_PRONOUN,
-        'sym' : POS_SYMBOL, # not in NIH
-        'verb' : POS_VERB,
+        '': POS_ANY,  # not in NIH
+        'adj': POS_ADJECTIVE,
+        'adv': POS_ADVERB,
+        'aux': POS_AUXILIARY,
+        'compl': POS_COMPLEMENTISER,
+        'conj': POS_CONJUNCTION,
+        'det': POS_DETERMINER,
+        'modal': POS_MODAL,
+        'noun': POS_NOUN,
+        'num': POS_NUMERAL,
+        'prep': POS_PREPOSITION,
+        'pron': POS_PRONOUN,
+        'sym': POS_SYMBOL,  # not in NIH
+        'verb': POS_VERB,
     }
     lexicon = Lexicon()
     tree = ET.parse(path)
@@ -790,7 +833,7 @@ def pronoun_for_features(*features):
         k_fs = frozenset(k)
         intersect = (k_fs & fs)
         if intersect:
-            choices.append( (Pronoun(v, Features(*k)), len(intersect)) )
+            choices.append((Pronoun(v, Features(*k)), len(intersect)))
             new_len = len(intersect)
             if max < new_len:
                 max = new_len
@@ -802,12 +845,13 @@ def pronoun_for_features(*features):
     prefs_pu = [x[1] for x in PU.preference_order]
     # sort the candidates by a sensible order as defined in the class
     choices.sort(key=lambda x:
-        prefs_number.index(x.get_feature(str(Number))))
+    prefs_number.index(x.get_feature(str(Number))))
     choices.sort(key=lambda x:
-        prefs_person.index(x.get_feature(str(Person))))
+    prefs_person.index(x.get_feature(str(Person))))
     choices.sort(key=lambda x:
-        prefs_pu.index(x.get_feature(str(PU))))
+    prefs_pu.index(x.get_feature(str(PU))))
     return choices[0]
+
 
 def pronouns_with_feqtures(*features):
     """Return a pronoun matching given features. """
@@ -826,62 +870,61 @@ Singular = Number.singular
 Plural = Number.plural
 
 pronouns = {
-##############################  singular  ######################################
-# subjective use
+    #############################  singular  ######################################
+    # subjective use
     (Number.singular, Person.first, PU.subjective): 'I',
     (Number.singular, Person.second, PU.subjective): 'you',
     (Number.singular, Person.third, PU.subjective, Gender.masculine): 'he',
     (Number.singular, Person.third, PU.subjective, Gender.feminine): 'she',
     (Number.singular, Person.third, PU.subjective, Gender.neuter): 'it',
-#    (Number.singular, Person.third, PU.subjective, Gender.epicene): 'they',
+    #    (Number.singular, Person.third, PU.subjective, Gender.epicene): 'they',
     (Number.singular, Person.generic, PU.subjective, Register.formal): 'one',
     (Number.singular, Person.generic, PU.subjective, Register.informal): 'you',
-# objective use
+    # objective use
     (Number.singular, Person.first, PU.objective): 'me',
     (Number.singular, Person.second, PU.objective): 'you',
     (Number.singular, Person.third, PU.objective, Gender.masculine): 'him',
     (Number.singular, Person.third, PU.objective, Gender.feminine): 'her',
     (Number.singular, Person.third, PU.objective, Gender.neuter): 'it',
-#    (Number.singular, Person.third, PU.objective, Gender.epicene): 'them',
+    #    (Number.singular, Person.third, PU.objective, Gender.epicene): 'them',
     (Number.singular, Person.generic, PU.objective, Register.formal): 'one',
     (Number.singular, Person.generic, PU.objective, Register.informal): 'you',
-# reflexive use
+    # reflexive use
     (Number.singular, Person.first, PU.reflexive): 'myself',
     (Number.singular, Person.second, PU.reflexive): 'yourself',
     (Number.singular, Person.third, PU.reflexive, Gender.masculine): 'himself',
     (Number.singular, Person.third, PU.reflexive, Gender.feminine): 'herself',
     (Number.singular, Person.third, PU.reflexive, Gender.neuter): 'itself',
-#    (Number.singular, Person.third, PU.reflexive, Gender.epicene): 'themself',
+    #    (Number.singular, Person.third, PU.reflexive, Gender.epicene): 'themself',
     (Number.singular, Person.generic, PU.reflexive, Register.formal): 'oneself',
     (Number.singular, Person.generic, PU.reflexive, Register.informal): 'yourself',
-# possessive use
+    # possessive use
     (Number.singular, Person.first, PU.possessive): 'mine',
     (Number.singular, Person.second, PU.possessive): 'yours',
     (Number.singular, Person.third, PU.possessive, Gender.masculine): 'his',
     (Number.singular, Person.third, PU.possessive, Gender.feminine): 'hers',
     (Number.singular, Person.third, PU.possessive, Gender.neuter): 'its',
-#    (Number.singular, Person.third, PU.possessive, Gender.epicene): 'theirs',
+    #    (Number.singular, Person.third, PU.possessive, Gender.epicene): 'theirs',
     (Number.singular, Person.generic, PU.possessive, Register.formal): 'one\'s',
     (Number.singular, Person.generic, PU.possessive, Register.informal): 'your',
-################################# plural #######################################
-# subject
+    ################################ plural #######################################
+    # subject
     (Number.plural, Person.first, PU.subjective, Gender.epicene): 'we',
     (Number.plural, Person.second, PU.subjective, Gender.epicene): 'you',
     (Number.plural, Person.third, PU.subjective, Gender.epicene): 'they',
-# object
+    # object
     (Number.plural, Person.first, PU.objective, Gender.epicene): 'us',
     (Number.plural, Person.second, PU.objective, Gender.epicene): 'you',
     (Number.plural, Person.third, PU.objective, Gender.epicene): 'them',
-# reflexive
+    # reflexive
     (Number.plural, Person.first, PU.reflexive, Gender.epicene): 'ourselves',
     (Number.plural, Person.second, PU.reflexive, Gender.epicene): 'yourselves',
     (Number.plural, Person.third, PU.reflexive, Gender.epicene): 'themselves',
-# possessive
+    # possessive
     (Number.plural, Person.first, PU.possessive, Gender.epicene): 'ours',
     (Number.plural, Person.second, PU.possessive, Gender.epicene): 'yours',
     (Number.plural, Person.third, PU.possessive, Gender.epicene): 'theirs',
 }
-
 
 # nouns with irregular plural form
 irregulars = {
@@ -1009,46 +1052,45 @@ def pluralise_noun(word):
     if len(word) == 1: return word + 's'
     if word[-2:] in {'ch', 'sh', 'ss'}: return word + 'es'
     if word[-1:] in {'s', 'x', 'z'}: return word + 'es'
-    if word[-1]  == 'y' and not is_vowel(word[-2]): return word[:-1] + 'ies'
-    if word[-1]  == 'f': return word[:-1] + 'ves'
+    if word[-1] == 'y' and not is_vowel(word[-2]): return word[:-1] + 'ies'
+    if word[-1] == 'f': return word[:-1] + 'ves'
     if word[-2:] == 'fe': return word[:-2] + 'ves'
-    if word[-1]  == 'o' and not is_vowel(word[-2]): return word + 'es'
+    if word[-1] == 'o' and not is_vowel(word[-2]): return word + 'es'
     return word + 's'
 
-
-#############################################################################
-##
-## Copyright (C) 2014 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
+############################################################################
+#
+# Copyright (C) 2014 Roman Kutlak, University of Aberdeen.
+# All rights reserved.
+#
+# This file is part of SAsSy NLG library.
+#
+# You may use this file under the terms of the BSD license as follows:
+#
+# "Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of University of Aberdeen nor
+#     the names of its contributors may be used to endorse or promote
+#     products derived from this software without specific prior written
+#     permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+#
+############################################################################

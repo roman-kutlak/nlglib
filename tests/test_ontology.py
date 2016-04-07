@@ -83,7 +83,7 @@ class TestOntology(unittest.TestCase):
 
 #ns = rdflib.namespace.Namespace('http://www.scrutable-systems.org/ontology/Logistics#')
 #
-##mapping = {'sassy': 'http://www.scrutable-systems.org/ontology/Logistics#'}
+#mapping = {'sassy': 'http://www.scrutable-systems.org/ontology/Logistics#'}
 #mapping = {'sassy': ns}
 #
 ontology = Ontology(path)

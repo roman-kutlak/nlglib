@@ -1,4 +1,5 @@
-** Intro **
+Intro
+=====
 
 NLGlib is a library for natural language generation (NLG) written in Python.
 It seeks to fill a gap in the NLG field. There are currently no off-the-shelf
@@ -7,14 +8,16 @@ The aim of this library is to be useful for general projects that would like
 to add a bit of text generation to their capabilities.
 
 
-** Audience **
+Audience
+========
 
 The library should be useable by programmers with as little linguistic knowledge
 as possible. Given that the aim of the library is language generation,
 some linguistic knowledge is necessary.
 
 
-** Scope **
+Scope
+=====
 
 The aim of the library is to create a base for NLG system starting from content
 selection all the way to realisation. The library will cover document structuring
@@ -24,7 +27,8 @@ At the moment, the input to the library is a list of First Order Logic formulas
 and the output is English text.
 
 
-** History **
+History
+=======
 
 NLGlib started as a part of the EPSRC project
 Scrutable Autonomous Systems (SAsSy): www.scrutable-systems.org

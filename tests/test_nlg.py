@@ -6,7 +6,7 @@ from nlglib.structures import *
 
 #class TestGre(unittest.TestCase):
 #    def setUp(self):
-##        self.p = Planner()
+#        self.p = Planner()
 #        self.dom = self.p.get_domain('logistics')
 #        self.prob = self.p.get_problem('logistics', 'logistics-1.pddl')
 #        self.context = Context(self.dom, self.prob)

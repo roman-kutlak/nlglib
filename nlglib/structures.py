@@ -356,11 +356,11 @@ class OperatorContext:
 
 
 
-################################################################################
+###############################################################################
 #                                                                              #
 #                              microplanning                                   #
 #                                                                              #
-################################################################################
+###############################################################################
 
 
 class ElemntCoder(json.JSONEncoder):
@@ -996,6 +996,7 @@ class Phrase(Element):
         """ Set head of the phrase to the given element. """
         if elt is None: elt = Element()
         self.head = String(elt) if isinstance(elt, str) else elt
+        self._features.update(self.head._features)
 
     def yield_front_modifiers(self):
         """ Iterate through front modifiers. """
@@ -1065,7 +1066,10 @@ class Phrase(Element):
                     return True
 
         if self.head == one:
+            for k in self.head._features.keys():
+                del self._features[k]
             self.head = another
+            self._features.update(another._features)
             return True
         elif self.head is not None:
             if self.head.replace(one, another):
@@ -1418,7 +1422,7 @@ def raise_to_element(element):
         return String(str(element)) # use str() in case of numbers
     return element
 
-#############################################################################
+############################################################################
 #
 # Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
 # All rights reserved.
@@ -1453,4 +1457,4 @@ def raise_to_element(element):
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 #
-#############################################################################
+############################################################################
