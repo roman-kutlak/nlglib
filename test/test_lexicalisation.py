@@ -24,6 +24,7 @@ class DummyMsg(MsgSpec):
 templates.templates['dummy'] = Clause(
             PlaceHolder('arg_subject'), VerbPhrase('is', 'fast'))
 
+
 class TestLexicalisation(unittest.TestCase):
     """ Tests for converting a MsgSpec into an NLG Element. """
 
@@ -44,7 +45,7 @@ class TestLexicalisation(unittest.TestCase):
 
     def test_lexicalise_msg(self):
         """ Test lexicalisation of Message. """
-        # a message with 1 nucleus and 2 satelites
+        # a message with 1 nucleus and 2 satellites
         m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         lex = lexicalise_message(m)
         tmp = list(lexicalise_message_spec(DummyMsg()).constituents())
@@ -52,7 +53,7 @@ class TestLexicalisation(unittest.TestCase):
         self.assertEqual(expected, list(lex.constituents()))
 
     def test_lexicalise_paragraph(self):
-        """ Test lixicalisation of Paragraph. """
+        """ Test lexicalisation of Paragraph. """
         m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         p = Paragraph(m)
         tmp = lexicalise_paragraph(p)
@@ -60,7 +61,7 @@ class TestLexicalisation(unittest.TestCase):
         self.assertEqual(expected, real(tmp))
 
     def test_lexicalise_paragraph2(self):
-        """ Test lixicalisation of Paragraph. """
+        """ Test lexicalisation of Paragraph. """
         m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         p = Paragraph(m)
         tmp = lexicalise_paragraph(p)
@@ -68,7 +69,7 @@ class TestLexicalisation(unittest.TestCase):
         self.assertEqual(expected, real(tmp))
 
     def test_lexicalise_section(self):
-        """ Test lixicalisation of Section. """
+        """ Test lexicalisation of Section. """
         m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         p = Paragraph(m)
         s = Section('Section 1', p)
@@ -85,7 +86,7 @@ class TestLexicalisation(unittest.TestCase):
         self.assertEqual(expected, real(tmp))
 
     def test_lexicalise_document(self):
-        """ Test lixicalisation of Document. """
+        """ Test lexicalisation of Document. """
         m1 = Message('Leaf', DummyMsg())
         m2 = Message('Elaboration', DummyMsg(), DummyMsg())
         p = Paragraph(m1, m2)

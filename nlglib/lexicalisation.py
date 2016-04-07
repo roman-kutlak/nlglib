@@ -1,15 +1,14 @@
-from copy import deepcopy
-import logging
 import numbers
 
-from .structures import *
-from .lexicon import *
-from .aggregation import *
-from .microplanning import *
-from . import realisation
+from nlglib import realisation
+from nlglib.aggregation import *
+from nlglib.lexicon import *
+from nlglib.microplanning import *
+
 
 def get_log():
     return logging.getLogger(__name__)
+
 
 get_log().addHandler(logging.NullHandler())
 
@@ -22,6 +21,8 @@ def lexicalise(msg):
         return Numeral(msg)
     elif isinstance(msg, str):
         return String(msg)
+    elif isinstance(msg, (list, tuple)):
+        return [lexicalise(x) for x in msg]
     elif isinstance(msg, Element):
         return lexicalise_element(msg)
     elif isinstance(msg, MsgSpec):
@@ -61,6 +62,7 @@ def lexicalise_element(elt):
             elt.replace(arg, lexicalise(result))
     return elt
 
+
 # each message should correspond to a clause
 def lexicalise_message_spec(msg):
     """ Return Element corresponding to given message specification.
@@ -90,7 +92,7 @@ def lexicalise_message_spec(msg):
             get_log().debug('Replacing\n{0} in \n{1}.'
                             .format(str(arg), repr(template)))
             val = msg.value_for(arg.id)
-#           check if value is a template
+            # check if value is a template
             if isinstance(val, Word) or isinstance(val, String):
                 t = templates.template(val.string)
                 if t:
@@ -198,9 +200,10 @@ def lexicalise_message(msg, parenthesis=False):
         result = Message(msg.rst, nucleus, *satelites)
         result.marker = msg.marker
         # TODO: decide how to handle features. Add to all? Drop?
-        #return ([nucleus] if nucleus else []) + [x for x in satelites]
+        # return ([nucleus] if nucleus else []) + [x for x in satelites]
     result.add_features(features)
     return result
+
 
 def lexicalise_paragraph(msg):
     """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
@@ -252,10 +255,12 @@ class SentenceTemplates:
 
 templates = SentenceTemplates()
 
+
 def add_templates(newtemplates):
     """ Add the given templates to the default SentenceTemplate instance. """
-    for k, v in newtemplates:
+    for k, v in newtemplates.items():
         templates.templates[k] = v
+
 
 def add_template(k, v, replace=True):
     if replace or (not k in templates.templates):
@@ -263,6 +268,7 @@ def add_template(k, v, replace=True):
         return True
     else:
         return False
+
 
 def del_template(k, silent=True):
     if silent and k not in templates.templates: return False
@@ -272,41 +278,39 @@ def del_template(k, silent=True):
 def string_to_template(s):
     return eval(s)
 
-
-
-#############################################################################
-##
-## Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-## All rights reserved.
-##
-## This file is part of SAsSy NLG library.
-##
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of University of Aberdeen nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-##
-#############################################################################
+############################################################################
+#
+# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
+# All rights reserved.
+#
+# This file is part of SAsSy NLG library.
+#
+# You may use this file under the terms of the BSD license as follows:
+#
+# "Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of University of Aberdeen nor
+#     the names of its contributors may be used to endorse or promote
+#     products derived from this software without specific prior written
+#     permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+#
+############################################################################
