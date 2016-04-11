@@ -735,6 +735,7 @@ simplification_ops = {
     'Quine-McCluskey': minimise_qm,
 }
 
+
 ############################################################################
 #
 # Copyright (C) 2015 Roman Kutlak, University of Aberdeen.

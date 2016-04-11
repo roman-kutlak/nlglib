@@ -7,14 +7,9 @@ Some examples of how to use `nlglib`.
 Basic Data Structures
 ---------------------
 
-.. |nlglib| nlglib
-.. |simplenlg| SimpleNLG
-
-
 The library requires `SimpleNLG <https://github.com/simplenlg/simplenlg>`_ for surface realisation.
-|nlglib| actually comes with a |simplenlg| jar but as it is not maintained much, it might be
-a few minor versions behind.
-
+`nlglib` actually comes with a `simplenlg` jar but as it is not maintained much, it might be
+a few versions behind. It is probably best to replace the shipped version with a more recent one.
 
 Create a simple canned string:
 
