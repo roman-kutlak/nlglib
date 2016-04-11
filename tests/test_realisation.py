@@ -29,7 +29,7 @@ class TestRealiser(unittest.TestCase):
     def test_complex(self):
         c = get_clause()
 
-        realiser = realisation.Realiser('localhost', 50007)
+        realiser = realisation.Realiser()
         text = realiser.realise(c)
         expected = 'You say hello.'
         self.assertEqual(expected, text)

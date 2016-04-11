@@ -472,7 +472,7 @@ class Lexicon:
         self._variants = defaultdict(set)
         # setup tagger if supported:
         try:
-            with open('nlg/resources/tagger.pkl', 'rb') as input:
+            with open('nlglib/resources/tagger.pkl', 'rb') as input:
                 self.tagger = load(input)
         except Exception:
             get_log().exception('Could not load pickled tagger.')

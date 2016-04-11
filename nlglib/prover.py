@@ -3,11 +3,11 @@ import sys
 import logging
 import subprocess
 
-from .fol import deepen
-from .fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
-from .fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
-from .fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
-from .utils import LogPipe, find_data_file
+from nlglib.fol import deepen
+from nlglib.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from nlglib.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from nlglib.utils import LogPipe, find_data_file
 
 
 def get_log():

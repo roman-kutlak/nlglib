@@ -38,11 +38,11 @@ class TestRhetRep(unittest.TestCase):
     def test_init(self):
         nucleus = SemRep('This is the nucleus')
         satelite = SemRep('this is the satelite')
-        r = RhetRep('elaboration', nucleus, satelite, 'and')
+        r = RhetRep('elaboration', nucleus, satelite, marker='and')
         self.assertEqual(self.expected1, r.to_xml(1))
         nucleus2 = SemRep('this is another nucleus')
-        r2 = RhetRep('concession', nucleus2, satelite, 'however')
-        r = RhetRep('elaboration', nucleus, r2, 'and')
+        r2 = RhetRep('concession', nucleus2, satelite, marker='however')
+        r = RhetRep('elaboration', nucleus, r2, marker='and')
         self.assertEqual(self.expected2, r.to_xml(1))
 
 
@@ -381,6 +381,7 @@ class TestWord(unittest.TestCase):
         self.assertNotEqual(w1, w2)
 
         w2.pos = 'NOUN'
+        w2._features['cat'] = 'NOUN'
         self.assertEqual(w1, w2)
 
         w2.set_feature('role', 'subject')

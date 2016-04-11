@@ -1,9 +1,9 @@
-from .nlg import Nlg
-from .macroplanning import formula_to_rst
-from .fol import expr
-from .simplifications import simplification_ops
-from .simplifications import Heuristic
-from .reg import Context
+from nlglib.nlg import Nlg
+from nlglib.macroplanning import formula_to_rst
+from nlglib.fol import expr
+from nlglib.simplifications import simplification_ops
+from nlglib.simplifications import Heuristic
+from nlglib.reg import Context
 
 
 def translate(formula, templates=None, simplifications=None):

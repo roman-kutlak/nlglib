@@ -1,12 +1,12 @@
 import logging
 from urllib.parse import quote_plus
 
-from .structures import Element, Word, Clause, Phrase, Coordination
-from .structures import NounPhrase, VerbPhrase, PrepositionalPhrase
-from .structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
-from .structures import is_clause_t, is_phrase_t, STRING, WORD
-from .structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
-from .lexicon import POS_VERB, POS_ADVERB
+from nlglib.structures import Element, Word, Clause, Phrase, Coordination
+from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
+from nlglib.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
+from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
+from nlglib.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
+from nlglib.lexicon import POS_VERB, POS_ADVERB
 
 #from nlglib.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
 #from nlglib.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER

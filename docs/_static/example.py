@@ -1,4 +1,4 @@
-from aggregation import aggregate
+from nlglib.aggregation import aggregate
 from nlglib import pipeline
 from nlglib import nlg
 from nlglib.lexicon import NP, NNP, VP, AdjP, Tense, Aspect, Number, Noun, Gender

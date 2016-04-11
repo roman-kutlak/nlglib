@@ -1,12 +1,12 @@
 import logging
 
-from .fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
-from .fol import OP_EXISTS, OP_FORALL
-from .fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
-from .fol import is_predicate, is_variable, is_function
-from .lexicon import NNP
-from .structures import Message, MsgSpec, Word, String, PlaceHolder
-from .structures import NounPhrase
+from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
+from nlglib.fol import OP_EXISTS, OP_FORALL
+from nlglib.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
+from nlglib.fol import is_predicate, is_variable, is_function
+from nlglib.lexicon import NNP
+from nlglib.structures import Message, MsgSpec, Word, String, PlaceHolder
+from nlglib.structures import NounPhrase
 
 
 def get_log():

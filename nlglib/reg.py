@@ -3,13 +3,13 @@ import re
 from copy import deepcopy, copy
 import logging
 
-from .structures import Clause, Coordination, Document, Element, Message
-from .structures import MsgSpec, NounPhrase, Paragraph
-from .structures import PrepositionalPhrase, Section, String, Word
-from .microplanning import replace_element, replace_element_with_id
-from . import lexicon
-from .lexicon import Person, Case, Number, Gender, Features, PronounUse
-from .lexicon import Pronoun, POS_NOUN
+from nlglib.structures import Clause, Coordination, Document, Element, Message
+from nlglib.structures import MsgSpec, NounPhrase, Paragraph
+from nlglib.structures import PrepositionalPhrase, Section, String, Word
+from nlglib.microplanning import replace_element, replace_element_with_id
+from nlglib import lexicon
+from nlglib.lexicon import Person, Case, Number, Gender, Features, PronounUse
+from nlglib.lexicon import Pronoun, POS_NOUN
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())

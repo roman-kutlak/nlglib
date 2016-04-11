@@ -85,6 +85,10 @@ class Document:
         yield self.title
         for x in self.sections: yield from x.constituents()
 
+    def accept(self, visitor):
+        for s in self.sections:
+            s.accept(visitor)
+
 
 class Section:
     """ The class Section represents a container holding information about
@@ -118,6 +122,10 @@ class Section:
         yield self.title
         for x in self.paragraphs: yield from x.constituents()
 
+    def accept(self, visitor):
+        for p in self.paragraphs:
+            p.accept(visitor)
+
 
 class Paragraph:
     """ The class Paragraph represents a container holding information about
@@ -144,6 +152,10 @@ class Paragraph:
     def constituents(self):
         """ Return a generator to iterate through the elements. """
         for x in self.messages: yield from x.constituents()
+
+    def accept(self, visitor):
+        for m in self.messages:
+            m.accept(visitor)
 
 
 class Message:
@@ -208,6 +220,13 @@ class Message:
         for k, v in features.items():
             self._features[k] = v
 
+    def accept(self, visitor):
+        if self.nucleus:
+            self.nucleus.accept(visitor)
+        for s in self.satelites:
+            s.accept(visitor)
+
+
 class RhetRep:
     """ A representation of a rhetorical structure.
     The data structure is from RAGS (Mellish et. al. 2006) and it represents
@@ -229,13 +248,11 @@ class RhetRep:
     def to_xml(self, lvl=0):
         spaces = indent * lvl
         data = spaces + '<rhetrep name="' + str(self.relation) + '">\n'
-        data += indent + spaces + '<marker>' + self.marker + '</marker>\n'
+        data += indent + spaces + '<marker>' + (self.marker or '') + '</marker>\n'
         if self.is_multinuclear:
-            data += ''.join([e.to_xml(lvl + 1)
-                for e in self.nucleus])
+            data += ''.join([e.to_xml(lvl + 1) for e in self.nucleus])
         else:
-            data += ''.join([e.to_xml(lvl + 1)
-                for e in (self.nucleus, self.satelite)])
+            data += ''.join([e.to_xml(lvl + 1) for e in (self.nucleus, self.satelite)])
         data += spaces + '</rhetrep>\n'
         return data
 
@@ -1067,7 +1084,8 @@ class Phrase(Element):
 
         if self.head == one:
             for k in self.head._features.keys():
-                del self._features[k]
+                if k in self._features:
+                    del self._features[k]
             self.head = another
             self._features.update(another._features)
             return True

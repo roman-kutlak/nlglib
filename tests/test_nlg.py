@@ -2,6 +2,7 @@ import unittest
 
 from nlglib.nlg import *
 from nlglib.structures import *
+from nlglib.macroplanning import StringMsgSpec
 
 
 #class TestGre(unittest.TestCase):
@@ -44,7 +45,7 @@ def get_clause():
 
 
 def get_test_doc():
-    m1 = Message('Leaf', Clause(String('hello'), None))
+    m1 = Message('Leaf', Clause(String('hello'), String('')))
     m2 = Message('Elaboration', get_clause())
     para = Paragraph(m1, m2)
     return para

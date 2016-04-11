@@ -2,19 +2,27 @@ import re
 import logging
 from collections import defaultdict
 
-from . import prover
-from .fol import flatten, var_for_idx
-from .fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
-from .fol import is_predicate, is_quantified, is_true, is_false, is_variable
-from .fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
-from .fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
-from .fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
-from .fol import LOGIC_OPS, BINARY_LOGIC_OPS
-from .qm import qm
+from nlglib import prover
+from nlglib.fol import flatten, var_for_idx
+from nlglib.fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
+from nlglib.fol import is_predicate, is_quantified, is_true, is_false, is_variable
+from nlglib.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from nlglib.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from nlglib.fol import LOGIC_OPS, BINARY_LOGIC_OPS
+from nlglib.qm import qm
 
 
 def get_log():
     return logging.getLogger(__name__)
+
+
+# define what gets imported with `from simplifications import *`
+__all__ = ['kleene', 'remove_conditionals',
+           'push_neg',
+           'nnf', 'pnf', 'miniscope',
+           'push_quants', 'pull_quants',  'drop_quants',
+           'minimise_qm', 'minimise_search']
 
 
 def kleene(f):
@@ -447,7 +455,7 @@ def miniscope(f):
     return flatten(push_quants(nnf(f)))
 
 
-def drop_quant(f):
+def drop_quants(f):
     """Remove quantifiers from a formula. """
     def drop(f):
         if is_quantified(f):
@@ -718,7 +726,7 @@ simplification_ops = {
     'Kleene': kleene,
     'Push Negation': push_neg,
     'Miniscope': miniscope,
-    'Drop Quantifiers': drop_quant,
+    'Drop Quantifiers': drop_quants,
     'Pull Quantifiers': pull_quants,
     'Push Quantifiers': push_quants,
     'Remove Conditionals': remove_conditionals,
@@ -726,11 +734,6 @@ simplification_ops = {
     # 'search': lambda x: minimise_search(x, heur),
     'Quine-McCluskey': minimise_qm,
 }
-
-
-# define what gets imported with `from simplifications import *`
-__all__ = list(simplification_ops.keys())
-
 
 ############################################################################
 #

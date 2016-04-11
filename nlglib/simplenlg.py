@@ -15,7 +15,7 @@ def get_log(name=__name__):
 
 from .utils import LogPipe
 
-# simplenlg_path = 'nlg/resources/simplenlg.jar'
+# simplenlg_path = 'nlglib/resources/simplenlg.jar'
 #
 # if not (os.path.isfile(simplenlg_path) and os.access(simplenlg_path, os.R_OK)):
 #     get_log().warning('simpleNLG expected in "' + simplenlg_path + '"')

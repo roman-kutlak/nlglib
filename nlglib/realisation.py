@@ -5,7 +5,6 @@ import nlglib
 from nlglib.structures import *
 from nlglib import lexicon
 from nlglib.microplanning import XmlVisitor
-from nlglib.simplenlg import SimplenlgClient
 
 """ This package provides functionality for surface realising NLG Elements.
 

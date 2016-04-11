@@ -1,14 +1,14 @@
 import logging
 
-from .simplenlg import SimplenlgClient, SimpleNLGServer
-from .structures import *
-from . import aggregation
-from . import lexicalisation
-from . import reg
-from . import realisation
-from . import format
-from .utils import Settings
-from .reg import Context
+from nlglib.simplenlg import SimplenlgClient, SimpleNLGServer
+from nlglib.structures import *
+from nlglib import aggregation
+from nlglib import lexicalisation
+from nlglib import reg
+from nlglib import realisation
+from nlglib import format
+from nlglib.utils import Settings
+from nlglib.reg import Context
 
 
 def get_log():
