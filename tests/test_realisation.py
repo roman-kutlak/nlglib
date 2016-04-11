@@ -123,7 +123,7 @@ class TestStringRealisation(unittest.TestCase):
         v = RealisationVisitor()
         c = Clause(Word('Peter', 'NOUN'),
                    Word('run', 'VERB'),
-                   pre_modifiers=[String('yesterday')])
+                   front_modifiers=[String('yesterday')])
         expected = 'yesterday Peter run'
         c.accept(v)
         actual = str(v)
