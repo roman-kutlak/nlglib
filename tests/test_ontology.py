@@ -3,7 +3,7 @@ import unittest
 from nlglib.ontology import Ontology
 
 
-path = 'data/test.ttl'
+path = 'tests/data/test.ttl'
 format = 'n3'
 
 

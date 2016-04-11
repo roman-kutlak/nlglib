@@ -472,7 +472,7 @@ class Lexicon:
         self._variants = defaultdict(set)
         # setup tagger if supported:
         try:
-            with open('nlglib/resources/tagger.pkl', 'rb') as input:
+            with open('nlglib/resources/averaged_perceptron_tagger.pickle', 'rb') as input:
                 self.tagger = load(input)
         except Exception:
             get_log().exception('Could not load pickled tagger.')
@@ -516,7 +516,7 @@ class Lexicon:
                 if id in map:
                     w = deepcopy(map[id])
                     w.word = string
-                    fs = self.features_for_variant(string)
+                    fs = self.features_for_variant(string, string)
                     for k, v in fs: w.set_feature(k, v)
                     return w
             # if we didn't find anything, return the default
