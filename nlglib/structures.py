@@ -1,41 +1,11 @@
+""" Data structures used by other packages. """
 
 import logging
 from urllib.parse import quote_plus
 import json
 import inspect
 
-def get_log():
-    return logging.getLogger(__name__)
-
-
-get_log().addHandler(logging.NullHandler())
-
-
-# indentation constant for printing XML
-indent = '  '
-
-
-""" Data structures used by other packages. """
-
-# macroplanning level structures
-#   for content determination and content structuring
-
-
-def enum(*sequential, **named):
-    """ This functions declares a new type 'enum' that acts as an enum. """
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.items())
-    enums['reverse_mapping'] = reverse
-    return type('Enum', (), enums)
-
-
-""" Rhetorical Structure Theory relations """
-RST = enum('Elaboration', 'Exemplification',
-           'Contrast', 'Exception', 'Set',
-           'List', 'Sequence', 'Alternative',
-           'Conjunction', 'Disjunction',
-           'Leaf'
-           )
+logger = logging.getLogger(__name__)
 
 
 def _flatten(lst):
@@ -43,102 +13,127 @@ def _flatten(lst):
     Any encountered iterable will be expanded. Method is recursive.
 
     """
-    result = list()
+    result = []
     for x in lst:
         if isinstance(x, list):
             for y in _flatten(x):
                 result.append(y)
         else:
-            if x is not None: result.append(x)
+            if x is not None:
+                result.append(x)
     return result
 
+
 class Document:
-    """ The class Document represents a container holding information about
-        a document - title and a list of sections.
+    """Document represents a container holding information about a document.
+
+    This includes the document title and a list of sections.
 
     """
     def __init__(self, title, *sections):
-        """ Create a new Document instance with given title and with
-            zero or more sections.
-
-        """
-        self.title = title
-        self.sections = [s for s in sections if s is not None]
+        """ Create a new Document instance with given title and with zero or more sections. """
+        self.title = title if isinstance(title, Message) else Message('', title)
+        self.sections = [s if isinstance(s, Section) else Section('', s)
+                         for s in sections if s is not None]
 
     def __repr__(self):
-        descr = (repr(self.title) + '\n' +
-                 '\n\n'.join([repr(s) for s in self.sections if s is not None]))
-        return 'Document:\ntitle: %s' % descr.strip()
+        return '<Document: ({})'.format(self.title)
 
     def __str__(self):
-        descr = (str(self.title) + '\n' +
-                '\n\n'.join([str(s) for s in self.sections if s is not None]))
-        return descr
+        return str(self.title) + '\n' + '\n\n'.join([str(s) for s in self.sections])
 
     def __eq__(self, other):
         return (isinstance(other, Document) and
                 self.title == other.title and
                 self.sections == other.sections)
 
+    def __hash__(self):
+        return hash(str(self))
+
     def constituents(self):
         """ Return a generator to iterate through the elements. """
         yield self.title
-        for x in self.sections: yield from x.constituents()
+        for x in self.sections:
+            yield from x.constituents()
 
-    def accept(self, visitor):
+    def to_xml(self, offset='', indent='  '):
+        """Return an XML representation of the document indented by initial ``offset``"
+        :param offset: the initial offset
+        :param indent: the indent for nested elements.
+        """
+        result = offset + '<document>\n'
+        result += offset + indent + '<title>\n'
+        result += self.title.to_xml(offset + 2 * indent)
+        result += offset + indent + '</title>\n'
+        result += offset + indent + '<sections>\n'
         for s in self.sections:
-            s.accept(visitor)
+            result += s.to_xml(offset=(offset + indent))
+        result += offset + indent + '</sections>\n'
+        result += offset + '</document>\n'
+        return result
 
 
 class Section:
-    """ The class Section represents a container holding information about
-        a section of a document - a title and a list of paragraphs.
+    """Section is a container holding information about a section of a document.
+
+     A section has a title and a list of ``Paragraph``s or ``Section``s.
 
     """
     def __init__(self, title, *paragraphs):
-        """ Create a new section with given title and zero or more paragraphs.
-
-        """
-        self.title = title
-        self.paragraphs = [p for p in paragraphs if p is not None]
+        """ Create a new section with given title and zero or more paragraphs. """
+        self.title = title if isinstance(title, Message) else Message('', title)
+        self.content = [p if isinstance(p, (Paragraph, Section)) else Paragraph(p)
+                        for p in paragraphs if p is not None]
 
     def __repr__(self):
-        descr = (repr(self.title) + '\n' +
-                '\n'.join([repr(p) for p in self.paragraphs if p is not None]))
-        return 'Section:\ntitle: %s' % descr.strip()
+        return '<Section: {}>'.format(self.title)
 
     def __str__(self):
-        descr = (str(self.title) + '\n' +
-                '\n'.join([str(p) for p in self.paragraphs if p is not None]))
-        return descr
+        return str(self.title) + '\n' + '\n'.join([str(p) for p in self.content])
 
     def __eq__(self, other):
         return (isinstance(other, Section) and
                 self.title == other.title and
-                self.paragraphs == other.paragraphs)
+                self.content == other.paragraphs)
+
+    def __hash__(self):
+        return hash(str(self))
 
     def constituents(self):
         """ Return a generator to iterate through the elements. """
         yield self.title
-        for x in self.paragraphs: yield from x.constituents()
+        for x in self.content:
+            yield from x.constituents()
 
-    def accept(self, visitor):
-        for p in self.paragraphs:
-            p.accept(visitor)
+    def to_xml(self, offset='', indent='  '):
+        """Return an XML representation of the section indented by initial ``offset``"
+        :param offset: the initial offset
+        :param indent: the indent for nested elements.
+        """
+        result = offset + '<section>\n'
+        result += offset + indent + '<title>\n'
+        result += self.title.to_xml(offset + 2 * indent)
+        result += offset + indent + '</title>\n'
+        result += offset + indent + '<paragraphs>\n'
+        for p in self.content:
+            result += p.to_xml(offset=(offset + 2 * indent))
+        result += offset + indent + '</paragraphs>\n'
+        result += offset + '</section>\n'
+        return result
 
 
 class Paragraph:
-    """ The class Paragraph represents a container holding information about
-        a paragraph of a document - a list of messages.
+    """Paragraph represents a container holding information about a paragraph of a document.
+
+     Paragraph is a list of ``Message``s.
 
     """
     def __init__(self, *messages):
         """ Create a new Paragraph with zero or more messages. """
-        self.messages = _flatten(messages)
+        self.messages = [m if isinstance(m, Message) else Message('Leaf', m) for m in _flatten(messages)]
 
     def __repr__(self):
-        descr = '; '.join([repr(m) for m in self.messages if m is not None])
-        return 'Paragraph (%d):\n%s' % (len(self.messages), descr.strip())
+        return '<Paragraph {}>'.format(str(self.messages)[:25])
 
     def __str__(self):
         descr = ('\t' +
@@ -153,9 +148,18 @@ class Paragraph:
         """ Return a generator to iterate through the elements. """
         for x in self.messages: yield from x.constituents()
 
-    def accept(self, visitor):
+    def to_xml(self, offset='', indent='  '):
+        """Return an XML representation of the paragraph indented by initial ``offset``"
+        :param offset: the initial offset
+        :param indent: the indent for nested elements.
+        """
+        result = offset + '<paragraph>\n'
+        result += offset + indent + '<messages>\n'
         for m in self.messages:
-            m.accept(visitor)
+            result += m.to_xml(offset=(offset + indent))
+        result += offset + indent + '</messages>\n'
+        result += offset + '</paragraph>\n'
+        return result
 
 
 class Message:
@@ -165,13 +169,17 @@ class Message:
 
     """
     def __init__(self, rel, nucleus, *satelites, features=None):
-        """ Create a new Message with given relation between the nucleus
-            and zero or more satelites.
+        """ Create a new Message with given relation between
+        the nucleus and zero or more satellites.
 
         """
+        # FIXME: messages should have only one satelite and 1+ nuclei
         self.rst = rel
-        self.nucleus = nucleus
-        self.satelites = [s for s in satelites if s is not None]
+        self.nucleus = (nucleus if isinstance(nucleus, (MsgSpec, Message))
+                        else StringMsgSpec(nucleus))
+        self.satelites = [s if isinstance(s, (MsgSpec, Message))
+                          else StringMsgSpec(s)
+                          for s in satelites if s is not None]
         self.marker = ''
         self._features = features or {}
 
@@ -220,11 +228,22 @@ class Message:
         for k, v in features.items():
             self._features[k] = v
 
-    def accept(self, visitor):
-        if self.nucleus:
-            self.nucleus.accept(visitor)
+    def to_xml(self, offset='', indent='  '):
+        """Return an XML representation of the paragraph indented by initial ``offset``"
+        :param offset: the initial offset
+        :param indent: the indent for nested elements.
+        """
+        result = offset + '<message type="{}">\n'.format(self.rst)
+        result += offset + indent + '<marker>{}</marker>\n'.format(self.marker)
+        result += offset + indent + '<nucleus>\n'
+        result += self.nucleus.to_xml(offset=(offset + 2 * indent))
+        result += offset + indent + '</nucleus>\n'
         for s in self.satelites:
-            s.accept(visitor)
+            result += offset + indent + '<satellite>\n'
+            result += s.to_xml(offset=(offset + 2 * indent))
+            result += offset + indent + '</satellite>\n'
+        result += offset + '</message>\n'
+        return result
 
 
 class RhetRep:
@@ -245,7 +264,7 @@ class RhetRep:
         self.is_multinuclear = (len(nuclei) > 1)
         self.marker = marker
 
-    def to_xml(self, lvl=0):
+    def to_xml(self, lvl=0, indent='  '):
         spaces = indent * lvl
         data = spaces + '<rhetrep name="' + str(self.relation) + '">\n'
         data += indent + spaces + '<marker>' + (self.marker or '') + '</marker>\n'
@@ -266,7 +285,7 @@ class SemRep:
         self.clause = clause
         self.features = features or dict()
 
-    def to_xml(self, lvl):
+    def to_xml(self, lvl=0, indent='  '):
         spaces = indent * lvl
         data = spaces + '<semrep>\n'
         data += spaces + indent + str(self.clause) + '\n'
@@ -353,6 +372,31 @@ class MsgSpec:
         """ Add the given features (dict) to the existing features. """
         for k, v in features.items():
             self._features[k] = v
+
+
+class StringMsgSpec(MsgSpec):
+    """ Use this as a simple message that contains canned text. """
+
+    def __init__(self, text):
+        super().__init__('string_message')
+        self.text = text
+
+    def __str__(self):
+        return str(self.text)
+
+    def value_for(self, _):
+        return String(self.text)
+
+    def to_xml(self, offset='', indent='  '):
+        """Return an XML representation of the paragraph indented by initial ``offset``"
+        :param offset: the initial offset
+        :param indent: the indent for nested elements.
+        """
+        result = offset + '<msgspec template_name="{}">\n'.format(self.name)
+        result += offset + indent + '<text>{}</text>\n'.format(self.text)
+        result += offset + '</msgspec>\n'
+        return result
+
 
 class DiscourseContext:
     """ A class that captures the discourse referents and history. """
