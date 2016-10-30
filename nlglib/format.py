@@ -43,10 +43,19 @@ def to_text_list(messages):
 
 def to_text_message(msg):
     get_log().debug('Formatting message(%s).' % repr(msg))
-    sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
-                         ('.' if e[-1] != '.' else ''),
-                         [s for s in msg.nucleus if s != '']))
-    return sentences
+    # FIXME: here needs to be some logic to join a rhetorical relation into a sentence
+    # for example, add the marker to the front, then nucleus, then satelites joined with 'and'
+    if msg.marker in ('however', 'although'):
+        pattern = '{marker}, {nucleus}'
+    elif msg.marker in ('but', 'and', 'or'):
+        pattern = '{nucleus} {marker}'
+    else:
+        pattern = '{nucleus}'
+    sentence = pattern.format(nucleus=to_text(msg.nucleus), marker=msg.marker)
+    if msg.satelites:
+        sentence += ' ' + ' and '.join(to_text(s).strip() for s in msg.satelites)
+    sentence = sentence[0].upper() + sentence[1:] + ('.' if sentence[-1] not in '?!.;' else '')
+    return sentence
 
 
 def to_text_paragraph(para):

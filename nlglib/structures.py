@@ -175,11 +175,8 @@ class Message:
         """
         # FIXME: messages should have only one satelite and 1+ nuclei
         self.rst = rel
-        self.nucleus = (nucleus if isinstance(nucleus, (MsgSpec, Message))
-                        else StringMsgSpec(nucleus))
-        self.satelites = [s if isinstance(s, (MsgSpec, Message))
-                          else StringMsgSpec(s)
-                          for s in satelites if s is not None]
+        self.nucleus = nucleus
+        self.satelites = [s for s in satelites if s is not None]
         self.marker = ''
         self._features = features or {}
 
@@ -914,7 +911,7 @@ class Coordination(Element):
         Return True if successful.
 
         """
-        get_log().info('Replacing "{}" in "{}" by "{}.'
+        logger.info('Replacing "{}" in "{}" by "{}.'
                         .format(one, self, another))
         for i, o in enumerate(self.coords):
             if o == one:
