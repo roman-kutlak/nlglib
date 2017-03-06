@@ -7,7 +7,7 @@ from nlglib.structures import String, Clause, Coordination, PlaceHolder
 
 import logging
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
 
 
 def run_simple_examples():
@@ -65,7 +65,7 @@ def run_pipeline():
 if __name__ == '__main__':
     nlg.init_from_settings()
     print('starting')
-    # run_simple_examples()
+    run_simple_examples()
     print('*' * 80)
     run_pipeline()
     print('done')
