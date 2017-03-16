@@ -271,7 +271,7 @@ class TestSimplenlgClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(obj):
-        jp = 'nlglib/resources/simplenlg.jar'
+        jp = 'resources/simplenlg.jar'
         port = '50007'
         obj.test_result = 'Put the piano and the drum into the truck.'
         obj.simplenlg_server = snlg.SimpleNLGServer(jp, port)

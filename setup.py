@@ -25,5 +25,5 @@ setup(
     include_package_data=True,
     packages=find_packages(exclude=['test/*']),
     zip_safe=False,
-    keywords=['natural language generation', 'NLG', 'text generation', 'nlglib'],
+    keywords=['natural language generation', 'NLG', 'text generation', 'nlglib'], install_requires=['werkzeug']
 )

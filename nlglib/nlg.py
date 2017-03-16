@@ -7,7 +7,6 @@ from nlglib import lexicalisation
 from nlglib import reg
 from nlglib import realisation
 from nlglib import format
-from nlglib.utils import Settings
 from nlglib.reg import Context
 
 
@@ -102,29 +101,29 @@ class Nlg:
         return text
 
 
-def init_from_settings(settings_path='nlglib/resources/simplenlg.settings',
-         server=True, client=True):
-    """ Initialise the simpleNLG client and server using a settings file. """
-    get_log().info('Initialising simpleNLG server from settings in "{0}"'
-                   .format(settings_path))
-    s = Settings(settings_path)
-    port = s.get_setting('SimplenlgPort')
-    if not port:
-        get_log().error('Could not find value for '
-                        'SimplenlgPort in settings.')
-        port = None
-    if server:
-        jar  = s.get_setting('SimplenlgJarPath')
-        if jar is None:
-            get_log().error('Could not find value for '
-                            'SimplenlgJarPath in settings.')
-            jar = None
-    if client:
-        host = s.get_setting('SimplenlgHost')
-        if host is None:
-            get_log().error('Could not find value for '
-                            'SimplenlgHost in settings.')
-    init(jar, host, port)
+# def init_from_settings(settings_path='resources/simplenlg.settings',
+#          server=True, client=True):
+#     """ Initialise the simpleNLG client and server using a settings file. """
+#     get_log().info('Initialising simpleNLG server from settings in "{0}"'
+#                    .format(settings_path))
+#     s = Settings(settings_path)
+#     port = s.get_setting('SimplenlgPort')
+#     if not port:
+#         get_log().error('Could not find value for '
+#                         'SimplenlgPort in settings.')
+#         port = None
+#     if server:
+#         jar  = s.get_setting('SimplenlgJarPath')
+#         if jar is None:
+#             get_log().error('Could not find value for '
+#                             'SimplenlgJarPath in settings.')
+#             jar = None
+#     if client:
+#         host = s.get_setting('SimplenlgHost')
+#         if host is None:
+#             get_log().error('Could not find value for '
+#                             'SimplenlgHost in settings.')
+#     init(jar, host, port)
 
 
 def init(jar, host, port, server=True, client=True):
