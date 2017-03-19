@@ -11,4 +11,5 @@ import logging
 
 logging.getLogger('nlg').info('initialising NLG library')
 
-from .pipeline import Pipeline
+from .pipeline import Pipeline, PipelineContext
+

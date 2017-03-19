@@ -35,8 +35,8 @@ class Pipeline(PackageBoundObject):
         'FORMATTING': format.to_text
     })
 
-    _stages = None
     _logger = None
+    context = None
 
     def __init__(self, import_name, instance_path=None,
                  instance_relative_config=False, root_path=None):
@@ -54,31 +54,32 @@ class Pipeline(PackageBoundObject):
         # Prepare the deferred setup of the logger.
         self.logger_name = self.import_name
 
-        self._stages = [
-            ('content_preprocessing', self.config.get('CONTENT_PREPROCESSING')),
-            ('content_selection', self.config.get('CONTENT_SELECTION')),
-            ('content_aggregation', self.config.get('CONTENT_AGGREGATION')),
-            ('content_structuring', self.config.get('CONTENT_STRUCTURING')),
-            ('lexicalisation', self.config.get('LEXICALISATION')),
-            ('aggregation', self.config.get('AGGREGATION')),
-            ('pronominalisation', self.config.get('PRONOMINALISATION')),
-            ('referring', self.config.get('REFERRING')),
-            ('realisation', self.config.get('REALISATION')),
-            ('formatting', self.config.get('FORMATTING')),
+        self.stages = [
+            'CONTENT_PREPROCESSING',
+            'CONTENT_SELECTION',
+            'CONTENT_AGGREGATION',
+            'CONTENT_STRUCTURING',
+            'LEXICALISATION',
+            'AGGREGATION',
+            'PRONOMINALISATION',
+            'REFERRING',
+            'REALISATION',
+            'FORMATTING',
         ]
-
-        self.context = PipelineContext(self)
-
-        # translations = pipeline.process_nlg_doc2(doc, None, context)
 
     def process(self, data, **kwargs):
         kwargs['_pipeline'] = self
+        if not self.context:
+            self.context = PipelineContext(self)
         rv = data
         # TODO: add pre/post signals
-        for name, func in self._stages:
+        for name in self.stages:
             self.logger.debug('running stage {}.'.format(name))
+            func = self.context.stages.get(name)
             if func:
                 rv = func(rv, **kwargs)
+            else:
+                self.logger.debug('    --> skipping stage {}.'.format(name))
             self.logger.debug('finished stage {}.'.format(name))
         return rv
 
@@ -146,6 +147,19 @@ class Pipeline(PackageBoundObject):
 class PipelineContext(ContextDecorator):
     def __init__(self, pipeline=None):
         self.pipeline = pipeline
+
+        self.stages = dict([
+            ('CONTENT_PREPROCESSING', self.pipeline.config.get('CONTENT_PREPROCESSING')),
+            ('CONTENT_SELECTION', self.pipeline.config.get('CONTENT_SELECTION')),
+            ('CONTENT_AGGREGATION', self.pipeline.config.get('CONTENT_AGGREGATION')),
+            ('CONTENT_STRUCTURING', self.pipeline.config.get('CONTENT_STRUCTURING')),
+            ('LEXICALISATION', self.pipeline.config.get('LEXICALISATION')),
+            ('AGGREGATION', self.pipeline.config.get('AGGREGATION')),
+            ('PRONOMINALISATION', self.pipeline.config.get('PRONOMINALISATION')),
+            ('REFERRING', self.pipeline.config.get('REFERRING')),
+            ('REALISATION', self.pipeline.config.get('REALISATION')),
+            ('FORMATTING', self.pipeline.config.get('FORMATTING')),
+        ])
 
     def __enter__(self):
         self.original_context = self.pipeline.context

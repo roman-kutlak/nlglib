@@ -359,6 +359,21 @@ def NNPS(name, features=None):
     return o
 
 
+@str_or_element
+def male(name, features=None):
+    o = Noun(name, features=features)
+    o.set_feature('PROPER', 'true')
+    o.set_feature('GENDER', 'MASCULINE')
+    return o
+
+
+@str_or_element
+def female(name, features=None):
+    o = Noun(name, features=features)
+    o.set_feature('PROPER', 'true')
+    o.set_feature('GENDER', 'FEMININE')
+    return o
+
 # phrases
 
 
