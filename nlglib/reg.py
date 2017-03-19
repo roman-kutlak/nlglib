@@ -1,7 +1,7 @@
-
 import re
-from copy import deepcopy, copy
 import logging
+
+from copy import deepcopy, copy
 
 from nlglib.structures import Clause, Coordination, Document, Element, Message
 from nlglib.structures import MsgSpec, NounPhrase, Paragraph
@@ -11,14 +11,14 @@ from nlglib import lexicon
 from nlglib.lexicon import Person, Case, Number, Gender, Features, PronounUse
 from nlglib.lexicon import Pronoun, POS_NOUN
 
-
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 
 def get_log():
     return logging.getLogger(__name__)
 
 
-class Context:
+class Context(object):
     def __init__(self, ontology=None):
         self.ontology = ontology
         self.referents = dict()
@@ -29,6 +29,7 @@ class Context:
         # this can be used for direct speach or system/user customisation
         self.speakers = []
         self.hearers = []
+        self.templates = {}
 
     def is_speaker(self, element):
         """Return True if the element is a speaker. """
@@ -81,19 +82,22 @@ class Context:
     def _update_referents(self, sent):
         """Extract NPs and add them on the referent stack. Add subject last. """
         nps = [x for x in sent.constituents()
-                   if isinstance(x, NounPhrase) or
-                      (isinstance(x, Coordination) and
-                       isinstance(x.coords[0], NounPhrase))]
+               if isinstance(x, NounPhrase) or
+               (isinstance(x, Coordination) and
+                isinstance(x.coords[0], NounPhrase))]
         for np in nps:
             nouns = [x for x in np.constituents()
-                        if (isinstance(x, Word) and x.pos == POS_NOUN)]
+                     if (isinstance(x, Word) and x.pos == POS_NOUN)]
             self.referent_stack.extend(reversed(nouns))
             unspec_np = deepcopy(np)
             unspec_np.spec = Element()
             self.np_stack.append(unspec_np)
 
-def generate_re(msg, context):
+
+def generate_re(msg, **kwargs):
     """ Perform lexicalisation on the message depending on the type. """
+    if 'context' not in kwargs:
+        kwargs['context'] = Context()
     if msg is None:
         return None
     elif isinstance(msg, str):
@@ -103,90 +107,90 @@ def generate_re(msg, context):
         get_log().warning('_attempted to gre for a MsgSpec. ')
         return msg
     elif isinstance(msg, Element):
-        return generate_re_element(msg, context)
+        return generate_re_element(msg, **kwargs)
     elif isinstance(msg, Message):
-        return generate_re_message(msg, context)
+        return generate_re_message(msg, **kwargs)
     elif isinstance(msg, Paragraph):
-        return generate_re_paragraph(msg, context)
+        return generate_re_paragraph(msg, **kwargs)
     elif isinstance(msg, Section):
-        return generate_re_section(msg, context)
+        return generate_re_section(msg, **kwargs)
     elif isinstance(msg, Document):
-        return generate_re_document(msg, context)
+        return generate_re_document(msg, **kwargs)
     else:
         raise TypeError('"%s" has a wrong type (%s).' %
                         (msg, str(type(msg))))
 
 
-def generate_re_element(element, context):
+def generate_re_element(element, **kwargs):
     get_log().debug('Generating RE for element.')
     with_refexp = deepcopy(element)
-    _replace_placeholders_with_nps(with_refexp, context)
-    result = optimise_ref_exp(with_refexp, context)
+    _replace_placeholders_with_nps(with_refexp, **kwargs)
+    result = optimise_ref_exp(with_refexp, **kwargs)
     return result
 
 
-def generate_re_message(msg, context):
+def generate_re_message(msg, **kwargs):
     get_log().debug('Generating RE for message.')
     if msg is None: return None
-    nucleus = generate_re(msg.nucleus, context)
-    satelites = [generate_re(x, context) \
-                    for x in msg.satelites if x is not None]
-    return Message(msg.rst, nucleus, *satelites)
+    nucleus = generate_re(msg.nucleus, **kwargs)
+    satellites = [generate_re(x, **kwargs)
+                  for x in msg.satellites if x is not None]
+    return Message(msg.rst, nucleus, *satellites)
 
 
-def generate_re_paragraph(para, context):
+def generate_re_paragraph(para, **kwargs):
     get_log().debug('Generating RE for paragraph.')
     if para is None: return None
-    messages = [generate_re(x, context) \
-                   for x in para.messages if x is not None]
+    messages = [generate_re(x, **kwargs)
+                for x in para.messages if x is not None]
     return Paragraph(*messages)
 
 
-def generate_re_section(sec, context):
+def generate_re_section(sec, **kwargs):
     get_log().debug('Generating RE for section.')
     if sec is None: return None
-    title = generate_re(sec.title, context)
-    paragraphs = [generate_re(x, context) \
-                    for x in sec.paragraphs if x is not None]
+    title = generate_re(sec.title, **kwargs)
+    paragraphs = [generate_re(x, **kwargs)
+                  for x in sec.content if x is not None]
     return Section(title, *paragraphs)
 
 
-def generate_re_document(doc, context):
+def generate_re_document(doc, **kwargs):
     """ Iterate through a Document and replace all PlaceHolders by
     referring expressions.
 
     """
     get_log().debug('Generating RE for document.')
     if doc is None: return None
-    title = generate_re(doc.title, context)
-    sections = [generate_re(x, context) \
-                   for x in doc.sections if x is not None]
+    title = generate_re(doc.title, **kwargs)
+    sections = [generate_re(x, **kwargs)
+                for x in doc.sections if x is not None]
     return Document(title, *sections)
 
 
-def _replace_placeholders_with_nps(message, context):
+def _replace_placeholders_with_nps(message, **kwargs):
     get_log().debug('Replacing placeholders.')
     for arg in message.arguments():
         ref = arg.value or arg.id
-        refexp = generate_ref_exp(ref, context)
+        refexp = generate_ref_exp(ref, **kwargs)
         replace_element(message, arg, refexp)
-#        arg.set_value(refexp)
 
-def generate_ref_exp(referent, context):
-    result = None
 
+def generate_ref_exp(referent, **kwargs):
     get_log().debug('GRE for "{0}"'.format(referent))
+    result = None
+    context = kwargs.get('context', Context())
     if not (isinstance(referent, String) or isinstance(referent, Word)):
         return referent
     if referent in context.referents:
-        result = _do_repeated_reference(referent, context)
+        result = _do_repeated_reference(referent, **kwargs)
     else:
-        result = _do_initial_reference(referent, context)
+        result = _do_initial_reference(referent, **kwargs)
     return result
 
-def _do_initial_reference(target, context):
-    result = None
 
+def _do_initial_reference(target, **kwargs):
+    context = kwargs.get('context', Context())
     # do we have information about the referent?
     try:
         onto = context.ontology
@@ -201,7 +205,7 @@ def _do_initial_reference(target, context):
             return result
 
         entity_type = onto.best_entity_type(':' + referent)
-        entity_type = entity_type.rpartition(':')[2] # strip the ':' at the beginning
+        entity_type = entity_type.rpartition(':')[2]  # strip the ':' at the beginning
         result = NounPhrase(Word(entity_type, 'NOUN'))
         get_log().debug('\t%s: type "%s"' % (referent, entity_type))
         # if the object is the only one in the domain, add 'the'
@@ -209,7 +213,7 @@ def _do_initial_reference(target, context):
                          onto.entities_of_type(':' + entity_type)])
         entities = set(context.referents.keys())
         distractors = list(same_type)
-#        distractors = list(entities & same_type)
+        #        distractors = list(entities & same_type)
         get_log().debug('\tsame type: %s' % str(same_type))
         get_log().debug('\tentities: %s' % str(entities))
         get_log().debug('\tdistractors: %s' % str(distractors))
@@ -218,10 +222,10 @@ def _do_initial_reference(target, context):
             # save the RE without the determiner
             context.referents[referent] = (True, deepcopy(result))
             # this should really be done by simpleNLG...
-#            if entity_type[0] in "aeiouy":
-#                result.spec = Word('an', 'DETERMINER')
-#            else:
-#                result.spec = Word('a', 'DETERMINER')
+            #            if entity_type[0] in "aeiouy":
+            #                result.spec = Word('an', 'DETERMINER')
+            #            else:
+            #                result.spec = Word('a', 'DETERMINER')
             # use definite reference even when the object appears 1st time
             result.spec = Word('the', 'DETERMINER')
         else:
@@ -247,37 +251,41 @@ def _do_initial_reference(target, context):
         get_log().error('\tusing expr: "{}"'.format(result))
     return result
 
-def _do_repeated_reference(referent, context):
-    result = None
 
-    is_unique, re = context.referents[referent]
+def _do_repeated_reference(referent, **kwargs):
+    context = kwargs.get('context', Context())
+
+    is_unique, refexp = context.referents[referent]
     if is_unique:
-        result = deepcopy(re)
+        result = deepcopy(refexp)
         result.spec = Word('the', 'DETERMINER')
     else:
-        result = re
+        result = refexp
         if not result.has_feature('PROPER', 'true'):
             result.spec = Word('a', 'DETERMINER')
     return result
 
+
 def _count_type_instances(entity_type, object_map):
     count = 0
     for k, v in object_map.items():
-        if v == entity_type: count += 1
+        if v == entity_type:
+            count += 1
     return count
 
 
-######### new version of REG #############
+# ######## new version of REG ############ #
 
-def optimise_ref_exp(phrase, context):
+def optimise_ref_exp(phrase, **kwargs):
     """Replace anaphoric noun phrases with pronouns when possible. """
     # TODO: include Number in the dicision process (it vs they)
     # FIXME: Coordinated elements need some special attention
     result = copy(phrase)
+    context = kwargs.get('context', Context())
     # test for selecting phrases taht can be processed
     test = lambda x: isinstance(x, NounPhrase) or isinstance(x, Coordination)
     # reverse so that we start with large phrases first (eg CC)
-    get_log().debug('-='*40)
+    get_log().debug('-=' * 40)
     get_log().debug('constituents:')
     for x in phrase.constituents():
         get_log().debug('\t {}'.format(' '.join(repr(x).split())))
@@ -299,24 +307,24 @@ def optimise_ref_exp(phrase, context):
         else:
             person = ('PERSON', np.get_feature('PERSON'))
         phrases = [x for x in (context.np_stack + uttered)
-            if lexicon.guess_phrase_gender(x) == gender]
-#        get_log().debug('distractors of NP:\n\t{}'.format(distractors))
+                   if lexicon.guess_phrase_gender(x) == gender]
+        #        get_log().debug('distractors of NP:\n\t{}'.format(distractors))
         if id(np) in processed_ids:
             get_log().debug('current NP: {} was already processed'.format(np))
             continue
-#        if ((np in context.np_stack or np in uttered) and np == phrases[-1]):
+        # if ((np in context.np_stack or np in uttered) and np == phrases[-1]):
         if (np in phrases[-1:]):
             # this np is the most salient so pronominalise it
             if isinstance(phrase, Clause):
                 if id(np) == id(phrase.subj):
                     pronoun = pronominalise(np, gender, PronounUse.subjective, person)
                 elif (np in phrase.subj.constituents() and
-                      np in phrase.vp.constituents()):
+                              np in phrase.vp.constituents()):
                     pronoun = pronominalise(np, gender, PronounUse.reflexive, person)
-                # TODO: implement -- possessive will be used if it is a complement of an NP?
-#                elif any(id(np) in [id(x) for x in pp.constituents()]
-#                            for pp in pps):
-#                    pronoun = pronominalise(np, gender, PronounUse.possessive)
+                    # TODO: implement -- possessive will be used if it is a complement of an NP?
+                #                elif any(id(np) in [id(x) for x in pp.constituents()]
+                #                            for pp in pps):
+                #                    pronoun = pronominalise(np, gender, PronounUse.possessive)
                 elif (np in phrase.vp.constituents()):
                     pronoun = pronominalise(np, gender, PronounUse.objective, person)
                 else:
@@ -334,12 +342,12 @@ def optimise_ref_exp(phrase, context):
         uttered.append(unspec_np)
         if not replaced:
             # fix determiners in the processed NP
-            optimise_determiner(np, phrases, context)
+            optimise_determiner(np, phrases, **kwargs)
     context.add_sentence(phrase)
     return result
 
 
-def optimise_determiner(phrase, np_phrases, context):
+def optimise_determiner(phrase, np_phrases, **kwargs):
     """Select the approrpiate determiner. """
     get_log().debug('Fixing determiners: {}'.format(phrase))
     if (not isinstance(phrase, NounPhrase)):
@@ -347,37 +355,37 @@ def optimise_determiner(phrase, np_phrases, context):
         return phrase
 
     get_log().debug('NPs: {}'
-        .format(' '.join([str(x) for x in np_phrases])))
+                    .format(' '.join([str(x) for x in np_phrases])))
 
     # FIXME: this whould look at all modifiers
     distractors = [x for x in np_phrases
-                    if (hasattr(x, 'head') and
-                        hasattr(phrase, 'head') and phrase.head == x.head)]
+                   if (hasattr(x, 'head') and
+                       hasattr(phrase, 'head') and phrase.head == x.head)]
     get_log().debug('distractors: {}'
-        .format(' '.join([str(x) for x in distractors])))
+                    .format(' '.join([str(x) for x in distractors])))
 
     if (phrase.head.has_feature('PROPER', 'true') or
-        phrase.head.has_feature('cat', 'PRONOUN')):
-            get_log().debug('...proper or pronoun')
-            phrase.spec = Element()
+            phrase.head.has_feature('cat', 'PRONOUN')):
+        get_log().debug('...proper or pronoun')
+        phrase.spec = Element()
 
     elif (not phrase.head.has_feature('cat', 'PRONOUN') and
-              phrase in distractors[-1:] and
-              len(distractors) == 1):
-          get_log().debug('...unpronominalised phrase that is last mentioned')
-          phrase.spec = Word('the', 'DETERMINER')
+                  phrase in distractors[-1:] and
+                  len(distractors) == 1):
+        get_log().debug('...unpronominalised phrase that is last mentioned')
+        phrase.spec = Word('the', 'DETERMINER')
 
     elif (lexicon.guess_phrase_number(phrase) != Number.plural and
               not phrase.head.has_feature('cat', 'PRONOUN')):
-          get_log().debug('...indefinite')
-          if phrase.head.string and phrase.head.string[0] in "aeiouy":
-              phrase.spec = Word('an', 'DETERMINER')
-          else:
-              phrase.spec = Word('a', 'DETERMINER')
+        get_log().debug('...indefinite')
+        if phrase.head.string and phrase.head.string[0] in "aeiouy":
+            phrase.spec = Word('an', 'DETERMINER')
+        else:
+            phrase.spec = Word('a', 'DETERMINER')
     return phrase
 
 
-def pronominalise(np, *features):
+def pronominalise(np, *features, **kwargs):
     """Create a pronoun for the corresponding noun phrase. """
     # features can be: person, gender, subject|object (case),
     #   possessive determiner, possessive pronoun, reflexive
@@ -399,42 +407,3 @@ def pronominalise(np, *features):
     res = lexicon.pronoun_for_features(*all_features)
     get_log().debug('\tresult:{}'.format(res))
     return res
-
-
-
-############################################################################
-#
-# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################

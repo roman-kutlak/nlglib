@@ -29,7 +29,7 @@ class LogPipe(threading.Thread):
     how-to-redirect-a-subprocesses-output-stdout-and-stderr-to-logging-module
     
     """
-    
+
     def __init__(self, log_fn):
         """Setup the object with a logger and a loglevel
         and start the thread
@@ -98,7 +98,7 @@ class locked_cached_property(object):
             return value
 
 
-class _PackageBoundObject(object):
+class PackageBoundObject(object):
     """Base class for objects that need to know the root path and package name.
 
     Based on a part of the flask package.
@@ -269,7 +269,7 @@ def _matching_loader_thinks_module_is_package(loader, mod_name):
     # all the modules it loads are packages, so we can take advantage of
     # this information.
     elif (loader.__class__.__module__ == '_frozen_importlib' and
-          loader.__class__.__name__ == 'NamespaceLoader'):
+                  loader.__class__.__name__ == 'NamespaceLoader'):
         return True
     # Otherwise we need to fail with an error that explains what went
     # wrong.

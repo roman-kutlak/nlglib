@@ -13,25 +13,24 @@ def get_log():
     return logging.getLogger(__name__)
 
 
-#______________________________________________________________________________
+# ______________________________________________________________________________
 
 OP_NOT = '~'
-OP_OR  = '|'
+OP_OR = '|'
 OP_AND = '&'
 
-OP_EQUALS     = '=='
-OP_NOTEQUALS  = '!='
+OP_EQUALS = '=='
+OP_NOTEQUALS = '!='
 
-OP_IMPLIES    = '==>'
+OP_IMPLIES = '==>'
 OP_IMPLIED_BY = '<=='
 OP_EQUIVALENT = '<=>'
 
 OP_FORALL = 'forall'
 OP_EXISTS = 'exists'
 
-OP_TRUE   = 'TRUE'
-OP_FALSE  = 'FALSE'
-
+OP_TRUE = 'TRUE'
+OP_FALSE = 'FALSE'
 
 NULLARY_OPS = [OP_TRUE, OP_FALSE]
 UNARY_LOGIC_OPS = [OP_NOT]
@@ -41,35 +40,34 @@ CONDITIONAL_LOGIC_OPS = [OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
 LOGIC_OPS = [OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY, OP_EQUIVALENT]
 NO_OPS = [OP_FORALL, OP_EXISTS, OP_TRUE, OP_FALSE]
 
-
 # ∀ ?x: Happy(?x) ⇔ ¬Sad(?x)
 OPS = {
-    'not'    : OP_NOT,
-    '\u00AC' : OP_NOT,
-    'equals' : OP_EQUALS,
-    '='      : OP_EQUALS,
-    'notequals' : OP_NOTEQUALS,
-    '!='    : OP_NOTEQUALS,
-    '=/='    : OP_NOTEQUALS,
-    '\u2260' : OP_NOTEQUALS,
-    'and'    : OP_AND,
-    '\u2227' : OP_AND,
-    'or'     : OP_OR,
-    '\u2228' : OP_OR,
-    'implies' : OP_IMPLIES,
-#    '->'      : OP_IMPLIES,
-    '==>'     : OP_IMPLIES,
-    '\u2192'  : OP_IMPLIES,
-    'impliedby' : OP_IMPLIED_BY,
-#    '<-'        : OP_IMPLIED_BY,
-    '<=='       : OP_IMPLIED_BY,
-    '\u2190'    : OP_IMPLIED_BY,
-    '\u2194'    : OP_EQUIVALENT,
+    'not': OP_NOT,
+    '\u00AC': OP_NOT,
+    'equals': OP_EQUALS,
+    '=': OP_EQUALS,
+    'notequals': OP_NOTEQUALS,
+    '!=': OP_NOTEQUALS,
+    '=/=': OP_NOTEQUALS,
+    '\u2260': OP_NOTEQUALS,
+    'and': OP_AND,
+    '\u2227': OP_AND,
+    'or': OP_OR,
+    '\u2228': OP_OR,
+    'implies': OP_IMPLIES,
+    #    '->'      : OP_IMPLIES,
+    '==>': OP_IMPLIES,
+    '\u2192': OP_IMPLIES,
+    'impliedby': OP_IMPLIED_BY,
+    #    '<-'        : OP_IMPLIED_BY,
+    '<==': OP_IMPLIED_BY,
+    '\u2190': OP_IMPLIED_BY,
+    '\u2194': OP_EQUIVALENT,
     'equivalent': OP_EQUIVALENT,
-#    '<->'       : OP_EQUIVALENT,
-    '<=>'       : OP_EQUIVALENT,
-    '\u2200'    : OP_FORALL,
-    '\u2203'    : OP_EXISTS
+    #    '<->'       : OP_EQUIVALENT,
+    '<=>': OP_EQUIVALENT,
+    '\u2200': OP_FORALL,
+    '\u2203': OP_EXISTS
 }
 
 
@@ -120,33 +118,33 @@ class Expr:
     def __init__(self, op, *args):
         "Op is a string or number; args are Exprs (or are coerced to Exprs)."
         assert (isinstance(op, str) or
-                (isinstance(op, numbers.Number) and not args)),\
-               '{0}({1})'.format(op, args)
+                (isinstance(op, numbers.Number) and not args)), \
+            '{0}({1})'.format(op, args)
         self.op = num_or_str(op)
-        self.args = list(map(to_expr, args)) # Coerce args to Exprs
+        self.args = list(map(to_expr, args))  # Coerce args to Exprs
 
     def __str__(self):
         "Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"
-        if not self.args:         # Constant or proposition with arity 0
+        if not self.args:  # Constant or proposition with arity 0
             return str(self.op)
         elif is_symbol(self.op):  # Functional or propositional operator
             return '%s(%s)' % (self.op, ', '.join(map(str, self.args)))
-        elif len(self.args) == 1: # Prefix operator
+        elif len(self.args) == 1:  # Prefix operator
             return self.op + str(self.args[0])
-        else:                     # Infix operator
-            return '(%s)' % (' '+self.op+' ').join(map(str, self.args))
+        else:  # Infix operator
+            return '(%s)' % (' ' + self.op + ' ').join(map(str, self.args))
 
     def __repr__(self):
         "Show something like 'P' or '(P x, y)', or '(~ P)' or '(| P Q R)'"
-        if not self.args:         # Constant or proposition with arity 0
+        if not self.args:  # Constant or proposition with arity 0
             return str(self.op)
-        else :
+        else:
             return '(%s %s)' % (self.op, ', '.join(map(repr, self.args)))
 
     def __eq__(self, other):
         """x and y are equal iff their ops and args are equal."""
         return (other is self) or (isinstance(other, Expr)
-            and self.op == other.op and self.args == other.args)
+                                   and self.op == other.op and self.args == other.args)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -161,27 +159,59 @@ class Expr:
         return 1 + sum(map(lambda x: x.numops(), self.args))
 
     # Some operators implemented for convenience
-    def __neg__(self):           return Expr('-',  self)
-    def __lt__(self, other):     return Expr('<',  self, other)
-    def __le__(self, other):     return Expr('<=', self, other)
-    def __ge__(self, other):     return Expr('>=', self, other)
-    def __gt__(self, other):     return Expr('>',  self, other)
-    def __add__(self, other):    return Expr('+',  self, other)
-    def __sub__(self, other):    return Expr('-',  self, other)
-    def __mul__(self, other):    return Expr('*',  self, other)
-    def __div__(self, other):    return Expr('/',  self, other)
-    def __truediv__(self, other):return Expr('/',  self, other)
+    def __neg__(self):
+        return Expr('-', self)
 
-    def __invert__(self):        return Expr(OP_NOT,  self)
-    def __and__(self, other):    return Expr(OP_AND,  self, other)
-    def __or__(self, other):     return Expr(OP_OR,  self, other)
+    def __lt__(self, other):
+        return Expr('<', self, other)
 
-    def __lshift__(self, other): return Expr(OP_IMPLIED_BY, self, other)
-    def __rshift__(self, other): return Expr(OP_IMPLIES, self, other)
-    def __pow__(self, other):    return Expr(OP_EQUIVALENT, self, other)
+    def __le__(self, other):
+        return Expr('<=', self, other)
 
-    def __mod__(self, other):    return Expr(OP_EQUALS,  self, other)
-    def __xor__(self, other):    return Expr(OP_NOTEQUALS,  self, other)
+    def __ge__(self, other):
+        return Expr('>=', self, other)
+
+    def __gt__(self, other):
+        return Expr('>', self, other)
+
+    def __add__(self, other):
+        return Expr('+', self, other)
+
+    def __sub__(self, other):
+        return Expr('-', self, other)
+
+    def __mul__(self, other):
+        return Expr('*', self, other)
+
+    def __div__(self, other):
+        return Expr('/', self, other)
+
+    def __truediv__(self, other):
+        return Expr('/', self, other)
+
+    def __invert__(self):
+        return Expr(OP_NOT, self)
+
+    def __and__(self, other):
+        return Expr(OP_AND, self, other)
+
+    def __or__(self, other):
+        return Expr(OP_OR, self, other)
+
+    def __lshift__(self, other):
+        return Expr(OP_IMPLIED_BY, self, other)
+
+    def __rshift__(self, other):
+        return Expr(OP_IMPLIES, self, other)
+
+    def __pow__(self, other):
+        return Expr(OP_EQUIVALENT, self, other)
+
+    def __mod__(self, other):
+        return Expr(OP_EQUALS, self, other)
+
+    def __xor__(self, other):
+        return Expr(OP_NOTEQUALS, self, other)
 
 
 class Quantifier(Expr):
@@ -197,14 +227,14 @@ class Quantifier(Expr):
     def __repr__(self):
         "Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"
         return '{0} {1}: ({2})'.format(self.op,
-                                ', '.join(map(repr, self.vars)),
-                                ', '.join(map(repr, self.args)))
+                                       ', '.join(map(repr, self.vars)),
+                                       ', '.join(map(repr, self.args)))
 
     def __str__(self):
         "Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"
         return '{0} {1}: ({2})'.format(self.op,
-                                ', '.join(map(str, self.vars)),
-                                ', '.join(map(str, self.args)))
+                                       ', '.join(map(str, self.vars)),
+                                       ', '.join(map(str, self.args)))
 
     def __eq__(self, other):
         """x and y are equal iff their ops and args are equal."""
@@ -235,7 +265,7 @@ def is_symbol(s):
     return ((isinstance(s, str) and
              (s[0].isalpha() or s[0] == '?') and
              (s != OP_FORALL and s != OP_EXISTS)) or
-             isinstance(s, numbers.Number))
+            isinstance(s, numbers.Number))
 
 
 def is_var_symbol(s):
@@ -373,8 +403,10 @@ def variant(x, vars):
     "x'"
 
     """
-    if x in vars: return variant(Expr(x.op + "'", *x.args), vars)
-    else: return x
+    if x in vars:
+        return variant(Expr(x.op + "'", *x.args), vars)
+    else:
+        return x
 
 
 def subst(mappings, tm):
@@ -388,8 +420,10 @@ def subst(mappings, tm):
 
     """
     if is_variable(tm):
-        if tm in mappings: return mappings[tm]
-        else: return tm
+        if tm in mappings:
+            return mappings[tm]
+        else:
+            return tm
     if is_quantified(tm):
         for var in tm.vars:
             # get the list of existing variables in the mappings
@@ -439,7 +473,7 @@ def flatten(f):
     For example, ((P & Q) & R) becomes (P & Q & R).
     This helps with aggregation.
     """
-#    print('flatten({0})'.format(str(f)))
+    #    print('flatten({0})'.format(str(f)))
     if is_quantified(f):
         arg = flatten(f.args[0])
         if is_quantified(arg) and f.op == arg.op:
@@ -468,6 +502,7 @@ def generate_subformulas(f):
     [Expr('P'), Expr('Q'), Expr('P) & Expr('Q')]
 
     """
+
     def subformulas(f):
         if is_quantified(f):
             for fm in subformulas(f.args[0]):
@@ -489,6 +524,7 @@ def generate_subformulas(f):
                     yield Expr(f.op, fm1, fm2)
         else:
             yield f
+
     return subformulas(deepen(f))
 
 
@@ -501,7 +537,7 @@ def var_for_idx(idx, padding=-1):
     'A000'
 
     """
-    num_letters = 26 # ord('Z') - ord('A') = 25 for ASCII
+    num_letters = 26  # ord('Z') - ord('A') = 25 for ASCII
     ctr = idx // num_letters
     letter = chr(65 + (idx % num_letters))
     if ctr > 0 or padding > -1:
@@ -524,7 +560,7 @@ def get_op(x):
 
 def to_expr(item):
     """ Convert to instance of Expr. """
-#    get_log().debug('to_expr: ' + str((repr(type(item)), repr(item))))
+    #    get_log().debug('to_expr: ' + str((repr(type(item)), repr(item))))
     if isinstance(item, str): return Expr(num_or_str(item))
     if isinstance(item, Expr): return item
     if hasattr(item, '__getitem__'): return list(map(to_expr, item))
@@ -543,7 +579,7 @@ class FOLQuant:
 
     def __str__(self):
         vars = ', '.join(self.vars)
-        return("%s %s: (" % (self.op, vars)) + ''.join(map(str,self.args)) + ")"
+        return ("%s %s: (" % (self.op, vars)) + ''.join(map(str, self.args)) + ")"
 
     __repr__ = __str__
 
@@ -552,7 +588,7 @@ class FOLQuant:
 
 
 class FOLBinOp:
-    def __init__(self,t):
+    def __init__(self, t):
         self.op = get_op(t[0][1])
         self.args = t[0][0::2]
         if PARSE_DEBUG:
@@ -561,7 +597,7 @@ class FOLBinOp:
 
     def __str__(self):
         sep = " %s " % self.op
-        return "(" + sep.join(map(str,self.args)) + ")"
+        return "(" + sep.join(map(str, self.args)) + ")"
 
     __repr__ = __str__
 
@@ -570,7 +606,7 @@ class FOLBinOp:
 
 
 class FOLUnOp:
-    def __init__(self,t):
+    def __init__(self, t):
         self.op = get_op(t[0][0])
         self.args = to_expr(t[0][1])
         if PARSE_DEBUG:
@@ -587,7 +623,7 @@ class FOLUnOp:
 
 
 class FOLPred:
-    def __init__(self,t):
+    def __init__(self, t):
         self.op = get_op(t[0][0])
         self.args = t[0][1]
         if PARSE_DEBUG:
@@ -595,7 +631,7 @@ class FOLPred:
             print('\targs "{0}"'.format(self.args))
 
     def __str__(self):
-        return (str(self.op) + "(" + ', '.join(map(str,self.args)) + ")")
+        return (str(self.op) + "(" + ', '.join(map(str, self.args)) + ")")
 
     __repr__ = __str__
 
@@ -610,13 +646,13 @@ ParserElement.enablePackrat()
 # allow python style comments
 comment = (Literal('#') + restOfLine).suppress()
 
-LP, RP , colon = map(Suppress, '():')
+LP, RP, colon = map(Suppress, '():')
 forall = Keyword('forall') | Literal('\u2200')
 exists = Keyword('exists') | Literal('\u2203')
 implies = Keyword('==>') | Keyword('implies') | Literal('\u2192') | Literal('->')
 implied = Keyword('<==') | Keyword('impliedby') | Literal('\u2190') | Literal('<-')
-iff = Keyword('<=>')  | Keyword('iff') | Literal('\u2194') | Keyword('<->')
-or_  = Keyword('\\/') | Literal('|') | Keyword('or') | Literal('\u2228')
+iff = Keyword('<=>') | Keyword('iff') | Literal('\u2194') | Keyword('<->')
+or_ = Keyword('\\/') | Literal('|') | Keyword('or') | Literal('\u2228')
 and_ = Keyword('/\\') | Literal('&') | Keyword('and') | Literal('\u2227')
 not_ = Literal('~') | Keyword('not') | Literal('\u00AC')
 equals = Literal('=') | Keyword('equals')
@@ -632,36 +668,34 @@ number = Combine(Optional(oneOf('+ -')) + Word(nums) +
                  Optional(Literal('.') + Word(nums)))
 
 math_expr = operatorPrecedence(number | variable,
-                [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
-                 (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
-                 (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
-                 (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
-                 (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
+                               [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
+                                (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
+                                (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
+                                (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
+                                (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
 
-
-term = Forward() # definition of term will involve itself
+term = Forward()  # definition of term will involve itself
 terms = delimitedList(term)
 predicate = Group(constant + Group(LP + terms + RP)).setParseAction(FOLPred)
 
 term << operatorPrecedence(number | predicate | variable,
-                [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
-                 (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
-                 (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
-                 (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
-                 (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
-
+                           [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
+                            (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
+                            (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
+                            (oneOf('+ -'), 2, opAssoc.LEFT, FOLBinOp),
+                            (oneOf('< <= > >= '), 2, opAssoc.LEFT, FOLBinOp)])
 
 # main parser for FOL formula
 formula = Forward()
 formula.ignore(comment)
 
 forall_expression = Group(forall.setResultsName("quantifier") +
-                       delimitedList(variable).setResultsName("vars") + colon +
-                       formula.setResultsName("args")
-                    ).setParseAction(FOLQuant)
+                          delimitedList(variable).setResultsName("vars") + colon +
+                          formula.setResultsName("args")
+                          ).setParseAction(FOLQuant)
 exists_expression = Group(exists.setResultsName("quantifier") +
-                      delimitedList(variable).setResultsName("vars") + colon +
-                      formula.setResultsName("args")).setParseAction(FOLQuant)
+                          delimitedList(variable).setResultsName("vars") + colon +
+                          formula.setResultsName("args")).setParseAction(FOLQuant)
 
 operand = forall_expression | exists_expression | boolean | term
 
@@ -710,23 +744,24 @@ def expr(s):
         result = formula.parseString(s, parseAll=True)
         return to_expr(result[0])
     except (ParseException, ParseSyntaxException) as err:
-        msg=("Syntax error: {0!r}\n{0.line}\n{1}^".\
-             format(err, " " * (err.column-1)))
+        msg = ("Syntax error: {0!r}\n{0.line}\n{1}^". \
+               format(err, " " * (err.column - 1)))
         raise FormulaParseError(msg)
     except RuntimeError:
         raise FormulaParseError("Infinite loop in parse.")
 
+
 # error handling -- consider
-#>>> def oops(s, loc, expr, err):
-#...     print ("s={0!r} loc={1!r} expr={2!r}\nerr={3!r}".format(
-#...            s, loc, expr, err))
-#...
-#>>> fail = pp.NoMatch().setName('fail-parser').setFailAction(oops)
-#>>> r = fail.parseString("None shall pass!")
-#s='None shall pass!' loc=0 expr=fail-parser
-#err=Expected fail-parser (at char 0), (line:1, col:1)
-#pyparsing.ParseException: Expected fail-parser (at char 0), (line:1,
-#col:1)
+# >>> def oops(s, loc, expr, err):
+# ...     print ("s={0!r} loc={1!r} expr={2!r}\nerr={3!r}".format(
+# ...            s, loc, expr, err))
+# ...
+# >>> fail = pp.NoMatch().setName('fail-parser').setFailAction(oops)
+# >>> r = fail.parseString("None shall pass!")
+# s='None shall pass!' loc=0 expr=fail-parser
+# err=Expected fail-parser (at char 0), (line:1, col:1)
+# pyparsing.ParseException: Expected fail-parser (at char 0), (line:1,
+# col:1)
 
 ##
 
@@ -752,7 +787,7 @@ def gen_pred(upper=25):
 def gen_var_or_pred(upper=25):
     var = gen_var(upper)
     pred = gen_pred(upper)
-    return random.choice( (var, pred) )
+    return random.choice((var, pred))
 
 
 def gen_op(upper=25):
@@ -763,7 +798,7 @@ def gen_op(upper=25):
 
 # do this only once; increase chance of selecting & and |
 and_or = [OP_AND, OP_OR]
-choices =  and_or + CONDITIONAL_LOGIC_OPS + and_or
+choices = and_or + CONDITIONAL_LOGIC_OPS + and_or
 choices += and_or + [OP_TRUE, OP_FALSE] + and_or
 choices += and_or + choices + and_or
 
@@ -779,52 +814,14 @@ def gen_prop_formula(n, upper=25):
         op2 = gen_prop_op()
         while not is_binary_op(op2):
             op2 = gen_prop_op()
-        return Expr(op2, Expr(op), gen_prop_formula(n-1, upper))
+        return Expr(op2, Expr(op), gen_prop_formula(n - 1, upper))
     if is_unary_op(op):
         op2 = gen_prop_op()
         while not is_binary_op(op2):
             op2 = gen_prop_op()
-        return Expr(op2, Expr(op, gen_pred()), gen_prop_formula(n-1, upper))
-    return Expr(op, gen_prop_formula(n-1, upper), gen_prop_formula(n-1, upper))
+        return Expr(op2, Expr(op, gen_pred()), gen_prop_formula(n - 1, upper))
+    return Expr(op, gen_prop_formula(n - 1, upper), gen_prop_formula(n - 1, upper))
 
 
 def gen_pred_formula(n, upper=25):
     pass
-
-
-############################################################################
-#
-# Copyright (C) 2014 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################

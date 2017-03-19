@@ -2,42 +2,19 @@ import logging
 import os
 import sys
 
+from contextlib import ContextDecorator
 from threading import Lock
 from werkzeug.datastructures import ImmutableDict
 
-from nlglib.nlg import Nlg
-from nlglib.macroplanning import formula_to_rst
-from nlglib.fol import expr
-from nlglib.simplifications import simplification_ops
-from nlglib.simplifications import Heuristic
-from nlglib.reg import Context
-from .utils import _PackageBoundObject, locked_cached_property, find_package
+from . import macroplanning, lexicalisation, aggregation, reg, realisation, format
+
 from .config import Config, ConfigAttribute
+from .utils import PackageBoundObject, locked_cached_property, find_package
 
 _logger_lock = Lock()
 
 
-def translate(formula, templates=None, simplifications=None):
-    if isinstance(formula, str):
-        formulas = [expr(f) for f in formula.split(';') if f.strip()]
-    pipeline = Nlg()
-    context = Context(ontology=None)
-    context.templates = templates or {}
-    doc = []
-    for f in formulas:
-        if simplifications:
-            for s in filter(lambda x: x in simplification_ops, simplifications):
-                f = simplification_ops[s](f)
-        doc.append(formula_to_rst(f))
-
-    translations = pipeline.process_nlg_doc2(doc, None, context)
-    return translations
-
-# def minimise_search(f, h_file, ops=LOGIC_OPS, max=-1):
-
-
-class Pipeline(_PackageBoundObject):
-
+class Pipeline(PackageBoundObject):
     debug = ConfigAttribute('DEBUG')
     logger_name = ConfigAttribute('LOGGER_NAME')
 
@@ -46,11 +23,24 @@ class Pipeline(_PackageBoundObject):
     default_config = ImmutableDict({
         'DEBUG': False,
         'LOGGER_NAME': None,
+        'CONTENT_PREPROCESSING': macroplanning.preprocess_content,
+        'CONTENT_SELECTION': macroplanning.select_content,
+        'CONTENT_AGGREGATION': macroplanning.aggregate_content,
+        'CONTENT_STRUCTURING': macroplanning.structure_content,
+        'LEXICALISATION': lexicalisation.lexicalise,
+        'AGGREGATION': aggregation.aggregate,
+        'PRONOMINALISATION': None,
+        'REFERRING': reg.generate_re,
+        'REALISATION': realisation.realise,
+        'FORMATTING': format.to_text
     })
+
+    _stages = None
+    _logger = None
 
     def __init__(self, import_name, instance_path=None,
                  instance_relative_config=False, root_path=None):
-        _PackageBoundObject.__init__(self, import_name, root_path=root_path)
+        PackageBoundObject.__init__(self, import_name, root_path=root_path)
         #: Holds the path to the instance folder.
         if instance_path is None:
             instance_path = self.auto_find_instance_path()
@@ -59,14 +49,38 @@ class Pipeline(_PackageBoundObject):
                              'absolute.  A relative path was given instead.')
         self.instance_path = instance_path
 
-        #: The configuration dictionary as :class:`Config`.  This behaves
-        #: exactly like a regular dictionary but supports additional methods
-        #: to load a config from files.
         self.config = self.make_config(instance_relative_config)
 
         # Prepare the deferred setup of the logger.
-        self._logger = None
         self.logger_name = self.import_name
+
+        self._stages = [
+            ('content_preprocessing', self.config.get('CONTENT_PREPROCESSING')),
+            ('content_selection', self.config.get('CONTENT_SELECTION')),
+            ('content_aggregation', self.config.get('CONTENT_AGGREGATION')),
+            ('content_structuring', self.config.get('CONTENT_STRUCTURING')),
+            ('lexicalisation', self.config.get('LEXICALISATION')),
+            ('aggregation', self.config.get('AGGREGATION')),
+            ('pronominalisation', self.config.get('PRONOMINALISATION')),
+            ('referring', self.config.get('REFERRING')),
+            ('realisation', self.config.get('REALISATION')),
+            ('formatting', self.config.get('FORMATTING')),
+        ]
+
+        self.context = PipelineContext(self)
+
+        # translations = pipeline.process_nlg_doc2(doc, None, context)
+
+    def process(self, data, **kwargs):
+        kwargs['_pipeline'] = self
+        rv = data
+        # TODO: add pre/post signals
+        for name, func in self._stages:
+            self.logger.debug('running stage {}.'.format(name))
+            if func:
+                rv = func(rv, **kwargs)
+            self.logger.debug('finished stage {}.'.format(name))
+        return rv
 
     def make_config(self, instance_relative=False):
         """Used to create the config attribute by the Flask constructor.
@@ -127,3 +141,19 @@ class Pipeline(_PackageBoundObject):
         if prefix is None:
             return os.path.join(package_path, 'instance')
         return os.path.join(prefix, 'var', self.name + '-instance')
+
+
+class PipelineContext(ContextDecorator):
+    def __init__(self, pipeline=None):
+        self.pipeline = pipeline
+
+    def __enter__(self):
+        self.original_context = self.pipeline.context
+        self.pipeline.context = self
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.pipeline.context = self.original_context
+        self.original_context = None
+        del self.__dict__['pipeline']
+        return False

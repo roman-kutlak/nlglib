@@ -30,6 +30,7 @@ class Document:
     This includes the document title and a list of sections.
 
     """
+
     def __init__(self, title, *sections):
         """ Create a new Document instance with given title and with zero or more sections. """
         self.title = title if isinstance(title, Message) else Message('', title)
@@ -79,6 +80,7 @@ class Section:
      A section has a title and a list of ``Paragraph``s or ``Section``s.
 
     """
+
     def __init__(self, title, *paragraphs):
         """ Create a new section with given title and zero or more paragraphs. """
         self.title = title if isinstance(title, Message) else Message('', title)
@@ -128,6 +130,7 @@ class Paragraph:
      Paragraph is a list of ``Message``s.
 
     """
+
     def __init__(self, *messages):
         """ Create a new Paragraph with zero or more messages. """
         self.messages = [m if isinstance(m, Message) else Message('Leaf', m) for m in _flatten(messages)]
@@ -164,38 +167,39 @@ class Paragraph:
 
 class Message:
     """ A representation of a message (usually a sentence).
-        A message has a nucleus and zero or more satelites joined
+        A message has a nucleus and zero or more satellites joined
         by an RST (Rhetorical Structure Theory) relation.
 
     """
-    def __init__(self, rel, nucleus, *satelites, features=None):
+
+    def __init__(self, rel, nucleus, *satellites, features=None):
         """ Create a new Message with given relation between
         the nucleus and zero or more satellites.
 
         """
-        # FIXME: messages should have only one satelite and 1+ nuclei
+        # FIXME: messages should have only one satellite and 1+ nuclei
         self.rst = rel
         self.nucleus = nucleus
-        self.satelites = [s for s in satelites if s is not None]
+        self.satellites = [s for s in satellites if s is not None]
         self.marker = ''
         self._features = features or {}
 
     def __repr__(self):
         descr = ' '.join([repr(x) for x in
-                  ([self.nucleus] + self.satelites) if x is not None ])
+                          ([self.nucleus] + self.satellites) if x is not None])
         if descr == '': descr = '_empty_'
         return 'Message (%s): %s' % (self.rst, descr.strip())
 
     def __str__(self):
-        descr = ' '.join( [str(x) for x in
-            ([self.nucleus] + self.satelites) if x is not None ] )
+        descr = ' '.join([str(x) for x in
+                          ([self.nucleus] + self.satellites) if x is not None])
         return (descr.strip() if descr is not None else '')
 
     def __eq__(self, other):
         return (isinstance(other, Message) and
                 self.rst == other.rst and
                 self.nucleus == other.nucleus and
-                self.satelites == other.satelites)
+                self.satellites == other.satellites)
 
     def constituents(self):
         """ Return a generator to iterate through the elements. """
@@ -204,7 +208,7 @@ class Message:
                 yield from self.nucleus.constituents()
             else:
                 yield self.nucleus
-        for x in self.satelites:
+        for x in self.satellites:
             if hasattr(x, 'constituents'):
                 yield from x.constituents()
             else:
@@ -217,8 +221,10 @@ class Message:
 
         """
         if feat in self._features:
-            if val is not None: del self._features[feat]
-            elif val == self._features[feat]: del self._features[feat]
+            if val is not None:
+                del self._features[feat]
+            elif val == self._features[feat]:
+                del self._features[feat]
 
     def add_features(self, features):
         """ Add the given features (dict) to the existing features. """
@@ -235,7 +241,7 @@ class Message:
         result += offset + indent + '<nucleus>\n'
         result += self.nucleus.to_xml(offset=(offset + 2 * indent))
         result += offset + indent + '</nucleus>\n'
-        for s in self.satelites:
+        for s in self.satellites:
             result += offset + indent + '<satellite>\n'
             result += s.to_xml(offset=(offset + 2 * indent))
             result += offset + indent + '</satellite>\n'
@@ -247,17 +253,18 @@ class RhetRep:
     """ A representation of a rhetorical structure.
     The data structure is from RAGS (Mellish et. al. 2006) and it represents
     an element in the rhetorical structure of the document. Each element has
-    a nucleus, a satelite and a relation name. Some relations allow multiple
-    nuclei instead of a satelite (e.g., lists).
+    a nucleus, a satellite and a relation name. Some relations allow multiple
+    nuclei instead of a satellite (e.g., lists).
 
     Rhetorical structure is a tree. The children can be either RhetReps
     or MsgSpecs.
 
     """
-    def __init__(self, relation, *nuclei, satelite=None, marker=None):
+
+    def __init__(self, relation, *nuclei, satellite=None, marker=None):
         self.relation = relation
         self.nucleus = list(nuclei)
-        self.satelite = satelite
+        self.satellite = satellite
         self.is_multinuclear = (len(nuclei) > 1)
         self.marker = marker
 
@@ -268,7 +275,7 @@ class RhetRep:
         if self.is_multinuclear:
             data += ''.join([e.to_xml(lvl + 1) for e in self.nucleus])
         else:
-            data += ''.join([e.to_xml(lvl + 1) for e in (self.nucleus, self.satelite)])
+            data += ''.join([e.to_xml(lvl + 1) for e in (self.nucleus, self.satellite)])
         data += spaces + '</rhetrep>\n'
         return data
 
@@ -277,7 +284,6 @@ class RhetRep:
 
 
 class SemRep:
-
     def __init__(self, clause, **features):
         self.clause = clause
         self.features = features or dict()
@@ -304,6 +310,7 @@ class MsgSpec:
     in turn calls self.foo(). This should return the value for the key 'foo'.
 
     """
+
     def __init__(self, name, features=None):
         self.name = name
         self._features = features or {}
@@ -323,11 +330,11 @@ class MsgSpec:
         """ Return a value for an argument using introspection. """
         if not hasattr(self, data_member):
             raise ValueError('Error: cannot find value for key: %s' %
-                                data_member)
+                             data_member)
         m = getattr(self, data_member)
         if not hasattr(m, '__call__'):
             raise ValueError('Error: cannot call the method "%s"' %
-                                data_member)
+                             data_member)
         return m()
 
     def accept(self, visitor, element='Element'):
@@ -362,8 +369,10 @@ class MsgSpec:
 
         """
         if feat in self._features:
-            if val is not None: del self._features[feat]
-            elif val == self._features[feat]: del self._features[feat]
+            if val is not None:
+                del self._features[feat]
+            elif val == self._features[feat]:
+                del self._features[feat]
 
     def add_features(self, features):
         """ Add the given features (dict) to the existing features. """
@@ -413,7 +422,6 @@ class OperatorContext:
         self.negations = 0
 
 
-
 ###############################################################################
 #                                                                              #
 #                              microplanning                                   #
@@ -461,47 +469,48 @@ class ElemntCoder(json.JSONEncoder):
 
 
 # types of clauses:
-ELEMENT     = 0 # abstract
-STRING      = 1
-WORD        = 2
+ELEMENT = 0  # abstract
+STRING = 1
+WORD = 2
 PLACEHOLDER = 3
-CLAUSE      = 4
+CLAUSE = 4
 
-COORDINATION  = 5
+COORDINATION = 5
 SUBORDINATION = 6
 
-PHRASE      = 10 # abstract
-NOUNPHRASE  = 11
-VERBPHRASE  = 12
-PREPPHRASE  = 13
-ADJPHRASE   = 14
-ADVPHRASE   = 15
-
+PHRASE = 10  # abstract
+NOUNPHRASE = 11
+VERBPHRASE = 12
+PREPPHRASE = 13
+ADJPHRASE = 14
+ADVPHRASE = 15
 
 # visitor names
 VisitorNames = {
-    ELEMENT     : 'visit_element',
-    STRING      : 'visit_string',
-    WORD        : 'visit_word',
-    PLACEHOLDER : 'visit_placeholder',
-    CLAUSE      : 'visit_clause',
+    ELEMENT: 'visit_element',
+    STRING: 'visit_string',
+    WORD: 'visit_word',
+    PLACEHOLDER: 'visit_placeholder',
+    CLAUSE: 'visit_clause',
 
-    COORDINATION  : 'visit_coordination',
-    SUBORDINATION : 'visit_subordination',
+    COORDINATION: 'visit_coordination',
+    SUBORDINATION: 'visit_subordination',
 
-    PHRASE     : 'visit_phrase',
-    NOUNPHRASE : 'visit_np',
-    VERBPHRASE : 'visit_vp',
-    PREPPHRASE : 'visit_pp',
-    ADJPHRASE  : 'visit_adjp',
-    ADVPHRASE  : 'visit_advp',
+    PHRASE: 'visit_phrase',
+    NOUNPHRASE: 'visit_np',
+    VERBPHRASE: 'visit_vp',
+    PREPPHRASE: 'visit_pp',
+    ADJPHRASE: 'visit_adjp',
+    ADVPHRASE: 'visit_advp',
 }
 
 
 def is_element_t(o):
     """ An object is an element if it has attr _type and one of the types. """
-    if not hasattr(o, '_type'): return False
-    else: return o._type in VisitorNames
+    if not hasattr(o, '_type'):
+        return False
+    else:
+        return o._type in VisitorNames
 
 
 def is_phrase_t(o):
@@ -512,7 +521,7 @@ def is_phrase_t(o):
     return (is_element_t(o) and
             (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJPHRASE, ADVPHRASE} or
              (o._type == COORDINATION and
-             (o.coords == [] or is_phrase_t(o.coords[0])))))
+              (o.coords == [] or is_phrase_t(o.coords[0])))))
 
 
 def is_clause_t(o):
@@ -540,8 +549,9 @@ class Element:
         the class also implements basic functionality for elements.
 
     """
+
     def __init__(self, type=ELEMENT, features=None):
-        self.id = 0 # this is useful for replacing elements
+        self.id = 0  # this is useful for replacing elements
         self._type = type
         self._visitor_name = VisitorNames[type]
         self._features = features or dict()
@@ -560,7 +570,7 @@ class Element:
     def __hash__(self):
         if self.hash == -1:
             self.hash = (hash(self.id) ^ hash(tuple(['k:v'.format(k, v)
-                            for k, v in self._features.items()])))
+                                                     for k, v in self._features.items()])))
         return self.hash
 
     @classmethod
@@ -635,8 +645,10 @@ class Element:
 
     def feature(self, feat):
         """ Return value for given feature or None. """
-        if feat in self._features: return self._features[feat]
-        else: return None
+        if feat in self._features:
+            return self._features[feat]
+        else:
+            return None
 
     def del_feature(self, feat, val=None):
         """ Delete a feature, if the element has it else do nothing.
@@ -645,8 +657,10 @@ class Element:
 
         """
         if feat in self._features:
-            if val is not None: del self._features[feat]
-            elif val == self._features[feat]: del self._features[feat]
+            if val is not None:
+                del self._features[feat]
+            elif val == self._features[feat]:
+                del self._features[feat]
 
     def add_features(self, features):
         """ Add the given features (dict) to the existing features. """
@@ -669,7 +683,7 @@ class Element:
         Return True if successful.
 
         """
-        return False # basic implementation does nothing
+        return False  # basic implementation does nothing
 
     def replace_argument(self, arg_id, repl):
         """ Replace an argument with given id by repl if such argumen exists."""
@@ -718,6 +732,7 @@ class Element:
 
 class String(Element):
     """ String is a basic element representing canned text. """
+
     def __init__(self, val='', features=None):
         super().__init__(STRING, features)
         self.value = val
@@ -734,7 +749,7 @@ class String(Element):
 
     def __hash__(self):
         if self.hash == -1:
-            self.hash = (11*super().__hash__()) ^ hash(self.value)
+            self.hash = (11 * super().__hash__()) ^ hash(self.value)
         return self.hash
 
     def constituents(self):
@@ -748,6 +763,7 @@ class String(Element):
 
 class Word(Element):
     """ Word represents word and its corresponding POS (Part-of-Speech) tag. """
+
     def __init__(self, word, pos='ANY', features=None, base=None):
         super().__init__(WORD, features)
         self.word = word
@@ -769,7 +785,7 @@ class Word(Element):
 
     def __hash__(self):
         if self.hash == -1:
-            self.hash = ((11*super().__hash__()) ^
+            self.hash = ((11 * super().__hash__()) ^
                          (hash(self.pos) ^ hash(self.word)))
         return self.hash
 
@@ -792,6 +808,7 @@ class PlaceHolder(Element):
                 move (the block) from (the table) to (the green block)
 
     """
+
     def __init__(self, id=None, obj=None, features=None):
         super().__init__(PLACEHOLDER, features)
         self.id = id
@@ -811,7 +828,7 @@ class PlaceHolder(Element):
 
     def __hash__(self):
         if self.hash == -1:
-            self.hash = ((11*super().__hash__()) ^
+            self.hash = ((11 * super().__hash__()) ^
                          (hash(self.id) & hash(self.value)))
         return self.hash
 
@@ -912,11 +929,13 @@ class Coordination(Element):
 
         """
         logger.info('Replacing "{}" in "{}" by "{}.'
-                        .format(one, self, another))
+                    .format(one, self, another))
         for i, o in enumerate(self.coords):
             if o == one:
-                if another: self.coords[i] = another
-                else: del self.coords[i]
+                if another:
+                    self.coords[i] = another
+                else:
+                    del self.coords[i]
                 return True
             else:
                 if o.replace(one, another):
@@ -962,6 +981,7 @@ class Phrase(Element):
         Not every phrase has need for all of the kinds of modiffications.
 
     """
+
     def __init__(self, type=PHRASE, features=None, **kwargs):
         super().__init__(type, features)
         self.front_modifiers = list()
@@ -1169,6 +1189,7 @@ class NounPhrase(Phrase):
      * <LI>PostModifier  (eg, "in the shop")</LI>
      * </UL>
      """
+
     def __init__(self, head=None, spec=None, features=None, **kwargs):
         super().__init__(NOUNPHRASE, features, **kwargs)
         self.set_spec(spec)
@@ -1185,7 +1206,7 @@ class NounPhrase(Phrase):
         """ Set the specifier (e.g., determiner) of the NounPhrase. """
         if spec is None: spec = Element()
         # convert str to String if necessary
-        self.spec = String(spec) if isinstance(spec, str) else spec # use raise_to_element
+        self.spec = String(spec) if isinstance(spec, str) else spec  # use raise_to_element
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
@@ -1222,6 +1243,7 @@ class VerbPhrase(Phrase):
      * <LI>PostModifier     (eg, "before school")</LI>
      * </UL>
      """
+
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(VERBPHRASE, features, **kwargs)
         self.set_head(head)
@@ -1438,7 +1460,6 @@ class Clause(Element):
                 yield from x.constituents()
 
 
-
 def raise_to_np(phrase):
     """Take the current phrase and raise it to an NP.
     If `phrase` is a Noun it will be promoted to NP and used as a head;
@@ -1478,42 +1499,5 @@ def raise_to_vp(phrase):
 def raise_to_element(element):
     """Raise the given thing to an element (e.g., String). """
     if not isinstance(element, Element):
-        return String(str(element)) # use str() in case of numbers
+        return String(str(element))  # use str() in case of numbers
     return element
-
-############################################################################
-#
-# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################

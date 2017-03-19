@@ -15,8 +15,8 @@ The input is a document where NLG Elements were already realised to strings.
 
 """
 
-
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 
 def get_log():
     return logging.getLogger(__name__)
@@ -34,17 +34,24 @@ class Realiser:
 
     def realise(self, msg):
         """ Perform lexicalisation on the message depending on the type. """
-        if msg is None:                  return None
-        elif isinstance(msg, str):       return msg
-        elif isinstance(msg, Element):   return self.realise_element(msg)
-        elif isinstance(msg, MsgSpec):   return self.realise_message_spec(msg)
-        elif isinstance(msg, Message):   return self.realise_message(msg)
-        elif isinstance(msg, Paragraph): return self.realise_paragraph(msg)
-        elif isinstance(msg, Section):   return self.realise_section(msg)
-        elif isinstance(msg, Document):  return self.realise_document(msg)
+        if msg is None:
+            return None
+        elif isinstance(msg, str):
+            return msg
+        elif isinstance(msg, Element):
+            return self.realise_element(msg)
+        elif isinstance(msg, MsgSpec):
+            return self.realise_message_spec(msg)
+        elif isinstance(msg, Message):
+            return self.realise_message(msg)
+        elif isinstance(msg, Paragraph):
+            return self.realise_paragraph(msg)
+        elif isinstance(msg, Section):
+            return self.realise_section(msg)
+        elif isinstance(msg, Document):
+            return self.realise_document(msg)
         else:
             raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
-
 
     def realise_element(self, elt):
         """ Realise NLG element. """
@@ -57,30 +64,27 @@ class Realiser:
                             .format(repr(elt)))
             return simple_realisation(elt)
 
-
     def realise_message_spec(self, msg):
         """ Realise message specification - this should not happen """
         get_log().debug('Realising message spec:\n{0}'.format(repr(msg)))
         return str(msg).strip()
-
 
     def realise_message(self, msg):
         """ Return a copy of Message with strings. """
         get_log().debug('Realising message:\n{0}'.format(repr(msg)))
         if msg is None: return None
         nucl = self.realise(msg.nucleus)
-        sats = [self.realise(x) for x in msg.satelites if x is not None]
-    #    if len(sats) > 0:
-    #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
+        sats = [self.realise(x) for x in msg.satellites if x is not None]
+        #    if len(sats) > 0:
+        #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
         sentences = _flatten([nucl] + sats)
         get_log().debug('flattened sentences: %s' % sentences)
         # TODO: this si wrong because the recursive call can apply capitalisation
         # and punctuation multiple times...
         sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
-                                        ('.' if e[-1] != '.' else ''),
+                                       ('.' if e[-1] != '.' else ''),
                              [s for s in sentences if s != '']))
         return sentences
-
 
     def realise_paragraph(self, msg):
         """ Return a copy of Paragraph with strings. """
@@ -90,7 +94,6 @@ class Realiser:
         messages = _flatten(messages)
         return Paragraph(*messages)
 
-
     def realise_section(self, msg):
         """ Return a copy of a Section with strings. """
         get_log().debug('Realising section.')
@@ -98,7 +101,6 @@ class Realiser:
         title = self.realise(msg.title)
         paragraphs = [Paragraph(self.realise(x)) for x in msg.paragraphs]
         return Section(title, *paragraphs)
-
 
     def realise_document(self, msg):
         """ Return a copy of a Document with strings. """
@@ -109,16 +111,24 @@ class Realiser:
         return Document(title, *sections)
 
 
-def realise(msg):
+def realise(msg, **kwargs):
     """ Perform lexicalisation on the message depending on the type. """
-    if msg is None:                  return None
-    elif isinstance(msg, str):       return msg
-    elif isinstance(msg, Element):   return realise_element(msg)
-    elif isinstance(msg, MsgSpec):   return realise_message_spec(msg)
-    elif isinstance(msg, Message):   return realise_message(msg)
-    elif isinstance(msg, Paragraph): return realise_paragraph(msg)
-    elif isinstance(msg, Section):   return realise_section(msg)
-    elif isinstance(msg, Document):  return realise_document(msg)
+    if msg is None:
+        return None
+    elif isinstance(msg, str):
+        return msg
+    elif isinstance(msg, Element):
+        return realise_element(msg)
+    elif isinstance(msg, MsgSpec):
+        return realise_message_spec(msg)
+    elif isinstance(msg, Message):
+        return realise_message(msg)
+    elif isinstance(msg, Paragraph):
+        return realise_paragraph(msg)
+    elif isinstance(msg, Section):
+        return realise_section(msg)
+    elif isinstance(msg, Document):
+        return realise_document(msg)
     else:
         raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
@@ -141,15 +151,15 @@ def realise_message(msg):
     get_log().debug('Realising message:\n{0}'.format(repr(msg)))
     if msg is None: return None
     nucl = realise(msg.nucleus)
-    sats = [realise(x) for x in msg.satelites if x is not None]
-#    if len(sats) > 0:
-#        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
+    sats = [realise(x) for x in msg.satellites if x is not None]
+    #    if len(sats) > 0:
+    #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
     sentences = _flatten([nucl] + sats)
     get_log().debug('flattened sentences: %s' % sentences)
     # TODO: this si wrong because the recursive call can apply capitalisation
     # and punctuation multiple times...
     sentences = list(map(lambda e: e[:1].upper() + e[1:] + \
-                                    ('.' if e[-1] != '.' else ''),
+                                   ('.' if e[-1] != '.' else ''),
                          [s for s in sentences if s != '']))
     return sentences
 
@@ -201,6 +211,7 @@ class RealisationVisitor:
     and performs a simple surface realisation.
 
     """
+
     def __init__(self):
         self.text = ''
 
@@ -220,15 +231,17 @@ class RealisationVisitor:
     def visit_word(self, node):
         word = node.word
         if (node.has_feature('NUMBER', 'PLURAL') and
-            node.pos == 'NOUN'):
+                    node.pos == 'NOUN'):
             word = lexicon.pluralise_noun(node.word)
         if node.has_feature('NEGATED', 'true'):
             self.text += 'not '
         self.text += word + ' '
 
     def visit_placeholder(self, node):
-        if node.value: node.value.accept(self)
-        else: self.text += str(self.id)
+        if node.value:
+            node.value.accept(self)
+        else:
+            self.text += str(self.id)
         self.text += ' '
 
     def visit_clause(self, node):
@@ -295,16 +308,16 @@ class RealisationVisitor:
         modals = [f for f in lexicon.Modal.values]
         get_log().warning('Modals: {}'.format(modals))
         if node.has_feature('MODAL'):
-          self.text += ' ' + node.get_feature('MODAL') + ' '
-          if node.has_feature('NEGATED', 'true'):
+            self.text += ' ' + node.get_feature('MODAL') + ' '
+            if node.has_feature('NEGATED', 'true'):
                 self.text += 'not '
-          node.head.accept(self)
+            node.head.accept(self)
         # hs the head a modal verb?
         elif head in modals:
-          self.text += ' '
-          node.head.accept(self)
-          self.text += ' '
-          if node.has_feature('NEGATED', 'true'):
+            self.text += ' '
+            node.head.accept(self)
+            self.text += ' '
+            if node.has_feature('NEGATED', 'true'):
                 self.text += 'not '
         elif head == 'have':
             if node.has_feature('NEGATED', 'true'):
@@ -370,6 +383,7 @@ def simpleNlg_realisation(struct):
     result = nlglib.nlg.simplenlg_client.xml_request(v.to_xml())
     return result.replace(' ,', ',')
 
+
 def simple_realisation(struct):
     """ Use the RealisationVisitor that performs only the most basic realisation
     and return the created surface realisation as a string.
@@ -383,47 +397,7 @@ def simple_realisation(struct):
     else:
         return ''
 
-
-
-#    There are constraints on the combination of phrases in E0:
+# There are constraints on the combination of phrases in E0:
 #    The subject and the predicate must agree on number and person: if
 #    the subject is a third person singular, so must the verb be. Objects complement only – and all – the transitive verbs.
 #    When a pronoun is used, it is in the nominative case if it is in the subject position, and in the accusative case if it is an object.
-
-
-############################################################################
-#
-# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################

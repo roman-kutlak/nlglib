@@ -2,8 +2,8 @@ import rdflib
 import rdflib.plugins.sparql as sparql
 import logging
 
-
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 
 def get_log():
     return logging.getLogger(__name__)
@@ -47,8 +47,10 @@ class Ontology:
         """
         types = list(self.entity_types(entity_name))
         get_log().debug('ontology types for "%s": %s' % (entity_name, str(types)))
-        if types == []: return None
-        elif len(types) == 1: return types[0]
+        if types == []:
+            return None
+        elif len(types) == 1:
+            return types[0]
         part = self.partition(types)
         # since the list was non-empty, there is at least one partition
         partition = part[0]
@@ -131,7 +133,6 @@ class Ontology:
         """
         result = self._exec_query(query_text, {'subject': entity})
         return result
-    
 
     def sort(self, classes):
         """ Sort the classes according to a hierarchy. """
@@ -146,7 +147,7 @@ class Ontology:
         partitions = sorted(partitions, key=lambda x: len(x), reverse=True)
         return partitions
 
-#############################   Private methods   #############################
+    #############################   Private methods   #############################
 
     def _exec_query(self, query_text, params):
         """ Take a sparql query and a parameter and run the query.
@@ -159,7 +160,7 @@ class Ontology:
         bindings = dict()
         for k, p in params.items():
             bindings[k] = rdflib.URIRef(self._apply_prefix(p))
-#            bindings[k] = self.graph.namespace_manager.absolutize(p)
+        #            bindings[k] = self.graph.namespace_manager.absolutize(p)
         query = sparql.prepareQuery(query_text, initNs=self.ns)
         qres = self.graph.query(query, initBindings=bindings)
         normalise = self.graph.namespace_manager.normalizeUri
@@ -167,7 +168,7 @@ class Ontology:
             result = [normalise(r[0]) for r in qres]
         else:
             result = [tuple([normalise(str(x)) for x in r])
-                        for r in qres]
+                      for r in qres]
         self.cache[key] = result
         return set(result)
 
@@ -194,13 +195,14 @@ def subsume_sort(list, ontology):
         greater = subsume_sort(upper_part, ontology)
         return lesser + [pivot] + greater
 
+
 def subsume_partition(classes, ontology):
     """ Partition the list of classes according to ontology hierarchy. """
     partitions = []
     tmp = list(classes)
     current_len = -1
     while (len([x for p in partitions for x in p]) != current_len or
-           len(tmp) > 0):
+                   len(tmp) > 0):
         current_len = len([x for p in partitions for x in p])
         if len(tmp) == 0: break
         elt = tmp.pop()
@@ -212,10 +214,10 @@ def subsume_partition(classes, ontology):
                 continue
             for element in partition:
                 if not (ontology.subsumes(elt, element) or
-                        ontology.subsumes(element, elt)):
+                            ontology.subsumes(element, elt)):
                     all_in = False
                     break
-            if all_in: # all elements are from the same hierarchy
+            if all_in:  # all elements are from the same hierarchy
                 partition.add(elt)
                 consumed = True
                 tmp = list(classes)
@@ -223,21 +225,19 @@ def subsume_partition(classes, ontology):
 
     return [list(x) for x in partitions]
 
+# select all instances of a class (including subclasses)
+# http://stackoverflow.com/questions/9209577/
+# sparql-get-all-the-entities-of-subclasses-of-a-certain-class
 
-
-#select all instances of a class (including subclasses)
-#http://stackoverflow.com/questions/9209577/
-#sparql-get-all-the-entities-of-subclasses-of-a-certain-class
-
-#SELECT ?entity
-#WHERE {
+# SELECT ?entity
+# WHERE {
 #  ?entity rdf:type ?type.
 #  ?type rdfs:subClassOf* :C.
-#}
+# }
 
 
 # works if we assume single inheritance
-#def subsume_partition(classes, ontology):
+# def subsume_partition(classes, ontology):
 #    """ Partition the list of classes according to ontology hierarchy.
 #    Assume that the classes are either from one hierarchy or disjoint.
 #    This means that owl:thing is not part of the class list.
@@ -260,41 +260,3 @@ def subsume_partition(classes, ontology):
 #        if not consumed: partitions.append([elt])
 #    return partitions
 #
-
-
-############################################################################
-#
-# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################

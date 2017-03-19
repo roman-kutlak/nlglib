@@ -21,14 +21,14 @@ def get_log():
 __all__ = ['kleene', 'remove_conditionals',
            'push_neg',
            'nnf', 'pnf', 'miniscope',
-           'push_quants', 'pull_quants',  'drop_quants',
+           'push_quants', 'pull_quants', 'drop_quants',
            'minimise_qm', 'minimise_search']
 
 
 def kleene(f):
     """ Take a FOL formula and try to simplify it. """
-#    print('\nSimplifying op "{0}" args "{1}"'.format(f.op, f.args))
-    if is_quantified(f): # remove variable that are not in f
+    #    print('\nSimplifying op "{0}" args "{1}"'.format(f.op, f.args))
+    if is_quantified(f):  # remove variable that are not in f
         vars = set(f.vars)
         fv = fvars(f.args[0])
         needed = vars & fv
@@ -36,18 +36,18 @@ def kleene(f):
             return kleene(f.args[0])
         else:
             arg = kleene(f.args[0])
-            variables = [v for v in f.vars if v in needed] # keep the same order
+            variables = [v for v in f.vars if v in needed]  # keep the same order
             if (arg != f.args[0]) or (len(needed) < len(f.vars)):
                 return kleene(Quantifier(f.op, variables, arg))
             else:
                 return f
     elif f.op == OP_NOT:
         arg = f.args[0]
-        if arg.op == OP_NOT: # double neg
+        if arg.op == OP_NOT:  # double neg
             return kleene(arg.args[0])
-        elif is_true(arg): # -TRUE --> FALSE
+        elif is_true(arg):  # -TRUE --> FALSE
             return Expr(OP_FALSE)
-        elif is_false(arg): # -FALSE --> TRUE
+        elif is_false(arg):  # -FALSE --> TRUE
             return Expr(OP_TRUE)
         elif arg.op == OP_EQUALS:
             return Expr(OP_NOTEQUALS,
@@ -63,12 +63,12 @@ def kleene(f):
                 return kleene(Expr(OP_NOT, arg2))
             return f
     elif f.op == OP_AND:
-        if any(map(is_false, f.args)): # if one conjuct is FALSE, expr is FALSE
+        if any(map(is_false, f.args)):  # if one conjuct is FALSE, expr is FALSE
             return Expr(OP_FALSE)
         elif len(f.args) == 1:
             return kleene(f.args[0])
-        else: # remove conjuncts that are TRUE and simplify args
-            args = list(map(kleene, filter(lambda x: not is_true(x),f.args)))
+        else:  # remove conjuncts that are TRUE and simplify args
+            args = list(map(kleene, filter(lambda x: not is_true(x), f.args)))
             used = set()
             unique = []
             for arg in args:
@@ -80,12 +80,12 @@ def kleene(f):
             else:
                 return f
     elif f.op == OP_OR:
-        if any(map(is_true, f.args)): # if one conjuct is TRUE, expr is TRUE
+        if any(map(is_true, f.args)):  # if one conjuct is TRUE, expr is TRUE
             return Expr(OP_TRUE)
         elif len(f.args) == 1:
             return kleene(f.args[0])
-        else: # remove conjuncts that are FALSE and simplify args
-            args = list(map(kleene, filter(lambda x: not is_false(x),f.args)))
+        else:  # remove conjuncts that are FALSE and simplify args
+            args = list(map(kleene, filter(lambda x: not is_false(x), f.args)))
             used = set()
             unique = []
             for arg in args:
@@ -175,13 +175,13 @@ def push_neg(f):
             return Expr(OP_OR, *[push_neg(Expr(OP_NOT, x)) for x in arg.args])
         elif arg.op == OP_OR:
             return Expr(OP_AND, *[push_neg(Expr(OP_NOT, x)) for x in arg.args])
-        elif arg.op == OP_IMPLIES: # p -> q
+        elif arg.op == OP_IMPLIES:  # p -> q
             p, q = arg.args[0], arg.args[1]
             return ~(push_neg(p) >> push_neg(q))
-        elif arg.op == OP_IMPLIED_BY: # p <- q
+        elif arg.op == OP_IMPLIED_BY:  # p <- q
             p, q = arg.args[0], arg.args[1]
             return ~(push_neg(p) << push_neg(q))
-        elif arg.op == OP_EQUIVALENT: # p <-> q
+        elif arg.op == OP_EQUIVALENT:  # p <-> q
             p, q = arg.args[0], arg.args[1]
             return ~(push_neg(p) ** push_neg(q))
         elif arg.op == OP_FORALL:
@@ -193,7 +193,7 @@ def push_neg(f):
         else:
             return f
     elif f.op == OP_AND or f.op == OP_OR:
-            return Expr(f.op, *[push_neg(x) for x in f.args])
+        return Expr(f.op, *[push_neg(x) for x in f.args])
     elif f.op == OP_IMPLIES:
         p, q = f.args[0], f.args[1]
         return (push_neg(p) >> push_neg(q))
@@ -220,13 +220,16 @@ def unique_vars(f):
     expr("(forall x: P(x)) | (forall x': Q(x'))")
 
     """
+
     def helper(f, used, substs):
         if is_variable(f):
-            if f in substs: return substs[f]
-            else: return f
+            if f in substs:
+                return substs[f]
+            else:
+                return f
         if is_quantified(f):
             # does this quantifier use a variable that is already used?
-            clashing = (used & set(f.vars)) # set intersection
+            clashing = (used & set(f.vars))  # set intersection
             if len(clashing) > 0:
                 for var in clashing:
                     existing = used.union(*list(map(vars, substs.values())))
@@ -244,6 +247,7 @@ def unique_vars(f):
                 return Quantifier(f.op, f.vars, arg)
         else:
             return Expr(f.op, *[helper(x, used, substs) for x in f.args])
+
     return helper(f, set(), {})
 
 
@@ -255,26 +259,27 @@ def pull_quants(f):
     Also, each variabl name can be used only once per formula.
 
     """
+
     def rename_and_pull(f, quant, old_var1, old_var2, arg1, arg2):
         """ Helper function that renames given variable in a formula. """
         # when both variables are to be renamed, re-use the variable name
         # eg. (forall x: P(x) & forall y: Q(y)) <-> (forall x: P(x) & Q(x))
         new_var = None
-        if old_var1: # rename left?
+        if old_var1:  # rename left?
             new_var = variant(old_var1, fvars(f))
             a1 = subst({old_var1: new_var}, arg1)
         else:
             a1 = arg1
-        if old_var2: # rename right?
+        if old_var2:  # rename right?
             if not new_var:
                 new_var = variant(old_var2, fvars(f))
             a2 = subst({old_var2: new_var}, arg2)
         else:
             a2 = arg2
-        return Quantifier(quant, new_var, pullquants(Expr(f.op, a1 , a2)))
+        return Quantifier(quant, new_var, pullquants(Expr(f.op, a1, a2)))
 
     def pullquants(f):
-    #    print('pullquants({0})'.format(str(f)))
+        #    print('pullquants({0})'.format(str(f)))
         if f.op == OP_AND:
             arg1 = pullquants(f.args[0])
             arg2 = pullquants(f.args[1])
@@ -362,8 +367,9 @@ def push_quants(f):
     and each operator has at most two arguments. Use deepen() to do that.
 
     """
+
     def pushquants(f):
-    #    print('pushquant({0})'.format(f))
+        #    print('pushquant({0})'.format(f))
         if is_quantified(f):
             arg = f.args[0]
             if arg.op == OP_NOT:
@@ -372,13 +378,13 @@ def push_quants(f):
                 arg1 = pushquants(arg)
                 # did pushquants have any effect?
                 if arg1 == arg:
-#                    # if no, see if changing the order of the quants has an effect
-#                    arg2 = Quantifier(f.op, f.vars, arg.args[0])
-#                    arg2_ = pushquants(arg2)
-#                    if arg2 == arg2_:
-#                        return Quantifier(f.op, f.vars, arg1)
-#                    else:
-#                        return Quantifier(arg.op, arg.vars, arg2_)
+                    #                    # if no, see if changing the order of the quants has an effect
+                    #                    arg2 = Quantifier(f.op, f.vars, arg.args[0])
+                    #                    arg2_ = pushquants(arg2)
+                    #                    if arg2 == arg2_:
+                    #                        return Quantifier(f.op, f.vars, arg1)
+                    #                    else:
+                    #                        return Quantifier(arg.op, arg.vars, arg2_)
                     return Quantifier(f.op, f.vars, arg1)
                 else:
                     return pushquants(Quantifier(f.op, f.vars, arg1))
@@ -388,15 +394,15 @@ def push_quants(f):
                 variable = f.vars[0]
                 if variable in fvars(arg1) and variable in fvars(arg2):
                     if ((arg.op == OP_AND and f.op == OP_FORALL) or
-                        (arg.op == OP_OR and f.op == OP_EXISTS)):
+                            (arg.op == OP_OR and f.op == OP_EXISTS)):
                         return pushquants(Expr(arg.op,
-                                          Quantifier(f.op, f.vars, arg1),
-                                          Quantifier(f.op, f.vars, arg2)))
+                                               Quantifier(f.op, f.vars, arg1),
+                                               Quantifier(f.op, f.vars, arg2)))
                     else:
                         return Quantifier(f.op, f.vars, pushquants(arg))
                 if variable in fvars(arg1):
                     return pushquants(Expr(arg.op,
-                                      Quantifier(f.op, f.vars, arg1), arg2))
+                                           Quantifier(f.op, f.vars, arg1), arg2))
                 if variable in fvars(arg2):
                     return pushquants(Expr(arg.op, arg1,
                                            Quantifier(f.op, f.vars, arg2)))
@@ -457,11 +463,13 @@ def miniscope(f):
 
 def drop_quants(f):
     """Remove quantifiers from a formula. """
+
     def drop(f):
         if is_quantified(f):
             return drop(f.args[0])
         else:
             return f
+
     return drop(pull_quants(f))
 
 
@@ -511,6 +519,7 @@ def evaluate_prop(f, assignment):
 
 def collect_propositions(f):
     """Collect propositions (zero-place predicates)."""
+
     def helper(f, result):
         if is_predicate(f) and len(f.args) == 0:
             result.add(f)
@@ -518,6 +527,7 @@ def collect_propositions(f):
             for x in f.args:
                 helper(x, result)
         return result
+
     return sorted(helper(f, set()))
 
 
@@ -544,14 +554,14 @@ def calculate_output(f):
     propositions = collect_propositions(f)
     num_props = len(propositions)
     true, false, dc = [], [], []
-    for i in range(2**num_props):
+    for i in range(2 ** num_props):
         assignment = mk_assignment(i, propositions)
         y = evaluate_prop(f, assignment)
         if y:
             true.append(i)
         elif not y:
             false.append(i)
-        else: # this won't happen with `evaluate_prop()`.
+        else:  # this won't happen with `evaluate_prop()`.
             dc.append(i)
     return true, false, dc
 
@@ -624,7 +634,7 @@ class Heuristic:
             self.costs = self.read_costs(path)
         else:
             self.costs = defaultdict(list)
-            self.costs['_'].append( ('_', 1) )
+            self.costs['_'].append(('_', 1))
 
     def operator_cost(self, op, context):
         """Return the cost of the operator `op` given the `context`.
@@ -668,7 +678,7 @@ class Heuristic:
         result = defaultdict(list)
         with open(path, 'r') as f:
             for line in f:
-                text = line.partition('#')[0].strip() # allow comments '#'
+                text = line.partition('#')[0].strip()  # allow comments '#'
                 if not text:
                     continue
                 op, ctx, cost = text.split()
@@ -677,7 +687,7 @@ class Heuristic:
         # note that the costs are checked in the same order in which they are
         # specified in the file. If the user specified the default cost, this
         # will still use the user's choice instead of the default below.
-        result['_'].append( ('_', 1) ) # (default cost 1)
+        result['_'].append(('_', 1))  # (default cost 1)
         return result
 
 
@@ -702,7 +712,7 @@ def bfs(f, h, operators, max=0):
                 if (max == -1):
                     return best
         new = [n for n in create_combinations(current, atoms, operators)
-            if h.formula_cost(n) < best_cost and n not in closed]
+               if h.formula_cost(n) < best_cost and n not in closed]
         queue.extend(new)
         closed.update(new)
     return best or f
@@ -734,41 +744,3 @@ simplification_ops = {
     # 'search': lambda x: minimise_search(x, heur),
     'Quine-McCluskey': minimise_qm,
 }
-
-
-############################################################################
-#
-# Copyright (C) 2015 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################

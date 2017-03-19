@@ -8,18 +8,20 @@ from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
 from nlglib.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
 from nlglib.lexicon import POS_VERB, POS_ADVERB
 
-#from nlglib.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
-#from nlglib.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
-#from nlglib.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
-#from nlglib.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
+
+# from nlglib.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
+# from nlglib.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
+# from nlglib.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
+# from nlglib.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
 
 def get_log():
     return logging.getLogger(__name__)
 
+
 get_log().addHandler(logging.NullHandler())
 
 
-#def template(word, lexicon, pos=POS_ANY):
+# def template(word, lexicon, pos=POS_ANY):
 #    """ Create syntactic template for expressing a word. """
 #    assert False, "not implemented"
 
@@ -49,14 +51,13 @@ def promote_to_phrase(e):
     return NounPhrase(e, features=e._features)
 
 
-
 # Visitors -- printing, xml, etc.
 
 
 class PrintVisitor:
     """ An abstract visitor class that maintains indentation info. """
 
-    def __init__(self, depth = 0, indent='  ', sep='\n'):
+    def __init__(self, depth=0, indent='  ', sep='\n'):
         """ Initialise the depth, indent and separator info. """
         self.ancestors = []
         self.depth = depth
@@ -103,7 +104,7 @@ class PrintVisitor:
         args = {'tag': self.ancestors[-1],
                 'outer': self.indent * self.depth,
                 'inner': self.indent * (self.depth + 1),
-                'sep'  : self.sep,
+                'sep': self.sep,
                 }
         for k, v in kwargs.items(): args[k] = v
         return args
@@ -131,17 +132,17 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:NLGSpec>
 '''
 
-    def __init__(self, xml='', depth = 0, indent='  ', sep='\n'):
+    def __init__(self, xml='', depth=0, indent='  ', sep='\n'):
         super(XmlVisitor, self).__init__(depth, indent, sep)
         self.xml = xml
         self.ancestors.append('child')
 
     def visit_string(self, node):
         neg = 'not ' if node.has_feature('NEGATED', 'true') else ''
-#        text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
-#                '{inner}<val>{neg}{val}</val>{sep}'
-#                '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
-#                                               neg=neg, **self._get_args())
+        #        text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
+        #                '{inner}<val>{neg}{val}</val>{sep}'
+        #                '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
+        #                                               neg=neg, **self._get_args())
         features = node.features_to_xml_attributes()
         text = ('{outer}<{tag} xsi:type="WordElement" '
                 'cat="ANY" canned="true" {f}>{sep}'
@@ -150,7 +151,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
                                                neg=neg,
                                                **self._get_args(f=features))
         self.xml += text
-
 
     def visit_word(self, node):
         # a bug in simplenlg treats 'is' differently from 'be'
@@ -170,8 +170,8 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_clause(self, node):
         features = node.features_to_xml_attributes()
-        self.xml += '{outer}<{tag} xsi:type="SPhraseSpec"{f}>{sep}'\
-                       .format(**self._get_args(f=features))
+        self.xml += '{outer}<{tag} xsi:type="SPhraseSpec"{f}>{sep}' \
+            .format(**self._get_args(f=features))
         self._process_elements(node, 'front_modifiers', 'frontMod')
         self._process_element(node, 'subj')
         self._process_elements(node, 'pre_modifiers', 'preMod')
@@ -182,8 +182,8 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_np(self, node):
         features = node.features_to_xml_attributes()
-        self.xml += '{outer}<{tag} xsi:type="NPPhraseSpec"{f}>{sep}'\
-                       .format(**self._get_args(f=features))
+        self.xml += '{outer}<{tag} xsi:type="NPPhraseSpec"{f}>{sep}' \
+            .format(**self._get_args(f=features))
         self._process_elements(node, 'front_modifiers', 'frontMod')
         self._process_elements(node, 'pre_modifiers', 'preMod')
         self._process_element(node, 'spec')
@@ -194,8 +194,8 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_phrase(self, node, type):
         features = node.features_to_xml_attributes()
-        self.xml += '{outer}<{tag} xsi:type="{type}"{f}>{sep}'\
-                       .format(type=type, **self._get_args(f=features))
+        self.xml += '{outer}<{tag} xsi:type="{type}"{f}>{sep}' \
+            .format(type=type, **self._get_args(f=features))
         self._process_elements(node, 'front_modifiers', 'frontMod')
         self._process_elements(node, 'pre_modifiers', 'preMod')
         self._process_element(node, 'head')
@@ -217,8 +217,8 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_coordination(self, node):
         features = node.features_to_xml_attributes()
-        self.xml +='{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f}>{sep}'\
-                       .format(**self._get_args(f=features))
+        self.xml += '{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f}>{sep}' \
+            .format(**self._get_args(f=features))
         self._process_elements(node, 'pre_modifiers', 'preMod')
         self._process_elements(node, 'coords', 'coord')
         self._process_elements(node, 'complements', 'compl')
@@ -248,7 +248,7 @@ class ReprVisitor(PrintVisitor):
 
     """
 
-    def __init__(self, data = '', depth = 0, indent='', sep=',\n'):
+    def __init__(self, data='', depth=0, indent='', sep=',\n'):
         super(ReprVisitor, self).__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
@@ -258,20 +258,23 @@ class ReprVisitor(PrintVisitor):
         if len(attr) == 0: return
         self.data += ',\n'
         if self.do_indent: self.data += self.indent
-#        self.indent += ' ' * len(name + '=[')
+        #        self.indent += ' ' * len(name + '=[')
         self.data += name + '=['
+
         def fn(x):
             if x is None: return
             r = ReprVisitor()
             x.accept(r)
             return str(r)
-#        get_log().debug('*' * 4 + repr(attr))
+
+        #        get_log().debug('*' * 4 + repr(attr))
         tmp = map(fn, attr)
         tmp_no_whites = [' '.join(x.split()) for x in tmp if x is not None]
         self.data += ', '.join(tmp_no_whites)
         self.data += ']'
         # restore the indent
-#        self.indent = self.indent[:-len(name + '=(')]
+
+    #        self.indent = self.indent[:-len(name + '=(')]
 
 
     def visit_msg_spec(self, node):
@@ -422,7 +425,7 @@ class StrVisitor(PrintVisitor):
 
     """
 
-    def __init__(self, data = '', depth = 0, indent='', sep=',\n'):
+    def __init__(self, data='', depth=0, indent='', sep=',\n'):
         super(StrVisitor, self).__init__(depth, indent, sep)
         self.data = data
         self.do_indent = True
@@ -921,83 +924,43 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                     return True
     return False
 
-
-
 # Penn Treebank Tags
 
 
-#Number Tag    Description
-#1.     Coordination      Coordinating conjunction
-#2.     CD      Cardinal number
-#3.     DT      Determiner
-#4.     EX      Existential there
-#5.     FW      Foreign word
-#6.     IN      Preposition or subordinating conjunction
-#7.     JJ      Adjective
-#8.     JJR     Adjective, comparative
-#9.     JJS     Adjective, superlative
-#10.	LS      List item marker
-#11.	MD      Modal
-#12.	NN      Noun, singular or mass
-#13.	NNS     Noun, plural
-#14.	NNP     Proper noun, singular
-#15.	NNPS	Proper noun, plural
-#16.	PDT     Predeterminer
-#17.	POS     Possessive ending
-#18.	PRP     Personal pronoun
-#19.	PRP$	Possessive pronoun
-#20.	RB      Adverb
-#21.	RBR     Adverb, comparative
-#22.	RBS     Adverb, superlative
-#23.	RP      Particle
-#24.	SYM     Symbol
-#25.	TO      to
-#26.	UH      Interjection
-#27.	VB      Verb, base form
-#28.	VBD     Verb, past tense
-#29.	VBG     Verb, gerund or present participle
-#30.	VBN     Verb, past participle
-#31.	VBP     Verb, non-3rd person singular present
-#32.	VBZ     Verb, 3rd person singular present
-#33.	WDT     Wh-determiner
-#34.	WP      Wh-pronoun
-#35.	WP$	    Possessive wh-pronoun
-#36.	WRB     Wh-adverb
-
-
-############################################################################
-#
-# Copyright (C) 2014 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################
+# Number Tag    Description
+# 1.     Coordination      Coordinating conjunction
+# 2.     CD      Cardinal number
+# 3.     DT      Determiner
+# 4.     EX      Existential there
+# 5.     FW      Foreign word
+# 6.     IN      Preposition or subordinating conjunction
+# 7.     JJ      Adjective
+# 8.     JJR     Adjective, comparative
+# 9.     JJS     Adjective, superlative
+# 10.	LS      List item marker
+# 11.	MD      Modal
+# 12.	NN      Noun, singular or mass
+# 13.	NNS     Noun, plural
+# 14.	NNP     Proper noun, singular
+# 15.	NNPS	Proper noun, plural
+# 16.	PDT     Predeterminer
+# 17.	POS     Possessive ending
+# 18.	PRP     Personal pronoun
+# 19.	PRP$	Possessive pronoun
+# 20.	RB      Adverb
+# 21.	RBR     Adverb, comparative
+# 22.	RBS     Adverb, superlative
+# 23.	RP      Particle
+# 24.	SYM     Symbol
+# 25.	TO      to
+# 26.	UH      Interjection
+# 27.	VB      Verb, base form
+# 28.	VBD     Verb, past tense
+# 29.	VBG     Verb, gerund or present participle
+# 30.	VBN     Verb, past participle
+# 31.	VBP     Verb, non-3rd person singular present
+# 32.	VBZ     Verb, 3rd person singular present
+# 33.	WDT     Wh-determiner
+# 34.	WP      Wh-pronoun
+# 35.	WP$	    Possessive wh-pronoun
+# 36.	WRB     Wh-adverb

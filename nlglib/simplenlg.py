@@ -9,11 +9,13 @@ import urllib.parse
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
+
 def get_log(name=__name__):
     return logging.getLogger(name)
 
 
 from .utils import LogPipe
+
 
 # simplenlg_path = 'resources/simplenlg.jar'
 #
@@ -40,6 +42,7 @@ def ntoh(num):
 
 class Socket:
     """ A smarter version of a socket that can send and receive data easily."""
+
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -67,7 +70,7 @@ class Socket:
             total_sent += sent
         return total_sent
 
-    def _recv(self, length = 0):
+    def _recv(self, length=0):
         """ Receive a sequence of bytes of the specified length. """
         msg = b''
         while len(msg) < length:
@@ -91,7 +94,7 @@ class Socket:
     def recv_string(self, encoding='utf-8'):
         """ Read a string from the server. """
         # first read the length of the message
-        length = ntoh(self._recv(4)) # 4 bytes for int
+        length = ntoh(self._recv(4))  # 4 bytes for int
 
         # now read the message
         msg = self._recv(length)
@@ -100,8 +103,8 @@ class Socket:
     def close(self):
         """ Close the connection, informing the server first."""
         try:
-        # the following line causes socket.close() to throw an exception
-            #self.socket.shutdown(socket.SHUT_RDWR)
+            # the following line causes socket.close() to throw an exception
+            # self.socket.shutdown(socket.SHUT_RDWR)
             if self.socket is not None:
                 self.socket.close()
         except OSError as e:
@@ -150,6 +153,7 @@ class SimpleNLGServer(threading.Thread):
     after creating the object and wait for the startup to finish.
 
     """
+
     def __init__(self, jar_path, port):
         super(SimpleNLGServer, self).__init__()
         get_log().debug('Creating simpleNLG server (%s)' % jar_path)
@@ -199,8 +203,8 @@ class SimpleNLGServer(threading.Thread):
                         get_log().error('Server errors: "{0}"'.format(errs))
                 except subprocess.TimeoutExpired:
                     proc.kill()
-#            self.output_log.close()
-#            self.error_log.close()
+                #            self.output_log.close()
+                #            self.error_log.close()
 
     def is_ready(self):
         """ Return true if the server is initialised. """
@@ -230,11 +234,10 @@ class SimpleNLGServer(threading.Thread):
         get_log().debug('SimpleNLG server (%s): startup done.'
                         % self.jar_path)
 
-
     def _wait_for_shutdown(self):
         """ Block until self._shutdown is set to true (by calling shutdown())."""
         get_log().debug('SimpleNLG server (%s): is up and running...'
-                % self.jar_path)
+                        % self.jar_path)
         self.exit_cv.acquire()
         while not self._shutdown:
             self.exit_cv.wait()
@@ -269,41 +272,3 @@ class SimpleNLGServer(threading.Thread):
         get_log().debug('Shutting down simpleNLG server (%s)' % self.jar_path)
         self._signal_shutdown()
         self.join()
-
-
-############################################################################
-#
-# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################
