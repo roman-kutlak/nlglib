@@ -27,7 +27,8 @@ from .utils import LogPipe
 #             simplenlg_path = os.path.join(root, file)
 
 
-class ServerError(Exception): pass
+class ServerError(Exception):
+    pass
 
 
 def hton(num):
@@ -63,7 +64,7 @@ class Socket:
         """ Send a sequence of bytes of the specified length. """
         total_sent = 0
         sent = -1
-        while (total_sent < length):
+        while total_sent < length:
             sent = self.socket.send(msg[total_sent:])
             if sent == 0:
                 raise RuntimeError('Connection lost.')

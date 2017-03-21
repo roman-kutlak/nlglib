@@ -374,6 +374,7 @@ def female(name, features=None):
     o.set_feature('GENDER', 'FEMININE')
     return o
 
+
 # phrases
 
 
@@ -385,7 +386,7 @@ def NP(spec, *mods_and_head, features=None, postmods=[]):
 
     """
 
-    if (len(mods_and_head) == 0):
+    if len(mods_and_head) == 0:
         words = [spec]
         spec = None
     else:
@@ -439,15 +440,15 @@ def guess_phrase_gender(phrase):
         gender_val = phrase.head.get_feature(str(Gender))
     else:
         gender_val = guess_noun_gender(str(phrase.head))[1]
-    return (str(Gender), gender_val)  # FIXME: terrible syntax!
+    return str(Gender), gender_val  # FIXME: terrible syntax!
 
 
 def guess_phrase_number(phrase):
     """Guess the gender of the given phrase. """
     if phrase.has_feature('NUMBER'):
-        return ('NUMBER', phrase.get_feature('NUMBER'))
+        return 'NUMBER', phrase.get_feature('NUMBER')
     if isinstance(phrase, Phrase) and phrase.head.has_feature('NUMBER'):
-        return ('NUMBER', phrase.head.get_feature('NUMBER'))
+        return 'NUMBER', phrase.head.get_feature('NUMBER')
     if isinstance(phrase, Coordination):
         return Number.plural
     return Number.singular
@@ -657,7 +658,7 @@ class Lexicon:
                     self.adverb(word) or self.pronoun(word) or
                     self.preposition(word) or self.conjunction(word) or
                     self.complementiser(word) or self.numeral(word) or
-                    self.symbol(word, 'new'))
+                    self.symbol(word))
 
     def brown_tag_to_features(self, tag):
         """ Return the features corresponding to the given (Brown corp) tag. """
@@ -732,8 +733,9 @@ class Lexicon:
         assert (word.pos is not None and word.pos != '')
         assert (word.id is not None and word.id != '')
         map = self._get_wordmap_for_tag(word.pos)
-        if map is None: raise Exception('Unknown POS tag "{0}" for word "{1}"' \
-                                        .format(word.pos, word.word))
+        if map is None:
+            raise Exception('Unknown POS tag "{0}" for word "{1}"'
+                            .format(word.pos, word.word))
         map[word.id] = word
         self._words[word.id] = word
         self._variants[word.base].add(word.id)
@@ -796,21 +798,21 @@ def lexicon_from_nih_xml(path):
     }
     lexicon = Lexicon()
     tree = ET.parse(path)
-    lexrecords = tree.getroot()
-    for lexrecord in lexrecords:
+    lex_records = tree.getroot()
+    for lex_record in lex_records:
         w = Word('', '')
-        tag = lexrecord.find('base')
+        tag = lex_record.find('base')
         if tag is not None:
             w.word = tag.text
             w.base = tag.text
-        tag = lexrecord.find('eui')
+        tag = lex_record.find('eui')
         if tag is not None:
             w.id = tag.text
-        tag = lexrecord.find('cat')
+        tag = lex_record.find('cat')
         if tag is not None:
             w.pos = nih_tag_map[tag.text]
         lexicon.insert_word(w)
-        for variant in lexrecord.iter('inflVars'):
+        for variant in lex_record.iter('inflVars'):
             lexicon.insert_variant(w, variant.text)
     return lexicon
 
@@ -842,7 +844,7 @@ def inflection(word, **features):
 def pronoun_for_features(*features):
     """Return a pronoun matching given features. """
     fs = frozenset(features)
-    max = 0
+    max_ = 0
     choices = []
     for k, v in pronouns.items():
         k_fs = frozenset(k)
@@ -850,21 +852,21 @@ def pronoun_for_features(*features):
         if intersect:
             choices.append((Pronoun(v, Features(*k)), len(intersect)))
             new_len = len(intersect)
-            if max < new_len:
-                max = new_len
+            if max_ < new_len:
+                max_ = new_len
 
-    choices = [x[0] for x in choices if x[1] == max]
+    choices = [x[0] for x in choices if x[1] == max_]
 
     prefs_person = [x[1] for x in Person.preference_order]
     prefs_number = [x[1] for x in Number.preference_order]
     prefs_pu = [x[1] for x in PU.preference_order]
     # sort the candidates by a sensible order as defined in the class
     choices.sort(key=lambda x:
-    prefs_number.index(x.get_feature(str(Number))))
+                 prefs_number.index(x.get_feature(str(Number))))
     choices.sort(key=lambda x:
-    prefs_person.index(x.get_feature(str(Person))))
+                 prefs_person.index(x.get_feature(str(Person))))
     choices.sort(key=lambda x:
-    prefs_pu.index(x.get_feature(str(PU))))
+                 prefs_pu.index(x.get_feature(str(PU))))
     return choices[0]
 
 
@@ -885,7 +887,7 @@ Singular = Number.singular
 Plural = Number.plural
 
 pronouns = {
-    #############################  singular  ######################################
+    # ############################  singular  ######################################
     # subjective use
     (Number.singular, Person.first, PU.subjective): 'I',
     (Number.singular, Person.second, PU.subjective): 'you',
@@ -922,7 +924,7 @@ pronouns = {
     #    (Number.singular, Person.third, PU.possessive, Gender.epicene): 'theirs',
     (Number.singular, Person.generic, PU.possessive, Register.formal): 'one\'s',
     (Number.singular, Person.generic, PU.possessive, Register.informal): 'your',
-    ################################ plural #######################################
+    # ############################### plural #######################################
     # subject
     (Number.plural, Person.first, PU.subjective, Gender.epicene): 'we',
     (Number.plural, Person.second, PU.subjective, Gender.epicene): 'you',

@@ -71,13 +71,15 @@ class Pipeline(PackageBoundObject):
         kwargs['_pipeline'] = self
         if not self.context:
             self.context = PipelineContext(self)
+        kwargs_ = self.context.kwargs.copy()
+        kwargs_.update(kwargs)
         rv = data
         # TODO: add pre/post signals
         for name in self.stages:
             self.logger.debug('running stage {}.'.format(name))
             func = self.context.stages.get(name)
             if func:
-                rv = func(rv, **kwargs)
+                rv = func(rv, **kwargs_)
             else:
                 self.logger.debug('    --> skipping stage {}.'.format(name))
             self.logger.debug('finished stage {}.'.format(name))
@@ -145,9 +147,9 @@ class Pipeline(PackageBoundObject):
 
 
 class PipelineContext(ContextDecorator):
-    def __init__(self, pipeline=None):
+    def __init__(self, pipeline=None, **kwargs):
         self.pipeline = pipeline
-
+        self.kwargs = dict(kwargs)
         self.stages = dict([
             ('CONTENT_PREPROCESSING', self.pipeline.config.get('CONTENT_PREPROCESSING')),
             ('CONTENT_SELECTION', self.pipeline.config.get('CONTENT_SELECTION')),

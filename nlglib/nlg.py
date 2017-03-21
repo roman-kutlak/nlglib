@@ -13,8 +13,8 @@ from nlglib.reg import Context
 def get_log():
     return logging.getLogger(__name__)
 
-get_log().addHandler(logging.NullHandler())
 
+get_log().addHandler(logging.NullHandler())
 
 simplenlg_server = None
 simplenlg_client = None
@@ -144,7 +144,7 @@ def init(jar, host, port, server=True, client=True):
             raise Exception('Initialisation of nlg server failed.')
         if simplenlg_server:
             get_log().warning('Initialising SimpleNLG Server when a server is '
-                'already running. Shutting down the previous instance.')
+                              'already running. Shutting down the previous instance.')
             shutdown(True, False)
         simplenlg_server = SimpleNLGServer(jar, port)
         simplenlg_server.start()
@@ -155,7 +155,7 @@ def init(jar, host, port, server=True, client=True):
             host = 'localhost'
         if simplenlg_client:
             get_log().warning('Initialising SimpleNLG Client when a client is '
-                'already running. Shutting down the previous instance.')
+                              'already running. Shutting down the previous instance.')
             shutdown(False, True)
         simplenlg_client = SimplenlgClient(host, port)
 
