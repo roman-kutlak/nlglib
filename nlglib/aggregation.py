@@ -16,6 +16,10 @@ class ElementError(Exception):
     pass
 
 
+class AggregationError(Exception):
+    pass
+
+
 def add_elements(e1, e2, conj='and', **kwargs):
     if not isinstance(e1, Element) or not isinstance(e2, Element):
         raise ElementError("To add elements they have to be NLGElements")
@@ -42,7 +46,8 @@ def add_elements(e1, e2, conj='and', **kwargs):
             cc._features['discourseFunction'] = e1._features['discourseFunction']
     cc.set_feature('conj', conj)
     # TODO: figure out when it is appropriate to set number to plural
-    cc.set_feature('NUMBER', 'PLURAL')
+    if not cc.coords[0].has_feature('PROPER', 'true'):
+        cc.set_feature('NUMBER', 'PLURAL')
     return cc
 
 
@@ -55,7 +60,7 @@ def try_to_aggregate(sent1, sent2, marker='and', **kwargs):
     if not isinstance(sent1, Clause) or not isinstance(sent2, Clause):
         return None
 
-    replacement = Word("REPLACEMENT", "REPLACEMENT")
+    replacement = PlaceHolder("REPLACEMENT", "REPLACEMENT")
     for e1 in sentence_iterator(sent1):
         s1 = deepcopy(sent1)
         s1.replace(e1, replacement)  # replace one element
@@ -100,10 +105,34 @@ def synt_aggregation(elements, max=3, marker='and', **kwargs):
     if elements is None: return
     if len(elements) < 2: return elements
     get_log().debug('performing synt. aggr on:\n' + repr(elements))
-    aggregated = list()
+    aggregated = []
+    # first try partial syntax aggregation  (e.g., clause + adj, etc)
+    # assume format [clause, mod, mod, clause, clause, mod, clause, mod, mod...]
+    new_elements = []
     i = 0
     while i < len(elements):
-        msg, increment = _do_aggregate(elements, i, max, marker, **kwargs)
+        e = elements[i]
+        if is_clause_t(e) and i + 1 < len(elements):
+            try:
+                next = elements[i+1]
+                while not is_clause_t(next):
+                    e = e + next
+                    i += 1
+                    if i + 1 >= len(elements):
+                        break
+                    next = elements[i + 1]
+            except AggregationError:
+                pass
+        new_elements.append(e)
+        i += 1
+    if len(new_elements) < 2:
+        return new_elements
+    i = 0
+    while i < len(new_elements):
+        msg, increment = _do_aggregate(new_elements, i, max, marker, **kwargs)
+        if isinstance(msg, Clause):
+            if msg.subj.has_feature('PROPER', 'true'):
+                msg.vp.set_feature('NUMBER', 'SINGULAR')
         aggregated.append(msg)
         i += increment
 
@@ -156,7 +185,7 @@ def _can_skip(elements, j):
     return elements[j] is None
 
 
-def aggregate(msg, limit=5, **kwargs):
+def aggregate(msg, **kwargs):
     """ """
     if msg is None:
         return None
@@ -167,34 +196,34 @@ def aggregate(msg, limit=5, **kwargs):
     elif isinstance(msg, Clause):
         return aggregate_clause(msg, **kwargs)
     elif isinstance(msg, Coordination):
-        return aggregate_coordination(msg, limit, **kwargs)
+        return aggregate_coordination(msg, **kwargs)
     elif isinstance(msg, MsgSpec):
         return msg
     elif isinstance(msg, Message):
-        return aggregate_message(msg, limit, **kwargs)
+        return aggregate_message(msg, **kwargs)
     elif isinstance(msg, Paragraph):
-        return aggregate_paragraph(msg, limit, **kwargs)
+        return aggregate_paragraph(msg, **kwargs)
     elif isinstance(msg, Section):
-        return aggregate_section(msg, limit, **kwargs)
+        return aggregate_section(msg, **kwargs)
     elif isinstance(msg, Document):
-        return aggregate_document(msg, limit, **kwargs)
+        return aggregate_document(msg, **kwargs)
     else:
         #        get_log().warning('"%s" is neither a Message nor a MsgInstance' %
         #            str(type(msg)))
         return msg
 
 
-def aggregate_list(lst, limit, **kwargs):
+def aggregate_list(lst, **kwargs):
     get_log().debug('Aggregating a list.')
     elements = []
     if len(lst) > 1:
-        elements = synt_aggregation([aggregate(x, limit, **kwargs) for x in lst])
+        elements = synt_aggregation([aggregate(x, **kwargs) for x in lst])
     elif len(lst) == 1:
         elements.append(aggregate(lst[0]))
     return elements
 
 
-def aggregate_clause(clause, marker='and', **kwargs):
+def aggregate_clause(clause, **kwargs):
     """Check if clause contains a coordinated element and if so, aggregate. """
     get_log().debug('Aggregating a clause:\n' + repr(clause))
     subj = aggregate(clause.subj, 10, **kwargs)
@@ -209,9 +238,9 @@ def aggregate_clause(clause, marker='and', **kwargs):
     return c
 
 
-def aggregate_coordination(cc, limit, **kwargs):
+def aggregate_coordination(cc, **kwargs):
     get_log().debug('Aggregating coordination.')
-    coords = aggregate_list(cc.coords, limit, **kwargs)
+    coords = aggregate_list(cc.coords, **kwargs)
     if len(coords) == 1:
         result = coords[0]
         result.add_features(cc._features)
@@ -220,7 +249,7 @@ def aggregate_coordination(cc, limit, **kwargs):
         return Coordination(*coords, conj=cc.conj, features=cc._features)
 
 
-def aggregate_message(msg, limit, **kwargs):
+def aggregate_message(msg, **kwargs):
     """ Perform syntactic aggregation on the constituents.
     The aggregation is triggered only if the RST relation is
     a sequence or a list.
@@ -239,7 +268,7 @@ def aggregate_message(msg, limit, **kwargs):
             marker = 'and'
         else:
             marker = msg.marker
-        elements = synt_aggregation(msg.satellites, limit, **kwargs)
+        elements = synt_aggregation(msg.satellites, **kwargs)
     elif len(msg.satellites) == 1:
         elements.append(msg.satellites[0])
     if msg.nucleus is not None:
@@ -248,27 +277,27 @@ def aggregate_message(msg, limit, **kwargs):
     return Message(msg.rst, None, *elements)
 
 
-def aggregate_paragraph(para, limit, **kwargs):
+def aggregate_paragraph(para, **kwargs):
     """ Perform syntactic aggregation on the constituents. """
     get_log().debug('Aggregating paragraph.')
     if para is None: return None
-    messages = [aggregate(x, limit, **kwargs) for x in para.messages if x is not None]
+    messages = [aggregate(x, **kwargs) for x in para.messages if x is not None]
     return Paragraph(*messages)
 
 
-def aggregate_section(sec, limit, **kwargs):
+def aggregate_section(sec, **kwargs):
     """ Perform syntactic aggregation on the constituents. """
     get_log().debug('Aggregating section.')
     if sec is None: return None
-    title = aggregate(sec.title, limit, **kwargs)
-    paragraphs = [aggregate(x, limit, **kwargs) for x in sec.content if x is not None]
+    title = aggregate(sec.title, **kwargs)
+    paragraphs = [aggregate(x, **kwargs) for x in sec.content if x is not None]
     return Section(title, *paragraphs)
 
 
-def aggregate_document(doc, limit, **kwargs):
+def aggregate_document(doc, **kwargs):
     """ Perform aggregation on a document - possibly before lexicalisation. """
     get_log().debug('Aggregating document.')
     if doc is None: return None
-    title = aggregate(doc.title, limit, **kwargs)
-    sections = [aggregate(x, limit, **kwargs) for x in doc.sections if x is not None]
+    title = aggregate(doc.title, **kwargs)
+    sections = [aggregate(x, **kwargs) for x in doc.sections if x is not None]
     return Document(title, *sections)

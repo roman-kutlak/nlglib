@@ -4,6 +4,7 @@ from nlglib import realisation
 from nlglib.aggregation import *
 from nlglib.lexicon import *
 from nlglib.microplanning import *
+from nlglib.structures import is_clause_t
 
 
 def get_log():
@@ -82,11 +83,16 @@ def lexicalise_message_spec(msg, **kwargs):
             result = String(str(msg))
             result.add_features(msg._features)
             return result
+        if hasattr(template, '__call__'):  # callable passed -- invoke
+            template = template(msg, **kwargs)
         if isinstance(template, str):
             result = String(template)
             result.add_features(msg._features)
             return result
         template.add_features(msg._features)
+        if isinstance(template, Element) and not is_clause_t(template):
+            result = lexicalise(template)
+            return result  # return phrases and words
         # find arguments
         args = template.arguments()
         # if there are any arguments, replace them by values
@@ -96,12 +102,13 @@ def lexicalise_message_spec(msg, **kwargs):
                             .format(str(arg), repr(template)))
             val = msg.value_for(arg.id)
             # check if value is a template
-            if isinstance(val, Word) or isinstance(val, String):
-                t = templates.template(val.string)
+            if isinstance(val, (String, str)):
+                t = templates.template(val.string if isinstance(val, String) else val)
                 if t:
                     val = t
             get_log().debug(' val = {0}'.format(repr(val)))
-            template.replace(arg, lexicalise(val, **kwargs))
+            val = lexicalise(val, **kwargs)
+            template.replace(arg, val)
         return template
     except Exception as e:
         get_log().exception(str(e))

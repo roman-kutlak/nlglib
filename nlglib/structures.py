@@ -1,9 +1,11 @@
 """ Data structures used by other packages. """
 
 import logging
-from urllib.parse import quote_plus
 import json
 import inspect
+
+from copy import deepcopy
+from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
 
@@ -534,6 +536,20 @@ def is_clause_t(o):
              (o._type == COORDINATION and any(map(is_clause_t, o.coords)))))
 
 
+def is_adj_mod_t(o):
+    """Return True if `o` is adjective modifier (adj or AdjP)"""
+    from nlglib import lexicon
+    return (isinstance(o, AdjectivePhrase) or
+            isinstance(o, Word) and o.pos == lexicon.POS_ADJECTIVE)
+
+
+def is_adv_mod_t(o):
+    """Return True if `o` is adverb modifier (adv or AdvP)"""
+    from nlglib import lexicon
+    return (isinstance(o, AdverbPhrase) or
+            isinstance(o, Word) and o.pos == lexicon.POS_ADVERB)
+
+
 def str_to_elt(*params):
     """ Check that all params are Elements and convert
     and any strings to String.
@@ -550,12 +566,15 @@ class Element:
 
     """
 
-    def __init__(self, type=ELEMENT, features=None):
+    def __init__(self, type=ELEMENT, features=None, parent=None):
+        if features and not isinstance(features, dict):
+            raise ValueError('Features have to be a dict instance.')
         self.id = 0  # this is useful for replacing elements
         self._type = type
         self._visitor_name = VisitorNames[type]
         self._features = features or dict()
         self.hash = -1
+        self.parent = parent
 
     def __bool__(self):
         """ Because Element is abstract, it will evaluate to false. """
@@ -714,14 +733,16 @@ class Element:
         """Return the string inside the value. """
         return None
 
-    @staticmethod
-    def _add_to_list(lst, *mods, pos=None):
+    def _add_to_list(self, lst, *mods, pos=None):
         """ Add modifiers to the given list. Convert any strings to String. """
         if pos is None:
-            lst.extend(mods)
+            for mod in mods:
+                mod.parent = self
+                lst.append(mod)
         else:
-            for p in str_to_elt(*mods):
-                lst.insert(pos, p)
+            for mod in mods:
+                mod.parent = self
+                lst.insert(pos, mod)
 
     @staticmethod
     def _del_from_list(lst, *mods):
@@ -733,8 +754,8 @@ class Element:
 class String(Element):
     """ String is a basic element representing canned text. """
 
-    def __init__(self, val='', features=None):
-        super().__init__(STRING, features)
+    def __init__(self, val='', features=None, parent=None):
+        super().__init__(STRING, features, parent)
         self.value = val
 
     def __bool__(self):
@@ -764,8 +785,8 @@ class String(Element):
 class Word(Element):
     """ Word represents word and its corresponding POS (Part-of-Speech) tag. """
 
-    def __init__(self, word, pos='ANY', features=None, base=None):
-        super().__init__(WORD, features)
+    def __init__(self, word, pos='ANY', features=None, base=None, parent=None):
+        super().__init__(WORD, features, parent)
         self.word = word
         self.pos = pos
         self.base = base or word
@@ -809,8 +830,8 @@ class PlaceHolder(Element):
 
     """
 
-    def __init__(self, id=None, obj=None, features=None):
-        super().__init__(PLACEHOLDER, features)
+    def __init__(self, id=None, obj=None, features=None, parent=None):
+        super().__init__(PLACEHOLDER, features, parent)
         self.id = id
         self.set_value(obj)
 
@@ -819,7 +840,7 @@ class PlaceHolder(Element):
         return True
 
     def __eq__(self, other):
-        if (not isinstance(other, PlaceHolder)):
+        if not isinstance(other, PlaceHolder):
             return False
         else:
             return (self.id == other.id and
@@ -849,8 +870,8 @@ class PlaceHolder(Element):
 class Coordination(Element):
     """ Coordinated clause with a conjunction. """
 
-    def __init__(self, *coords, conj='and', features=None, **kwargs):
-        super().__init__(COORDINATION, features)
+    def __init__(self, *coords, conj='and', features=None, parent=None, **kwargs):
+        super().__init__(COORDINATION, features, parent)
         self.coords = list()
         self.add_coordinate(*coords)
         self.set_feature('conj', conj)
@@ -952,8 +973,8 @@ class Coordination(Element):
 class Subordination(Element):
     """ Subordinate elment. """
 
-    def __init__(self, main, subordinate, features=None):
-        super().__init__(SUBORDINATION, features)
+    def __init__(self, main, subordinate, features=None, parent=None):
+        super().__init__(SUBORDINATION, features, parent)
         self.main = main
         self.subordinate = subordinate
 
@@ -982,8 +1003,8 @@ class Phrase(Element):
 
     """
 
-    def __init__(self, type=PHRASE, features=None, **kwargs):
-        super().__init__(type, features)
+    def __init__(self, type=PHRASE, features=None, parent=None, **kwargs):
+        super().__init__(type, features, parent)
         self.front_modifiers = list()
         self.pre_modifiers = list()
         self.head = Element()
@@ -1006,7 +1027,7 @@ class Phrase(Element):
         return True
 
     def __eq__(self, other):
-        if (not isinstance(other, Phrase)):
+        if not isinstance(other, Phrase):
             return False
         return (self._type == other._type and
                 self.front_modifiers == other.front_modifiers and
@@ -1018,6 +1039,20 @@ class Phrase(Element):
 
     def __hash__(self):
         assert False, 'Coordination Element is not hashable'
+
+    def __iadd__(self, other):
+        if is_adj_mod_t(other) or is_adv_mod_t(other):
+            self.pre_modifiers.append(other)
+        if isinstance(other, PrepositionalPhrase):
+            self.add_complement(other)
+        return self
+
+
+    # def has_feature(self, feature, value=None):
+    #     if feature in self._features:
+    #         if value is None: return True
+    #         return value == self._features[feature]
+    #     return False
 
     def accept(self, visitor, element='Phrase'):
         return super().accept(visitor, element)
@@ -1074,6 +1109,7 @@ class Phrase(Element):
         """ Set head of the phrase to the given element. """
         if elt is None: elt = Element()
         self.head = String(elt) if isinstance(elt, str) else elt
+        self.head.parent = self
         self._features.update(self.head._features)
 
     def yield_front_modifiers(self):
@@ -1147,7 +1183,16 @@ class Phrase(Element):
             for k in self.head._features.keys():
                 if k in self._features:
                     del self._features[k]
-            self.head = another
+            if hasattr(another, '_type') and self._type == another._type:
+                if hasattr(self, 'spec') and hasattr(another, 'spec'):
+                    self.spec = another.spec
+                self.add_front_modifier(*another.front_modifiers)
+                self.add_pre_modifier(*another.pre_modifiers)
+                self.head = another.head
+                self.add_complement(*another.complements)
+                self.add_post_modifier(*another.post_modifiers)
+            else:
+                self.head = another
             self._features.update(another._features)
             return True
         elif self.head is not None:
@@ -1192,11 +1237,12 @@ class NounPhrase(Phrase):
 
     def __init__(self, head=None, spec=None, features=None, **kwargs):
         super().__init__(NOUNPHRASE, features, **kwargs)
+        self.spec = None
         self.set_spec(spec)
         self.set_head(head)
 
     def __eq__(self, other):
-        if (not isinstance(other, NounPhrase)):
+        if not isinstance(other, NounPhrase):
             return False
         return (self.spec == other.spec and
                 self.head == other.head and
@@ -1305,6 +1351,9 @@ class Clause(Element):
 
     """
 
+    subj = None
+    vp = None
+
     def __init__(self, subj=None, vp=Element(), features=None, **kwargs):
         super().__init__(CLAUSE, features)
         self.front_modifiers = list()
@@ -1328,7 +1377,7 @@ class Clause(Element):
         return True
 
     def __eq__(self, other):
-        if (not isinstance(other, Clause)):
+        if not isinstance(other, Clause):
             return False
         return (self.pre_modifiers == other.pre_modifiers and
                 self.subj == other.subj and
@@ -1337,19 +1386,39 @@ class Clause(Element):
                 self.post_modifiers == other.post_modifiers and
                 super().__eq__(other))
 
+    def __add__(self, other):
+        if isinstance(other, Clause):
+            return Coordination(deepcopy(self), deepcopy(other))
+        if isinstance(other, Coordination):
+            other_ = deepcopy(other)
+            other_.add_coordinate(deepcopy(self))
+            return other_
+        self_ = deepcopy(self)
+        if is_adj_mod_t(other):
+            self_.subj += deepcopy(other)
+            return self_
+        if is_adv_mod_t(other):
+            self_.vp += deepcopy(other)
+            return self_
+        else:
+            raise ValueError('Cannot add these up: "{}" + "{}"'.format(self, other))
+
     def set_subj(self, subj):
         """ Set the subject of the clause. """
         # convert str to String if necessary
         self.subj = String(subj) if isinstance(subj, str) else (subj or Element())
+        self.subj.parent = self
 
     def set_vp(self, vp):
         """ Set the vp of the clause. """
         self.vp = String(vp) if isinstance(vp, str) else vp
+        self.vp.parent = self
 
     # TODO: test
     def set_object(self, obj):
         object = String(obj) if isinstance(obj, str) else obj
         object.set_feature('discourseFunction', 'OBJECT')
+        object.parent = self
         self.add_complement(object)
 
     def set_features(self, features):
@@ -1374,16 +1443,20 @@ class Clause(Element):
 
         """
         if self.subj == one:
-            self.subj = another
+            self.subj = raise_to_np(another)
+            self.subj.parent = self
             return True
         elif self.subj is not None:
-            if self.subj.replace(one, another): return True
+            if self.subj.replace(one, another):
+                return True
 
         if self.vp == one:
-            self.vp = another
+            self.vp = raise_to_vp(another)
+            self.vp.parent = self
             return True
         elif self.vp is not None:
-            if self.vp.replace(one, another): return True
+            if self.vp.replace(one, another):
+                return True
 
         return super().replace(one, another)
 
@@ -1473,8 +1546,8 @@ def raise_to_np(phrase):
         return NounPhrase(head=phrase)
     if isinstance(phrase, Word):
         return NounPhrase(head=phrase)
-    if isinstance(phrase, PlaceHolder):
-        return NounPhrase(head=phrase)
+    # if isinstance(phrase, PlaceHolder):
+    #     return NounPhrase(head=phrase)
     return phrase
 
 
@@ -1491,8 +1564,8 @@ def raise_to_vp(phrase):
         return VerbPhrase(head=phrase)
     if isinstance(phrase, Word):
         return VerbPhrase(head=phrase)
-    if isinstance(phrase, PlaceHolder):
-        return VerbPhrase(head=phrase)
+    # if isinstance(phrase, PlaceHolder):
+    #     return VerbPhrase(head=phrase)
     return phrase
 
 

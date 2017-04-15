@@ -1,4 +1,7 @@
+import itertools
 import logging
+
+from collections import defaultdict
 
 from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
 from nlglib.fol import OP_EXISTS, OP_FORALL
@@ -38,75 +41,36 @@ def select_content(formulas, **kwargs):
 
 
 def aggregate_content(items, **kwargs):
-    return items
+    if isinstance(items, (list, tuple)):
+        # order predicates for aggregation (e.g., clause, mod, mod)
+        subj_groups = defaultdict(list)
+        for item in items:
+            if hasattr(item, 'args') and list(item.args):
+                first = str(list(item.args)[0])
+                subj_groups[first].append(item)
+            else:
+                subj_groups[None].append(item)
+        # put the longest list of predicates first
+        by_length = sorted(subj_groups.values(), key=lambda x: len(x), reverse=True)
+        for group in by_length:
+            group.sort(key=lambda x: len(x.args if hasattr(x, 'args') else []), reverse=True)
+        new_items = list(itertools.chain(*by_length))
+        rv =Message('Sequence', None, *new_items)
+    else:
+        rv = items
+    return rv
 
 
 def structure_content(items, **kwargs):
-    rv = Paragraph(*items)
+    if isinstance(items, (list, tuple)):
+        rv = Paragraph(*items)
+    else:
+        rv = Paragraph(items)
     return rv
 
 
 class SignatureError(Exception):
     pass
-
-
-# TODO: deprecate?
-class PredicateMsgSpec(MsgSpec):
-    """ This class is used for instantiating Predicate as message spec. """
-
-    def __init__(self, pred, features=None):
-        """ Keep a reference to the corresponding predicate so that
-        we can look up arguments for any variables.
-
-        """
-        super().__init__('{0}/{1}'.format(pred.op, len(pred.args)))
-        self.predicate = pred
-        self._features = features or {}
-
-    def __str__(self):
-        """ Return a suitable string representation. """
-        p = self.predicate
-        if len(p.args) == 0:
-            return p.op
-        else:
-            neg = ''
-            if 'NEGATED' in self._features and self._features['NEGATED'] == 'true':
-                neg = 'not '
-            return neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
-
-    def value_for(self, param):
-        """ Return a replacement for a placeholder with id param.
-        Predicates have two types of parameters - type_N and var_N, which
-        correspond to the type and variable on position N respectively
-        (e.g., ?pkg - package).
-        The function returns the type for type_N and the name of the variable
-        for N at position N or throws SignatureError.
-
-        """
-        idx = -1
-        try:
-            idx = int(param)
-        except Exception:
-            try:
-                tmp = param.partition('_')
-                idx = tmp[2]
-            except:
-                msg = 'Expected N or type_N in replacing a PlaceHolder but received ' + str(param)
-                raise SignatureError(msg)
-
-        if idx >= len(self.predicate.args):
-            msg = ('Requested index (' + str(idx) +
-                   ') larger than number of variables in predicate "' + str(self.predicate) + '"')
-            raise SignatureError(msg)
-
-        parameter = self.predicate.args[idx]
-        if param.startswith('type'):
-            result = Word(parameter.op, 'NOUN')
-        elif param.startswith('var'):
-            result = Word(parameter.op, 'NOUN')
-        else:
-            result = PlaceHolder(parameter.op)
-        return result
 
 
 class PredicateMsg(MsgSpec):

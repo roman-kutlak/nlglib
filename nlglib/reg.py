@@ -364,10 +364,11 @@ def optimise_determiner(phrase, np_phrases, **kwargs):
     get_log().debug('distractors: {}'
                     .format(' '.join([str(x) for x in distractors])))
 
-    if (phrase.head.has_feature('PROPER', 'true') or
-            phrase.head.has_feature('cat', 'PRONOUN')):
+    if (phrase.has_feature('PROPER', 'true') or
+            phrase.has_feature('cat', 'PRONOUN')):
         get_log().debug('...proper or pronoun')
-        phrase.spec = Element()
+        if not phrase.spec:
+            phrase.spec = Element()
 
     elif (not phrase.head.has_feature('cat', 'PRONOUN') and
                   phrase in distractors[-1:] and

@@ -721,7 +721,6 @@ def aggregation_sentence_iterator(sent):
         yield (sent)
 
 
-# TODO: find out if it is used and probably deprecate
 def replace_element(sent, elt, replacement=None):
     if sent == elt:
         return True

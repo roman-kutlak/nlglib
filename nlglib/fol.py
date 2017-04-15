@@ -661,7 +661,7 @@ notequals = Literal('=/=') | Literal('!=') | \
 boolean = (CaselessKeyword('FALSE') | CaselessKeyword('TRUE'))
 
 variable = (~(and_ | or_ | not_ | forall | exists | implied | implies | iff) +
-            Combine(Optional('?') + Word(alphas, alphanums + "'")))
+            Combine(Optional('?') + Word(alphanums + "'_£")))
 constant = (~(and_ | or_ | not_ | forall | exists | implied | implies | iff) +
             Word(alphas, alphanums + "'-_"))
 number = Combine(Optional(oneOf('+ -')) + Word(nums) +
@@ -678,7 +678,7 @@ term = Forward()  # definition of term will involve itself
 terms = delimitedList(term)
 predicate = Group(constant + Group(LP + terms + RP)).setParseAction(FOLPred)
 
-term << operatorPrecedence(number | predicate | variable,
+term << operatorPrecedence(predicate | variable | number,
                            [(oneOf('+ -'), 1, opAssoc.RIGHT, FOLUnOp),
                             (oneOf('^'), 2, opAssoc.LEFT, FOLBinOp),
                             (oneOf('* /'), 2, opAssoc.LEFT, FOLBinOp),
