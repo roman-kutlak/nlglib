@@ -27,9 +27,9 @@ class TestXmlFormatting(unittest.TestCase):
         actual = v.xml
         self.assertEqual(expected, actual)
 
-    def test_placeholder(self):
+    def test_var(self):
         v = XmlVisitor()
-        s = PlaceHolder(0, 'truck')
+        s = Var(0, 'truck')
         expected = ('<child xsi:type="StringElement">\n'
                     '  <val>0</val>\n'
                     '</child>\n')
@@ -239,10 +239,10 @@ class TestRepresentation(unittest.TestCase):
         actual = str(v)
         self.assertEqual(expected, actual)
 
-    def test_placeholder(self):
+    def test_var(self):
         v = ReprVisitor()
-        s = PlaceHolder(0, 'truck')
-        expected = "PlaceHolder(0, String('truck'))"
+        s = Var(0, 'truck')
+        expected = "Var(0, String('truck'))"
         s.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
@@ -347,9 +347,9 @@ class TestElementVisitor(unittest.TestCase):
         actual = v.elements
         self.assertEqual(expected, actual)
     
-    def test_placeholder(self):
+    def test_var(self):
         v = ElementVisitor()
-        s = PlaceHolder(0, 'Arthur Dent')
+        s = Var(0, 'Arthur Dent')
         expected = [s]
         s.accept(v)
         actual = v.elements

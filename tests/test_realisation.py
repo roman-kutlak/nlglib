@@ -70,9 +70,9 @@ class TestStringRealisation(unittest.TestCase):
         actual = str(v)
         self.assertEqual(expected, actual)
 
-    def test_placeholder(self):
+    def test_var(self):
         v = RealisationVisitor()
-        s = PlaceHolder(0, 'truck1')
+        s = Var(0, 'truck1')
         expected = 'truck1'
         s.accept(v)
         actual = str(v)

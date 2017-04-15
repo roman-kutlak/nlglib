@@ -3,7 +3,7 @@ from nlglib import pipeline
 from nlglib import nlg
 from nlglib.lexicon import NP, NNP, VP, AdjP, Tense, Aspect, Number, Noun, Gender
 from nlglib.realisation import Realiser
-from nlglib.structures import String, Clause, Coordination, PlaceHolder
+from nlglib.structures import String, Clause, Coordination, Var
 
 import logging
 
@@ -54,8 +54,8 @@ def run_pipeline():
         'guitar': Noun('guitar'),
         'bass': Noun('bass guitar'),
         'drums': Noun('drum', features=dict([Number.plural])),
-        'Happy': Clause(NP(PlaceHolder(0)), VP('be', AdjP('happy'))),
-        'Play': Clause(NP(PlaceHolder(0)), VP('play', NP(PlaceHolder(1)))),
+        'Happy': Clause(NP(Var(0)), VP('be', AdjP('happy'))),
+        'Play': Clause(NP(Var(0)), VP('play', NP(Var(1)))),
     }
     input_str = 'Play(john, guitar) & Play(paul, guitar); Play(george, bass); Play(ringo, drums)'
     output_str = pipeline.translate(input_str, templates, [])

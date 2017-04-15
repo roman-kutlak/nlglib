@@ -248,7 +248,7 @@ class RealisationVisitor:
             self.text += 'not '
         self.text += word + ' '
 
-    def visit_placeholder(self, node):
+    def visit_var(self, node):
         if node.value:
             node.value.accept(self)
         else:

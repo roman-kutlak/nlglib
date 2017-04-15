@@ -1,7 +1,7 @@
 import unittest
 
 from nlglib.structures import MsgSpec, Message, Paragraph, Section, Document
-from nlglib.structures import String, PlaceHolder, Clause, NounPhrase, VerbPhrase
+from nlglib.structures import String, Var, Clause, NounPhrase, VerbPhrase
 from nlglib.macroplanning import StringMsgSpec
 
 from nlglib.lexicalisation import templates
@@ -23,7 +23,7 @@ class DummyMsg(MsgSpec):
 
 # add a template for the message spec.
 templates.templates['dummy'] = Clause(
-            PlaceHolder('arg_subject'), VerbPhrase('is', 'fast'))
+            Var('arg_subject'), VerbPhrase('is', 'fast'))
 
 
 class TestLexicalisation(unittest.TestCase):

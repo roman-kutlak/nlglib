@@ -398,18 +398,18 @@ class TestWord(unittest.TestCase):
         self.assertEqual(w1, w2)
 
 
-class TestPlaceHolder(unittest.TestCase):
-    """ Tests for the PlaceHolder class. """
+class TestVar(unittest.TestCase):
+    """ Tests for the Var class. """
 
     def test_eq(self):
         """ Test equality. """
-        self.assertEqual(PlaceHolder(), PlaceHolder())
+        self.assertEqual(Var(), Var())
 
-        p1 = PlaceHolder('arg1')
-        p2 = PlaceHolder('arg2')
+        p1 = Var('arg1')
+        p2 = Var('arg2')
         self.assertNotEqual(p1, p2)
 
-        p2 = PlaceHolder('arg1')
+        p2 = Var('arg1')
         self.assertEqual(p1, p2)
 
         p1.set_feature('countable', 'no')
@@ -418,7 +418,7 @@ class TestPlaceHolder(unittest.TestCase):
         p2.set_feature('countable', 'no')
         self.assertEqual(p1, p2)
 
-        p1 = PlaceHolder('arg1', 'drum')
+        p1 = Var('arg1', 'drum')
         p1.set_feature('countable', 'no')
         self.assertNotEqual(p1, p2)
 
@@ -427,11 +427,11 @@ class TestPlaceHolder(unittest.TestCase):
 
     # def test_repr(self):
     #     """ Test debug printing. """
-    #     expected = "PlaceHolder: id='obj1' value=None {}"
-    #     p = PlaceHolder('obj1')
+    #     expected = "Var: id='obj1' value=None {}"
+    #     p = Var('obj1')
     #     self.assertEqual(expected, repr(p))
     #
-    #     expected = "PlaceHolder: id='obj1' value=None {'countable': 'yes'}"
+    #     expected = "Var: id='obj1' value=None {'countable': 'yes'}"
     #     p.set_feature('countable', 'yes')
     #     self.assertEqual(expected, repr(p))
 
@@ -566,12 +566,12 @@ class TestPhrase(unittest.TestCase):
         """ Test getting arguments. """
         p = Phrase()
         self.assertEqual([], list(p.arguments()))
-        ph = PlaceHolder('arg_name')
+        ph = Var('arg_name')
         p.head = Word('ask', 'VERB')
         p.complements.append(ph)
         self.assertEqual([ph], list(p.arguments()))
 
-        ph2 = PlaceHolder('arg_place')
+        ph2 = Var('arg_place')
         p2 = Phrase()
         p2.head = ph2
         p.post_modifiers.append(p2)
@@ -585,20 +585,20 @@ class TestPhrase(unittest.TestCase):
         hi = Word('hi', 'EXCLAMATION')
         hello = Word('hello', 'EXCLAMATION')
         self.assertEqual(False, p.replace(hi, hello))
-        ph = PlaceHolder('arg_name')
+        ph = Var('arg_name')
         p.head = hi
         p.complements.append(ph)
         self.assertEqual(True, p.replace(hi, hello))
         self.assertEqual(hello, p.head)
 
-        ph2 = PlaceHolder('arg_place')
+        ph2 = Var('arg_place')
         p2 = Phrase()
         p2.head = ph2
         p.post_modifiers.append(p2)
 
-        p.replace(PlaceHolder('arg_place'), Word('Aberdeen', 'NOUN'))
+        p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
         self.assertEqual(False,
-            PlaceHolder('arg_place') in list(p.constituents()))
+            Var('arg_place') in list(p.constituents()))
 
 
 class TestClause(unittest.TestCase):
@@ -636,20 +636,20 @@ class TestClause(unittest.TestCase):
         hi = Word('hi', 'EXCLAMATION')
         hello = Word('hello', 'EXCLAMATION')
         self.assertEqual(False, p.replace(hi, hello))
-        ph = PlaceHolder('arg_name')
+        ph = Var('arg_name')
         p.subj = hi
         p.post_modifiers.append(ph)
         self.assertEqual(True, p.replace(hi, hello))
         self.assertEqual(hello, p.subj)
 
-        ph2 = PlaceHolder('arg_place')
+        ph2 = Var('arg_place')
         p2 = Phrase()
         p2.head = ph2
         p.vp = (p2)
 
-        p.replace(PlaceHolder('arg_place'), Word('Aberdeen', 'NOUN'))
+        p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
         self.assertEqual(False,
-            PlaceHolder('arg_place') in list(p.constituents()))
+            Var('arg_place') in list(p.constituents()))
 
 
 class TestNP(unittest.TestCase):
@@ -689,8 +689,8 @@ class TestVP(unittest.TestCase):
 
     def test_arguments(self):
         """ Test replacing arguments. """
-        p = VerbPhrase('give', PlaceHolder('arg_obj'), PrepositionalPhrase('to', PlaceHolder('arg_rec')))
-        expected = [PlaceHolder('arg_obj'), PlaceHolder('arg_rec')]
+        p = VerbPhrase('give', Var('arg_obj'), PrepositionalPhrase('to', Var('arg_rec')))
+        expected = [Var('arg_obj'), Var('arg_rec')]
         self.assertEqual(expected, list(p.arguments()))
 
         obj = NounPhrase(spec='the', head='candy')

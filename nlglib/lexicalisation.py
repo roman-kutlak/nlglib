@@ -41,7 +41,7 @@ def lexicalise(msg, **kwargs):
 
 
 def lexicalise_element(elt, **kwargs):
-    """ See if element contains placeholders and if so, replace them
+    """ See if element contains vars and if so, replace them
     by templates.
 
     """
@@ -253,8 +253,8 @@ class SentenceTemplates:
 
     def __init__(self):
         self.templates = dict()
-        self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
-        self.templates['string'] = Clause(None, VerbPhrase(PlaceHolder('val')))
+        self.templates['simple_message'] = Clause(None, Var('val'))
+        self.templates['string'] = Clause(None, VerbPhrase(Var('val')))
 
     def template(self, action):
         if action in self.templates:

@@ -3,9 +3,9 @@ from urllib.parse import quote_plus
 
 from nlglib.structures import Element, Word, Clause, Phrase, Coordination
 from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
-from nlglib.structures import AdjectivePhrase, AdverbPhrase, PlaceHolder
+from nlglib.structures import AdjectivePhrase, AdverbPhrase, Var
 from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
-from nlglib.structures import NOUNPHRASE, VERBPHRASE, PLACEHOLDER, COORDINATION
+from nlglib.structures import NOUNPHRASE, VERBPHRASE, VAR, COORDINATION
 from nlglib.lexicon import POS_VERB, POS_ADVERB
 
 
@@ -40,7 +40,7 @@ def promote_to_phrase(e):
     if is_clause_t(e): return e
     if is_phrase_t(e): return e
     if e._type == STRING: return NounPhrase(e, features=e._features)
-    if e._type == PLACEHOLDER: return NounPhrase(e, features=e._features)
+    if e._type == VAR: return NounPhrase(e, features=e._features)
     if e._type == WORD:
         if e.pos == POS_VERB: return VerbPhrase(e, features=e._features)
         if e.pos == POS_ADVERB: return VerbPhrase(e, features=e._features)
@@ -165,7 +165,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
                                                **self._get_args(f=features))
         self.xml += text
 
-    def visit_placeholder(self, node):
+    def visit_var(self, node):
         node.value.accept(self)
 
     def visit_clause(self, node):
@@ -299,12 +299,12 @@ class ReprVisitor(PrintVisitor):
             self.data += ', ' + repr(node._features)
         self.data += ')'
 
-    def visit_placeholder(self, node):
+    def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if not node.value:
-            self.data += 'PlaceHolder({0}'.format(repr(node.id))
+            self.data += 'Var({0}'.format(repr(node.id))
         else:
-            self.data += 'PlaceHolder({0}, {1}'.format(repr(node.id),
+            self.data += 'Var({0}, {1}'.format(repr(node.id),
                                                        repr(node.value))
         if node._features != dict():
             self.data += ', ' + repr(node._features)
@@ -445,12 +445,12 @@ class StrVisitor(PrintVisitor):
         if self.do_indent: self.data += self.indent
         self.data += 'Word({0}, {1})'.format(repr(node.word), repr(node.pos))
 
-    def visit_placeholder(self, node):
+    def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if node.value == Element():
-            self.data += 'PlaceHolder({0})'.format(repr(node.id))
+            self.data += 'Var({0})'.format(repr(node.id))
         else:
-            self.data += 'PlaceHolder({0}, {1})'.format(repr(node.id),
+            self.data += 'Var({0}, {1})'.format(repr(node.id),
                                                         repr(node.value))
 
     def visit_np(self, node):
@@ -560,7 +560,7 @@ class ElementVisitor:
     def visit_word(self, node):
         self.elements.append(node)
 
-    def visit_placeholder(self, node):
+    def visit_var(self, node):
         self.elements.append(node)
 
     def visit_np(self, node):
@@ -618,7 +618,7 @@ class ConstituentVisitor:
     def visit_word(self, node):
         self.elements.append(node)
 
-    def visit_placeholder(self, node):
+    def visit_var(self, node):
         self.elements.append(node)
 
     def visit_np(self, node):

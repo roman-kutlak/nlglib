@@ -7,7 +7,7 @@ from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
 from nlglib.fol import OP_EXISTS, OP_FORALL
 from nlglib.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
 from nlglib.fol import is_predicate, is_variable, is_function
-from nlglib.structures import Message, MsgSpec, Word, String, PlaceHolder
+from nlglib.structures import Message, MsgSpec, Word, String, Var
 from nlglib.structures import NounPhrase, Paragraph
 from nlglib.fol import expr
 from nlglib.simplifications import simplification_ops
@@ -104,7 +104,7 @@ class PredicateMsg(MsgSpec):
             return neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
 
     def value_for(self, idx):
-        """ Return a replacement for a placeholder with id param.
+        """ Return a replacement for a var with id param.
         The function returns the type for type_N and the name of the variable
         for N at position N or throws SignatureError.
 
@@ -194,7 +194,7 @@ def formula_to_rst(f):
     if f.op == OP_NOT and is_variable(f.args[0]):
         get_log().debug('negated variable: ' + str(f))
         arg = f.args[0]
-        m = NounPhrase(PlaceHolder(arg.op), Word('not', 'DETERMINER'))
+        m = NounPhrase(Var(arg.op), Word('not', 'DETERMINER'))
         return m
     if f.op == OP_NOT:
         get_log().debug('negated formula: ' + str(f))
@@ -207,7 +207,7 @@ def formula_to_rst(f):
         return PredicateMsg(f, *[formula_to_rst(x) for x in f.args])
     if is_function(f):
         get_log().debug('function: ' + str(f))
-        return PlaceHolder(f.op,
+        return Var(f.op,
                            PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
     else:
         get_log().debug('None: ' + repr(f))

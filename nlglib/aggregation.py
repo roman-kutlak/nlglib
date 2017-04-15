@@ -60,7 +60,7 @@ def try_to_aggregate(sent1, sent2, marker='and', **kwargs):
     if not isinstance(sent1, Clause) or not isinstance(sent2, Clause):
         return None
 
-    replacement = PlaceHolder("REPLACEMENT", "REPLACEMENT")
+    replacement = Var("REPLACEMENT", "REPLACEMENT")
     for e1 in sentence_iterator(sent1):
         s1 = deepcopy(sent1)
         s1.replace(e1, replacement)  # replace one element

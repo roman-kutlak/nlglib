@@ -448,8 +448,8 @@ class ElemntCoder(json.JSONEncoder):
                 return String.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.Word'>":
                 return Word.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.PlaceHolder'>":
-                return PlaceHolder.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.Var'>":
+                return Var.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.Phrase'>":
                 return Phrase.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.Clause'>":
@@ -474,7 +474,7 @@ class ElemntCoder(json.JSONEncoder):
 ELEMENT = 0  # abstract
 STRING = 1
 WORD = 2
-PLACEHOLDER = 3
+VAR = 3
 CLAUSE = 4
 
 COORDINATION = 5
@@ -492,7 +492,7 @@ VisitorNames = {
     ELEMENT: 'visit_element',
     STRING: 'visit_string',
     WORD: 'visit_word',
-    PLACEHOLDER: 'visit_placeholder',
+    VAR: 'visit_var',
     CLAUSE: 'visit_clause',
 
     COORDINATION: 'visit_coordination',
@@ -691,10 +691,10 @@ class Element:
         return []
 
     def arguments(self):
-        """ Return any arguments (placeholders) from the elemen as a generator.
+        """ Return any arguments (vars) from the elemen as a generator.
 
         """
-        return list(filter(lambda x: isinstance(x, PlaceHolder),
+        return list(filter(lambda x: isinstance(x, Var),
                            self.constituents()))
 
     def replace(self, one, another):
@@ -819,19 +819,19 @@ class Word(Element):
         return self.word
 
 
-class PlaceHolder(Element):
+class Var(Element):
     """ An element used as a place-holder in a sentence. The purpose of this
         element is to make replacing arguments easier. For example, in a plan
         one might want to replace arguments of an action with the instantiated
         objects
         E.g.,   move (x, a, b) -->
-                move PlaceHolder(x) from PlaceHolder(a) to PlaceHolder(b) -->
+                move Var(x) from Var(a) to Var(b) -->
                 move (the block) from (the table) to (the green block)
 
     """
 
     def __init__(self, id=None, obj=None, features=None, parent=None):
-        super().__init__(PLACEHOLDER, features, parent)
+        super().__init__(VAR, features, parent)
         self.id = id
         self.set_value(obj)
 
@@ -840,7 +840,7 @@ class PlaceHolder(Element):
         return True
 
     def __eq__(self, other):
-        if not isinstance(other, PlaceHolder):
+        if not isinstance(other, Var):
             return False
         else:
             return (self.id == other.id and
@@ -1546,7 +1546,7 @@ def raise_to_np(phrase):
         return NounPhrase(head=phrase)
     if isinstance(phrase, Word):
         return NounPhrase(head=phrase)
-    # if isinstance(phrase, PlaceHolder):
+    # if isinstance(phrase, Var):
     #     return NounPhrase(head=phrase)
     return phrase
 
@@ -1564,7 +1564,7 @@ def raise_to_vp(phrase):
         return VerbPhrase(head=phrase)
     if isinstance(phrase, Word):
         return VerbPhrase(head=phrase)
-    # if isinstance(phrase, PlaceHolder):
+    # if isinstance(phrase, Var):
     #     return VerbPhrase(head=phrase)
     return phrase
 

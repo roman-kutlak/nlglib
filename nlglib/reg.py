@@ -124,7 +124,7 @@ def generate_re(msg, **kwargs):
 def generate_re_element(element, **kwargs):
     get_log().debug('Generating RE for element.')
     with_refexp = deepcopy(element)
-    _replace_placeholders_with_nps(with_refexp, **kwargs)
+    _replace_vars_with_nps(with_refexp, **kwargs)
     result = optimise_ref_exp(with_refexp, **kwargs)
     return result
 
@@ -156,7 +156,7 @@ def generate_re_section(sec, **kwargs):
 
 
 def generate_re_document(doc, **kwargs):
-    """ Iterate through a Document and replace all PlaceHolders by
+    """ Iterate through a Document and replace all Vars by
     referring expressions.
 
     """
@@ -168,8 +168,8 @@ def generate_re_document(doc, **kwargs):
     return Document(title, *sections)
 
 
-def _replace_placeholders_with_nps(message, **kwargs):
-    get_log().debug('Replacing placeholders.')
+def _replace_vars_with_nps(message, **kwargs):
+    get_log().debug('Replacing vars.')
     for arg in message.arguments():
         ref = arg.value or arg.id
         refexp = generate_ref_exp(ref, **kwargs)
