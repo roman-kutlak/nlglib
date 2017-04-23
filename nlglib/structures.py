@@ -540,14 +540,16 @@ def is_adj_mod_t(o):
     """Return True if `o` is adjective modifier (adj or AdjP)"""
     from nlglib import lexicon
     return (isinstance(o, AdjectivePhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_ADJECTIVE)
+            isinstance(o, Word) and o.pos == lexicon.POS_ADJECTIVE or
+            isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
 
 
 def is_adv_mod_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     from nlglib import lexicon
     return (isinstance(o, AdverbPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_ADVERB)
+            isinstance(o, Word) and o.pos == lexicon.POS_ADVERB or
+            isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
 
 
 def str_to_elt(*params):
@@ -1387,18 +1389,15 @@ class Clause(Element):
                 super().__eq__(other))
 
     def __add__(self, other):
-        if isinstance(other, Clause):
-            return Coordination(deepcopy(self), deepcopy(other))
-        if isinstance(other, Coordination):
-            other_ = deepcopy(other)
-            other_.add_coordinate(deepcopy(self))
-            return other_
+        other_ = deepcopy(other)
         self_ = deepcopy(self)
+        if isinstance(other, Clause):
+            return Coordination(self_, other_)
         if is_adj_mod_t(other):
-            self_.subj += deepcopy(other)
+            self_.subj += other_
             return self_
         if is_adv_mod_t(other):
-            self_.vp += deepcopy(other)
+            self_.vp += other_
             return self_
         else:
             raise ValueError('Cannot add these up: "{}" + "{}"'.format(self, other))
