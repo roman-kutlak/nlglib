@@ -13,7 +13,7 @@ from .ctx import PipelineContext
 from .globals import _pipeline_ctx_stack
 from .signals import pipeline_context_tearing_down
 from .utils import PackageBoundObject, locked_cached_property, find_package
-from .lexicon import en
+from .lexicon import Lexicon
 
 # a singleton sentinel value for parameter defaults
 _sentinel = object()
@@ -64,7 +64,7 @@ class Pipeline(PackageBoundObject):
         'PROPAGATE_EXCEPTIONS': None,
         'PRESERVE_CONTEXT_ON_EXCEPTION': None,
         'LOGGER_NAME': None,
-        'LEXICON': en.Lexicon,
+        'LEXICON': Lexicon,
         'CONTENT_PREPROCESSING': macroplanning.preprocess_content,
         'CONTENT_SELECTION': macroplanning.select_content,
         'CONTENT_AGGREGATION': macroplanning.aggregate_content,
