@@ -1,3 +1,5 @@
+import importlib
+import inspect
 import logging
 import os
 import sys
@@ -73,7 +75,7 @@ class Pipeline(PackageBoundObject):
         'AGGREGATION': aggregation.aggregate,
         'PRONOMINALISATION': None,
         'REFERRING': reg.generate_re,
-        'REALISATION': realisation.realise,
+        'REALISATION': ('realisation.backends.simplenlg', 'realise'),
         'FORMATTING': format.to_text
     })
 
@@ -123,10 +125,23 @@ class Pipeline(PackageBoundObject):
         for name in self.stages:
             self.logger.debug('running stage {}.'.format(name))
             func = context.stages.get(name)
-            if func:
-                rv = func(rv, **kwargs)
-            else:
+            if not func:
                 self.logger.debug('    --> skipping stage {}.'.format(name))
+                continue
+            if isinstance(func, str):
+                package, dot, obj = func.rpartition('.')
+                if not dot:
+                    raise RuntimeError('The function string has to contain the package.')
+                func = (package, obj)
+            if isinstance(func, tuple):
+                pkg, obj = func
+                package = importlib.import_module(pkg)
+                obj = getattr(package, obj)
+                if inspect.isclass(obj):
+                    func = obj()
+                else:
+                    func = obj
+            rv = func(rv, **kwargs)
             self.logger.debug('finished stage {}.'.format(name))
         return rv
 

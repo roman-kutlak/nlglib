@@ -7,24 +7,14 @@ import time
 import logging
 import urllib.parse
 
+from utils import LogPipe
+
+
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def get_log(name=__name__):
     return logging.getLogger(name)
-
-
-from .utils import LogPipe
-
-
-# simplenlg_path = 'resources/simplenlg.jar'
-#
-# if not (os.path.isfile(simplenlg_path) and os.access(simplenlg_path, os.R_OK)):
-#     get_log().warning('simpleNLG expected in "' + simplenlg_path + '"')
-#     files = nlg.utils.find_files('../..', '.jar')
-#     for root, file in files:
-#         if file == 'simplenlg.jar':
-#             simplenlg_path = os.path.join(root, file)
 
 
 class ServerError(Exception):

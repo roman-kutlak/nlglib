@@ -9,7 +9,9 @@ created syntactic structures can be realised using simpleNLG.
 
 import logging
 
-logging.getLogger('nlg').info('initialising NLG library')
+logger = logging.getLogger('nlglib')
+
+logger.info('initialising NLG library')
 
 from .pipeline import Pipeline, PipelineContext
 

@@ -76,7 +76,9 @@ class PipelineContext(object):
     def __init__(self, pipeline, config):
         self.pipeline = pipeline
         self.lexicon = pipeline.lexicon
-        self.config = pipeline.make_config(mappings=config)
+        conf = dict(self.pipeline.config)
+        conf.update(config)
+        self.config = pipeline.make_config(mappings=conf)
 
         # Like request context, pipeline contexts can be pushed multiple times
         # but there a basic "refcount" is enough to track them.
@@ -84,7 +86,7 @@ class PipelineContext(object):
 
     @property
     def stages(self):
-        return self.pipeline.config
+        return self.config
 
     def push(self):
         """Binds the pipeline context to the current context."""

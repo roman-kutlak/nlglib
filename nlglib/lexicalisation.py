@@ -251,8 +251,8 @@ class SentenceTemplates:
         are mapped to string compatible with string.format().
     """
 
-    def __init__(self):
-        self.templates = dict()
+    def __init__(self, templates=None):
+        self.templates = templates if templates is not None else {}
         self.templates['simple_message'] = Clause(None, Var('val'))
         self.templates['string'] = Clause(None, VerbPhrase(Var('val')))
 

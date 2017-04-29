@@ -1,7 +1,6 @@
 import unittest
 
-import nlglib.simplenlg as snlg
-
+import realisation.backends.simplenlg.client as snlg
 
 test_data = """\
 <?xml version="1.0" encoding="utf-8"?>
