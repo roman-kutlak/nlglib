@@ -226,9 +226,9 @@ def aggregate_list(lst, **kwargs):
 def aggregate_clause(clause, **kwargs):
     """Check if clause contains a coordinated element and if so, aggregate. """
     get_log().debug('Aggregating a clause:\n' + repr(clause))
-    subj = aggregate(clause.subj, 10, **kwargs)
-    obj = aggregate(clause.complements, 10, **kwargs)
-    vp = aggregate(clause.vp, 10, **kwargs)
+    subj = aggregate(clause.subj, **kwargs)
+    obj = aggregate(clause.complements, **kwargs)
+    vp = aggregate(clause.vp, **kwargs)
     vp.add_features(clause.vp._features)
     c = deepcopy(clause)
     c.set_subj(subj)

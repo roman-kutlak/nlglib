@@ -1,41 +1,9 @@
 import unittest
 
-from nlglib.nlg import *
+from nlglib.pipeline import Pipeline
 from nlglib.structures import *
 from nlglib.macroplanning import StringMsgSpec
 
-
-#class TestGre(unittest.TestCase):
-#    def setUp(self):
-#        self.p = Planner()
-#        self.dom = self.p.get_domain('logistics')
-#        self.prob = self.p.get_problem('logistics', 'logistics-1.pddl')
-#        self.context = Context(self.dom, self.prob)
-#        self.reg = REG()
-#
-#    def test_reg(self):
-#        res = self.reg.gre('tru1', self.context)
-#        self.assertEqual('truck 1', str(res))
-#        res = self.reg.gre('obj12', self.context)
-#        self.assertEqual('a drum', str(res))
-#
-#
-#class TestNlg(unittest.TestCase):
-#    
-#    def setUp(self):
-#        self.p = Planner()
-#        self.plan = self.p.plan_for_goal('Logistics-1')
-#        self.nlg = Nlg()
-#    
-#    def tearDown(self):
-#        pass
-#    
-#    def test_setup(self):
-#        self.assertNotEqual(None, self.plan)
-#        self.assertNotEqual(None, self.nlg)
-#    
-#    def test_lexicalise(self):
-#        pass
 
 def get_clause():
     clause = Clause(NounPhrase(Word('you', 'NOUN')),
@@ -53,25 +21,25 @@ def get_test_doc():
 
 class TestNlg(unittest.TestCase):
     def test_realisation(self):
-        gen = Nlg()
+        gen = Pipeline(__name__)
         para = get_test_doc()
-        result = gen.process_nlg_doc(para, None, None)
+        result = gen.process(para)
         expected = '    Hello. You say hello.'
         self.assertEqual(expected, result)
 
     def test_realisation2(self):
-        gen = Nlg()
-        result = gen.process_nlg_doc2(get_clause(), None, None)
+        gen = Pipeline(__name__)
+        result = gen.process(get_clause())
         expected = 'Say hello.'
         self.assertEqual(expected, result)
 
-        result = gen.process_nlg_doc2(get_test_doc(), None, None)
+        result = gen.process(get_test_doc())
         expected = '    Hello. Say hello.'
         self.assertEqual(expected, result)
 
     def test_string_msg(self):
         msg = StringMsgSpec('This is some text.')
-        gen = Nlg()
-        result = gen.process_nlg_doc(msg, None, None)
+        gen = Pipeline(__name__)
+        result = gen.process(msg)
         expected = 'This is some text.'
         self.assertEqual(expected, result)

@@ -134,20 +134,11 @@ def formula_to_rst(f):
     if f.op == OP_AND:
         msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Conjunction', None, *msgs)
-        #        test = lambda x: (x.op == '&' or x.op == '|')
-        #        if any(map(test, f.args)):
-        #            m.marker = ', and'
-        #        else:
         m.marker = 'and'
         return m
     if f.op == OP_OR:
         msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Disjunction', None, *msgs)
-        #        test = lambda x: (x.op != 'forall' and
-        #                          x.op != 'exists')
-        #        if any(map(test, f.args)):
-        #            m.marker = ', or'
-        #        else:
         m.marker = 'or'
         return m
     if f.op == OP_IMPLIES:

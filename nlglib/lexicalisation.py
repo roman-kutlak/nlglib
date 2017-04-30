@@ -51,7 +51,7 @@ def lexicalise_element(elt, **kwargs):
     args = elt.arguments()
     # if there are any arguments, replace them by values
     for arg in args:
-        result = available_templates.template(arg.id)
+        result = available_templates.get(arg.id)
         if result is None: continue
         get_log().debug('Replacing\n{0} in \n{1} by \n{2}.'
                         .format(repr(arg), repr(elt), repr(result)))
@@ -76,7 +76,7 @@ def lexicalise_message_spec(msg, **kwargs):
     available_templates = kwargs.get('templates', templates)
     template = None
     try:
-        template = available_templates.template(msg.name)
+        template = available_templates.get(msg.name)
         # TODO: should MessageSpec correspond to a clause?
         if template is None:
             get_log().warning('No sentence template for "%s"' % msg.name)
@@ -103,7 +103,7 @@ def lexicalise_message_spec(msg, **kwargs):
             val = msg.value_for(arg.id)
             # check if value is a template
             if isinstance(val, (String, str)):
-                t = templates.template(val.string if isinstance(val, String) else val)
+                t = templates.get(val.string if isinstance(val, String) else val)
                 if t:
                     val = t
             get_log().debug(' val = {0}'.format(repr(val)))
@@ -256,11 +256,14 @@ class SentenceTemplates:
         self.templates['simple_message'] = Clause(None, Var('val'))
         self.templates['string'] = Clause(None, VerbPhrase(Var('val')))
 
-    def template(self, action):
-        if action in self.templates:
-            return deepcopy(self.templates[action])
+    def get(self, key):
+        if key in self.templates:
+            return deepcopy(self.templates[key])
         else:
             return None
+
+    # for backwards compatibility
+    template = get
 
 
 templates = SentenceTemplates()

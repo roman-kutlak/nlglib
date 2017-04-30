@@ -10,6 +10,7 @@ from nlglib.microplanning import replace_element, replace_element_with_id
 from nlglib import lexicon
 from nlglib.lexicon import Person, Case, Number, Gender, Features, PronounUse
 from nlglib.lexicon import Pronoun, POS_NOUN
+from .ctx import LinguisticContext
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -18,86 +19,10 @@ def get_log():
     return logging.getLogger(__name__)
 
 
-class Context(object):
-    def __init__(self, ontology=None):
-        self.ontology = ontology
-        self.referents = dict()
-        self.referent_stack = []
-        self.np_stack = []
-        self.history = []
-        self.rfexps = []
-        # this can be used for direct speach or system/user customisation
-        self.speakers = []
-        self.hearers = []
-        self.templates = {}
-
-    def is_speaker(self, element):
-        """Return True if the element is a speaker. """
-        return element in self.speakers
-
-    def is_last_speaker(self, element):
-        """Return True if the element is the current (last) speaker. """
-        return element in self.speakers[-1:]
-
-    def add_speaker(self, element):
-        """Add the `element` to the list of speakers as the last speaker. """
-        self.speakers.append(element)
-
-    def remove_speaker(self, element):
-        """Delete the `element` from the list of speakers. """
-        self.speakers.remove(element)
-
-    def remove_last_speaker(self):
-        """If there are any speakers, remove the last one and return it. """
-        if self.speakers:
-            return self.speakers.pop()
-
-    def is_hearer(self, element):
-        """Return True if the given elemen is a hearer. """
-        return element in self.hearers
-
-    def is_last_hearer(self, element):
-        """Return True if the given elemen is the current (last) hearer. """
-        return element in self.hearers[:-1]
-
-    def add_hearer(self, element):
-        """Add the `element` to the list of hearers as the last hearer. """
-        self.hearers.append(element)
-
-    def remove_hearer(self, element):
-        """Delete the `element` from the list of hearers. """
-        self.hearers.remove(element)
-
-    def remove_last_hearer(self):
-        """If there are any hearers, remove the last one and return it. """
-        if self.hearers:
-            return self.hearers.pop()
-
-    def add_sentence(self, sent):
-        """Add a sentence to the context. """
-        self.history.append(sent)
-        # add potential referents/distractors
-        self._update_referents(sent)
-
-    def _update_referents(self, sent):
-        """Extract NPs and add them on the referent stack. Add subject last. """
-        nps = [x for x in sent.constituents()
-               if isinstance(x, NounPhrase) or
-               (isinstance(x, Coordination) and
-                isinstance(x.coords[0], NounPhrase))]
-        for np in nps:
-            nouns = [x for x in np.constituents()
-                     if (isinstance(x, Word) and x.pos == POS_NOUN)]
-            self.referent_stack.extend(reversed(nouns))
-            unspec_np = deepcopy(np)
-            unspec_np.spec = Element()
-            self.np_stack.append(unspec_np)
-
-
 def generate_re(msg, **kwargs):
     """ Perform lexicalisation on the message depending on the type. """
     if 'context' not in kwargs:
-        kwargs['context'] = Context()
+        kwargs['context'] = LinguisticContext()
     if msg is None:
         return None
     elif isinstance(msg, str):
@@ -179,7 +104,7 @@ def _replace_vars_with_nps(message, **kwargs):
 def generate_ref_exp(referent, **kwargs):
     get_log().debug('GRE for "{0}"'.format(referent))
     result = None
-    context = kwargs.get('context', Context())
+    context = kwargs.get('context', LinguisticContext())
     if not (isinstance(referent, String) or isinstance(referent, Word)):
         return referent
     if referent in context.referents:
@@ -190,7 +115,7 @@ def generate_ref_exp(referent, **kwargs):
 
 
 def _do_initial_reference(target, **kwargs):
-    context = kwargs.get('context', Context())
+    context = kwargs.get('context', LinguisticContext())
     # do we have information about the referent?
     try:
         onto = context.ontology
@@ -253,7 +178,7 @@ def _do_initial_reference(target, **kwargs):
 
 
 def _do_repeated_reference(referent, **kwargs):
-    context = kwargs.get('context', Context())
+    context = kwargs.get('context', LinguisticContext())
 
     is_unique, refexp = context.referents[referent]
     if is_unique:
@@ -281,8 +206,8 @@ def optimise_ref_exp(phrase, **kwargs):
     # TODO: include Number in the dicision process (it vs they)
     # FIXME: Coordinated elements need some special attention
     result = copy(phrase)
-    context = kwargs.get('context', Context())
-    # test for selecting phrases taht can be processed
+    context = kwargs.get('context', LinguisticContext())
+    # test for selecting phrases that can be processed
     test = lambda x: isinstance(x, NounPhrase) or isinstance(x, Coordination)
     # reverse so that we start with large phrases first (eg CC)
     get_log().debug('-=' * 40)

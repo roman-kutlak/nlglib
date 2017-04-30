@@ -552,6 +552,14 @@ def is_adv_mod_t(o):
             isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
 
 
+def is_noun_t(o):
+    """Return True if `o` is adverb modifier (adv or AdvP)"""
+    from nlglib import lexicon
+    return (isinstance(o, NounPhrase) or
+            isinstance(o, Word) and o.pos == lexicon.POS_NOUN or
+            isinstance(o, Coordination) and is_noun_t(o.coords[0]))
+
+
 def str_to_elt(*params):
     """ Check that all params are Elements and convert
     and any strings to String.

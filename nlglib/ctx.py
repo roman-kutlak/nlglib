@@ -10,11 +10,14 @@
 """
 
 import sys
+
+from copy import deepcopy
 from functools import update_wrapper
 
 from ._compat import BROKEN_PYPY_CTXMGR_EXIT, reraise
 from .globals import _pipeline_ctx_stack
 from .signals import pipeline_context_pushed, pipeline_context_popped
+from .structures import NounPhrase, Coordination, Element, is_noun_t
 
 
 # a singleton sentinel value for parameter defaults
@@ -75,9 +78,9 @@ class PipelineContext(object):
 
     def __init__(self, pipeline, config):
         self.pipeline = pipeline
-        self.lexicon = pipeline.lexicon
         conf = dict(self.pipeline.config)
-        conf.update(config)
+        if config:
+            conf.update(config)
         self.config = pipeline.make_config(mappings=conf)
 
         # Like request context, pipeline contexts can be pushed multiple times
@@ -106,8 +109,8 @@ class PipelineContext(object):
                 self.pipeline.do_teardown_pipeline_context(exc)
         finally:
             rv = _pipeline_ctx_stack.pop()
-        assert rv is self, 'Popped wrong pipeline context.  (%r instead of %r)' \
-            % (rv, self)
+        assert rv is self, 'Popped wrong pipeline context. ' \
+                           '(%r instead of %r)' % (rv, self)
         pipeline_context_popped.send(self.pipeline)
 
     def copy(self):
@@ -118,7 +121,7 @@ class PipelineContext(object):
         pipeline object is locked.
 
         """
-        return self.__class__(self.pipeline)
+        return self.__class__(self.pipeline, self.config)
 
     def __enter__(self):
         self.push()
@@ -129,3 +132,77 @@ class PipelineContext(object):
 
         if BROKEN_PYPY_CTXMGR_EXIT and exc_type is not None:
             reraise(exc_type, exc_value, tb)
+
+
+class LinguisticContext(object):
+    def __init__(self, ontology=None):
+        self.ontology = ontology
+        self.referents = dict()
+        self.referent_stack = []
+        self.np_stack = []
+        self.history = []
+        # this can be used for direct speech or system/user customisation
+        self.speakers = []
+        self.hearers = []
+        self.templates = {}
+
+    def is_speaker(self, element):
+        """Return True if the element is a speaker. """
+        return element in self.speakers
+
+    def is_last_speaker(self, element):
+        """Return True if the element is the current (last) speaker. """
+        return element in self.speakers[-1:]
+
+    def add_speaker(self, element):
+        """Add the `element` to the list of speakers as the last speaker. """
+        self.speakers.append(element)
+
+    def remove_speaker(self, element):
+        """Delete the `element` from the list of speakers. """
+        self.speakers.remove(element)
+
+    def remove_last_speaker(self):
+        """If there are any speakers, remove the last one and return it. """
+        if self.speakers:
+            return self.speakers.pop()
+
+    def is_hearer(self, element):
+        """Return True if the given elemen is a hearer. """
+        return element in self.hearers
+
+    def is_last_hearer(self, element):
+        """Return True if the given elemen is the current (last) hearer. """
+        return element in self.hearers[:-1]
+
+    def add_hearer(self, element):
+        """Add the `element` to the list of hearers as the last hearer. """
+        self.hearers.append(element)
+
+    def remove_hearer(self, element):
+        """Delete the `element` from the list of hearers. """
+        self.hearers.remove(element)
+
+    def remove_last_hearer(self):
+        """If there are any hearers, remove the last one and return it. """
+        if self.hearers:
+            return self.hearers.pop()
+
+    def add_sentence(self, sent):
+        """Add a sentence to the context. """
+        self.history.append(sent)
+        # add potential referents/distractors
+        self._update_referents(sent)
+
+    def _update_referents(self, sent):
+        """Extract NPs and add them on the referent stack. Add subject last. """
+        nps = [x for x in sent.constituents()
+               if isinstance(x, NounPhrase) or
+               (isinstance(x, Coordination) and
+                isinstance(x.coords[0], NounPhrase))]
+        for np in nps:
+            nouns = [x for x in np.constituents() if is_noun_t(x)]
+            self.referent_stack.extend(reversed(nouns))
+            unspec_np = deepcopy(np)
+            unspec_np.spec = Element()
+            self.np_stack.append(unspec_np)
