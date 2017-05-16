@@ -1,10 +1,13 @@
 """ Data structures used by other packages. """
 
-import logging
-import json
 import inspect
+import importlib
+import json
+import logging
+import os
 
 from copy import deepcopy
+from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
@@ -184,7 +187,7 @@ class Message:
         self.nucleus = nucleus
         self.satellites = [s for s in satellites if s is not None]
         self.marker = ''
-        self._features = features or {}
+        self.features = features or {}
 
     def __repr__(self):
         descr = ' '.join([repr(x) for x in
@@ -222,16 +225,16 @@ class Message:
         Otherwise only delete the feature if it has matching value.
 
         """
-        if feat in self._features:
+        if feat in self.features:
             if val is not None:
-                del self._features[feat]
-            elif val == self._features[feat]:
-                del self._features[feat]
+                del self.features[feat]
+            elif val == self.features[feat]:
+                del self.features[feat]
 
-    def add_features(self, features):
+    def addfeatures(self, features):
         """ Add the given features (dict) to the existing features. """
         for k, v in features.items():
-            self._features[k] = v
+            self.features[k] = v
 
     def to_xml(self, offset='', indent='  '):
         """Return an XML representation of the paragraph indented by initial ``offset``"
@@ -315,11 +318,11 @@ class MsgSpec:
 
     def __init__(self, name, features=None):
         self.name = name
-        self._features = features or {}
+        self.features = features or {}
         self._visitor_name = 'visit_msg_spec'
 
     def __repr__(self):
-        return 'MsgSpec({0}, {1})'.format(self.name, self._features)
+        return 'MsgSpec({0}, {1})'.format(self.name, self.features)
 
     def __str__(self):
         return str(self.name)
@@ -370,16 +373,16 @@ class MsgSpec:
         Otherwise only delete the feature if it has matching value.
 
         """
-        if feat in self._features:
+        if feat in self.features:
             if val is not None:
-                del self._features[feat]
-            elif val == self._features[feat]:
-                del self._features[feat]
+                del self.features[feat]
+            elif val == self.features[feat]:
+                del self.features[feat]
 
-    def add_features(self, features):
+    def addfeatures(self, features):
         """ Add the given features (dict) to the existing features. """
         for k, v in features.items():
-            self._features[k] = v
+            self.features[k] = v
 
 
 class StringMsgSpec(MsgSpec):
@@ -481,11 +484,11 @@ COORDINATION = 5
 SUBORDINATION = 6
 
 PHRASE = 10  # abstract
-NOUNPHRASE = 11
-VERBPHRASE = 12
-PREPPHRASE = 13
-ADJPHRASE = 14
-ADVPHRASE = 15
+NOUN_PHRASE = 11
+VERB_PHRASE = 12
+PREPOSITIONAL_PHRASE = 13
+ADJECTIVE_PHRASE = 14
+ADVERB_PHRASE = 15
 
 # visitor names
 VisitorNames = {
@@ -499,11 +502,11 @@ VisitorNames = {
     SUBORDINATION: 'visit_subordination',
 
     PHRASE: 'visit_phrase',
-    NOUNPHRASE: 'visit_np',
-    VERBPHRASE: 'visit_vp',
-    PREPPHRASE: 'visit_pp',
-    ADJPHRASE: 'visit_adjp',
-    ADVPHRASE: 'visit_advp',
+    NOUN_PHRASE: 'visit_np',
+    VERB_PHRASE: 'visit_vp',
+    PREPOSITIONAL_PHRASE: 'visit_pp',
+    ADJECTIVE_PHRASE: 'visit_adjp',
+    ADVERB_PHRASE: 'visit_advp',
 }
 
 
@@ -521,7 +524,7 @@ def is_phrase_t(o):
 
     """
     return (is_element_t(o) and
-            (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJPHRASE, ADVPHRASE} or
+            (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJECTIVE_PHRASE, ADVERB_PHRASE} or
              (o._type == COORDINATION and
               (o.coords == [] or is_phrase_t(o.coords[0])))))
 
@@ -569,7 +572,35 @@ def str_to_elt(*params):
     return list(map(fn, params))
 
 
-class Element:
+class FeatureModulesLoader(type):
+
+    """Metaclass injecting the feature module property onto a class."""
+
+    def __new__(cls, clsname, bases, dct):
+        features = {}
+        feature_pkg_path = relpath(
+            join(dirname(__file__), '..', 'lexicon', 'feature'))
+        for dirpath, _, filenames in os.walk(feature_pkg_path):
+            pkg_root = dirpath.replace('/', '.')
+            for filename in filenames:
+                if not filename.endswith('.py'):
+                    continue
+                pkg_path = pkg_root + '.' + filename.replace('.py', '')
+                if pkg_path.startswith('.'):  # no relative imports please
+                    _, root, child = pkg_path.rpartition('pynlg')
+                    pkg_path = root + child
+                mod = importlib.import_module(pkg_path)
+                modfeatures = [c for c in dir(mod) if c.isupper()]
+                for feat in modfeatures:
+                    features[feat] = getattr(mod, feat)
+
+        dct['_feature_constants'] = features
+
+        return super(FeatureModulesLoader, cls).__new__(
+            cls, clsname, bases, dct)
+
+
+class Element(object, metaclass=FeatureModulesLoader):
     """ A base class representing an NLG element.
         Aside for providing a base class for othe kinds of NLG elements,
         the class also implements basic functionality for elements.
@@ -582,7 +613,7 @@ class Element:
         self.id = 0  # this is useful for replacing elements
         self._type = type
         self._visitor_name = VisitorNames[type]
-        self._features = features or dict()
+        self.features = features or dict()
         self.hash = -1
         self.parent = parent
 
@@ -594,12 +625,12 @@ class Element:
         if not is_element_t(other): return False
         if not self._type is other._type: return False
         return (self.id == other.id and
-                self._features == other._features)
+                self.features == other.features)
 
     def __hash__(self):
         if self.hash == -1:
             self.hash = (hash(self.id) ^ hash(tuple(['k:v'.format(k, v)
-                                                     for k, v in self._features.items()])))
+                                                     for k, v in self.features.items()])))
         return self.hash
 
     @classmethod
@@ -623,6 +654,79 @@ class Element:
         self.accept(v)
         return str(v)
 
+    # feature-related methods
+    def __contains__(self, feature_name):
+        """Check if the argument feature name is contained in the element."""
+        return feature_name in self.features
+
+    def __setitem__(self, feature_name, feature_value):
+        """Set the feature name/value in the element feature dict."""
+        self.features[feature_name] = feature_value
+
+    def __getitem__(self, feature_name):
+        """Return the value associated with the feature name, from the
+        element feature dict.
+
+        If the feature name is not found in the feature dict, return None.
+
+        """
+        return self.features.get(feature_name)
+
+    def __delitem__(self, feature_name):
+        """Remove the argument feature name and its associated value from
+        the element feature dict.
+
+        If the feature name was not initially present in the feature dict,
+        a KeyError will be raised.
+
+        """
+        if feature_name in self.features:
+            del self.features[feature_name]
+
+    def __getattr__(self, name):
+        """When a undefined attribute name is accessed, try to return
+        self.features[name] if it exists.
+
+        If name is not in self.features, but name.upper() is defined as
+        a feature constant, don't raise an AttribueError. Instead, try
+        to return the feature value associated with the feature constant
+        value.
+
+        This allows us to have a more consistant API when
+        dealing with NLGElement and instances of sublclasses.
+
+        If no such match is found, raise an AttributeError.
+
+        Example:
+        >>> elt = NLGElement(features={'plural': 'plop', 'infl': ['lala']})
+        >>> elt.plural
+        'plop'  # because 'plural' is in features
+        >>> elt.infl
+        ['lala']  # because 'infl' is in features
+        >>> elt.inflections
+        ['lala']  # because INFLECTIONS='infl' is defined as a feature constant
+                # constant, and elt.features['infl'] = ['lala']
+
+        """
+        n = name.upper()
+        flag = 'features' in self.__dict__
+        if not flag:
+            print('features: {}'.format(flag))
+            print(self.__class__)
+            raise Exception('flag!')
+        if name in self.features:
+            return self.features[name]
+        elif n in self._feature_constants:
+            new_name = self._feature_constants[n]
+            return self.features.get(new_name)
+        raise AttributeError(name)
+
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self._type, self.features, self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        return copyobj
+
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
         if self._visitor_name == None:
@@ -643,7 +747,7 @@ class Element:
 
     def features_to_xml_attributes(self):
         features = ""
-        for (k, v) in self._features.items():
+        for (k, v) in self.features.items():
             features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         features = features.strip()
         if features != '':
@@ -655,7 +759,7 @@ class Element:
         If the feature exists, overwrite the old value.
 
         """
-        self._features[feature] = value
+        self.features[feature] = value
 
     def has_feature(self, feature, value=None):
         """ Return True if the element has the given feature.
@@ -663,19 +767,19 @@ class Element:
         otherwise return true if the element has some value for the feature.
 
         """
-        if feature in self._features:
+        if feature in self.features:
             if value is None: return True
-            return value == self._features[feature]
+            return value == self.features[feature]
         return False
 
     def get_feature(self, feature):
         """ Return value for given feature or raise KeyError. """
-        return self._features[feature]
+        return self.features[feature]
 
     def feature(self, feat):
         """ Return value for given feature or None. """
-        if feat in self._features:
-            return self._features[feat]
+        if feat in self.features:
+            return self.features[feat]
         else:
             return None
 
@@ -685,16 +789,16 @@ class Element:
         Otherwise only delete the feature if it has matching value.
 
         """
-        if feat in self._features:
+        if feat in self.features:
             if val is not None:
-                del self._features[feat]
-            elif val == self._features[feat]:
-                del self._features[feat]
+                del self.features[feat]
+            elif val == self.features[feat]:
+                del self.features[feat]
 
-    def add_features(self, features):
+    def addfeatures(self, features):
         """ Add the given features (dict) to the existing features. """
         for k, v in features.items():
-            self._features[k] = v
+            self.features[k] = v
 
     def constituents(self):
         """ Return a generator representing constituents of an element. """
@@ -783,6 +887,12 @@ class String(Element):
             self.hash = (11 * super().__hash__()) ^ hash(self.value)
         return self.hash
 
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self.value, self.features, self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        return copyobj
+
     def constituents(self):
         return [self]
 
@@ -820,6 +930,13 @@ class Word(Element):
                          (hash(self.pos) ^ hash(self.word)))
         return self.hash
 
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self.word, self.pos,
+                                 self.features, self.base, self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        return copyobj
+
     def constituents(self):
         return [self]
 
@@ -843,6 +960,7 @@ class Var(Element):
     def __init__(self, id=None, obj=None, features=None, parent=None):
         super().__init__(VAR, features, parent)
         self.id = id
+        self.value = None
         self.set_value(obj)
 
     def __bool__(self):
@@ -862,6 +980,12 @@ class Var(Element):
             self.hash = ((11 * super().__hash__()) ^
                          (hash(self.id) & hash(self.value)))
         return self.hash
+
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self.id, self.value, self.features, self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        return copyobj
 
     def constituents(self):
         return [self]
@@ -911,6 +1035,11 @@ class Coordination(Element):
 
     def __hash__(self):
         assert False, 'Coordination Element is not hashable'
+
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(*self.coords, self.conj, self.features, self.parent)
+        copyobj.id = self.id
+        return copyobj
 
     def add_front_modifier(self, *mods, pos=0):
         """ Add front modifiers to the first element. """
@@ -1057,12 +1186,15 @@ class Phrase(Element):
             self.add_complement(other)
         return self
 
-
-    # def has_feature(self, feature, value=None):
-    #     if feature in self._features:
-    #         if value is None: return True
-    #         return value == self._features[feature]
-    #     return False
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self._type, self.features, self.parent)
+        copyobj.id = self.id
+        copyobj.front_modifiers = self.front_modifiers
+        copyobj.pre_modifiers = self.pre_modifiers[:]
+        copyobj.head = deepcopy(self.head)
+        copyobj.complements = self.complements[:]
+        copyobj.post_modifiers = self.post_modifiers[:]
+        return copyobj
 
     def accept(self, visitor, element='Phrase'):
         return super().accept(visitor, element)
@@ -1120,7 +1252,7 @@ class Phrase(Element):
         if elt is None: elt = Element()
         self.head = String(elt) if isinstance(elt, str) else elt
         self.head.parent = self
-        self._features.update(self.head._features)
+        self.features.update(self.head.features)
 
     def yield_front_modifiers(self):
         """ Iterate through front modifiers. """
@@ -1190,9 +1322,9 @@ class Phrase(Element):
                     return True
 
         if self.head == one:
-            for k in self.head._features.keys():
-                if k in self._features:
-                    del self._features[k]
+            for k in self.head.features.keys():
+                if k in self.features:
+                    del self.features[k]
             if hasattr(another, '_type') and self._type == another._type:
                 if hasattr(self, 'spec') and hasattr(another, 'spec'):
                     self.spec = another.spec
@@ -1203,7 +1335,7 @@ class Phrase(Element):
                 self.add_post_modifier(*another.post_modifiers)
             else:
                 self.head = another
-            self._features.update(another._features)
+            self.features.update(another.features)
             return True
         elif self.head is not None:
             if self.head.replace(one, another):
@@ -1245,8 +1377,8 @@ class NounPhrase(Phrase):
      * </UL>
      """
 
-    def __init__(self, head=None, spec=None, features=None, **kwargs):
-        super().__init__(NOUNPHRASE, features, **kwargs)
+    def __init__(self, head=None, spec=None, features=None, parent=None, **kwargs):
+        super().__init__(NOUN_PHRASE, features, parent, **kwargs)
         self.spec = None
         self.set_spec(spec)
         self.set_head(head)
@@ -1257,6 +1389,12 @@ class NounPhrase(Phrase):
         return (self.spec == other.spec and
                 self.head == other.head and
                 super().__eq__(other))
+
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self.head, self.spec, self.features, self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        return copyobj
 
     def set_spec(self, spec):
         """ Set the specifier (e.g., determiner) of the NounPhrase. """
@@ -1301,7 +1439,7 @@ class VerbPhrase(Phrase):
      """
 
     def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(VERBPHRASE, features, **kwargs)
+        super().__init__(VERB_PHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
 
@@ -1330,21 +1468,21 @@ class VerbPhrase(Phrase):
 
 class PrepositionalPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(PREPPHRASE, features, **kwargs)
+        super().__init__(PREPOSITIONAL_PHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
 
 
 class AdverbPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(ADVPHRASE, features, **kwargs)
+        super().__init__(ADVERB_PHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
 
 
 class AdjectivePhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(ADJPHRASE, features, **kwargs)
+        super().__init__(ADJECTIVE_PHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
 
@@ -1364,8 +1502,8 @@ class Clause(Element):
     subj = None
     vp = None
 
-    def __init__(self, subj=None, vp=Element(), features=None, **kwargs):
-        super().__init__(CLAUSE, features)
+    def __init__(self, subj=None, vp=Element(), features=None, parent=None, **kwargs):
+        super().__init__(CLAUSE, features, parent=parent)
         self.front_modifiers = list()
         self.pre_modifiers = list()
         self.set_subj(raise_to_np(subj))
@@ -1410,6 +1548,15 @@ class Clause(Element):
         else:
             raise ValueError('Cannot add these up: "{}" + "{}"'.format(self, other))
 
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(self.subj, self.vp, self.features, self.parent)
+        copyobj.id = self.id
+        copyobj.front_modifiers = self.front_modifiers
+        copyobj.pre_modifiers = self.pre_modifiers[:]
+        copyobj.complements = self.complements[:]
+        copyobj.post_modifiers = self.post_modifiers[:]
+        return copyobj
+
     def set_subj(self, subj):
         """ Set the subject of the clause. """
         # convert str to String if necessary
@@ -1428,12 +1575,12 @@ class Clause(Element):
         object.parent = self
         self.add_complement(object)
 
-    def set_features(self, features):
+    def setfeatures(self, features):
         """ Set features on the VerbPhrase. """
         if self.vp:
-            self.vp.set_features(features)
+            self.vp.setfeatures(features)
         else:
-            self._features = features
+            self.features = features
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """

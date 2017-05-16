@@ -1,12 +1,11 @@
-import os
-import sys
 import logging
+import os
 import subprocess
 
-from nlglib.fol import deepen
-from nlglib.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
-from nlglib.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
-from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from logic.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from logic.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from logic.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from logic.fol import deepen
 from nlglib.utils import LogPipe
 
 

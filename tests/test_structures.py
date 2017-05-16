@@ -247,7 +247,7 @@ class TestElement(unittest.TestCase):
         e = Element(ELEMENT)
         self.assertEqual('visit_element', e._visitor_name)
 
-    def test_features(self):
+    def testfeatures(self):
         """ Test handeling features. """
         e = Element(ELEMENT)
         self.assertEqual('visit_element', e._visitor_name)
@@ -255,7 +255,7 @@ class TestElement(unittest.TestCase):
         self.assertEqual(None, e.feature('TENSE'))
         self.assertRaises(KeyError, e.get_feature, 'TENSE')
         e.set_feature('TENSE', 'PAST')
-        self.assertEqual('PAST', e._features['TENSE'])
+        self.assertEqual('PAST', e.features['TENSE'])
         self.assertEqual(True, e.has_feature('TENSE'))
         self.assertEqual('PAST', e.feature('TENSE'))
         self.assertEqual('PAST', e.get_feature('TENSE'))
@@ -270,7 +270,7 @@ class TestElement(unittest.TestCase):
         """ Test replacing an argument with a value (Element). """
         # does nothing on Element
 
-    def test_features_to_xml_attributes(self):
+    def testfeatures_to_xml_attributes(self):
         """ Test formatting features so that they can be put into XML. """
         e = Element()
         expected = ' tense="past"'
@@ -381,7 +381,7 @@ class TestWord(unittest.TestCase):
         self.assertNotEqual(w1, w2)
 
         w2.pos = 'NOUN'
-        w2._features['cat'] = 'NOUN'
+        w2.features['cat'] = 'NOUN'
         self.assertEqual(w1, w2)
 
         w2.set_feature('role', 'subject')

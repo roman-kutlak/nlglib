@@ -10,7 +10,7 @@ from nlglib.microplanning import replace_element, replace_element_with_id
 from nlglib import lexicon
 from nlglib.lexicon import Person, Case, Number, Gender, Features, PronounUse
 from nlglib.lexicon import Pronoun, POS_NOUN
-from .ctx import LinguisticContext
+from .globals import current_linguistic_context
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -21,8 +21,6 @@ def get_log():
 
 def generate_re(msg, **kwargs):
     """ Perform lexicalisation on the message depending on the type. """
-    if 'context' not in kwargs:
-        kwargs['context'] = LinguisticContext()
     if msg is None:
         return None
     elif isinstance(msg, str):
@@ -103,8 +101,7 @@ def _replace_vars_with_nps(message, **kwargs):
 
 def generate_ref_exp(referent, **kwargs):
     get_log().debug('GRE for "{0}"'.format(referent))
-    result = None
-    context = kwargs.get('context', LinguisticContext())
+    context = current_linguistic_context
     if not (isinstance(referent, String) or isinstance(referent, Word)):
         return referent
     if referent in context.referents:
@@ -115,7 +112,7 @@ def generate_ref_exp(referent, **kwargs):
 
 
 def _do_initial_reference(target, **kwargs):
-    context = kwargs.get('context', LinguisticContext())
+    context = current_linguistic_context
     # do we have information about the referent?
     try:
         onto = context.ontology
@@ -125,7 +122,7 @@ def _do_initial_reference(target, **kwargs):
         referent = target.string
         # if referent starts with a capital, assume that it is a proper name
         if referent[0].isupper():
-            result = NounPhrase(target, features=target._features)
+            result = NounPhrase(target, features=target.features)
             result.set_feature('PROPER', 'true')
             return result
 
@@ -165,12 +162,12 @@ def _do_initial_reference(target, **kwargs):
                 result.add_complement(Word(number))
                 result.set_feature('PROPER', 'true')
     except AttributeError:
-        result = NounPhrase(target, features=target._features)
+        result = NounPhrase(target, features=target.features)
         context.referents[target] = (False, result)
     except Exception as msg:
         get_log().exception(msg)
         # if we have no info, assume referent is not unique
-        result = NounPhrase(target, features=target._features)
+        result = NounPhrase(target, features=target.features)
         context.referents[target] = (False, result)
         get_log().error('GRE for "{}" failed : "{}"'.format(target, msg))
         get_log().error('\tusing expr: "{}"'.format(result))
@@ -178,7 +175,7 @@ def _do_initial_reference(target, **kwargs):
 
 
 def _do_repeated_reference(referent, **kwargs):
-    context = kwargs.get('context', LinguisticContext())
+    context = current_linguistic_context
 
     is_unique, refexp = context.referents[referent]
     if is_unique:
@@ -205,8 +202,8 @@ def optimise_ref_exp(phrase, **kwargs):
     """Replace anaphoric noun phrases with pronouns when possible. """
     # TODO: include Number in the dicision process (it vs they)
     # FIXME: Coordinated elements need some special attention
-    result = copy(phrase)
-    context = kwargs.get('context', LinguisticContext())
+    result = deepcopy(phrase)
+    context = current_linguistic_context
     # test for selecting phrases that can be processed
     test = lambda x: isinstance(x, NounPhrase) or isinstance(x, Coordination)
     # reverse so that we start with large phrases first (eg CC)
@@ -321,15 +318,15 @@ def pronominalise(np, *features, **kwargs):
         gender = tmp[0]
     else:
         gender = lexicon.guess_phrase_gender(np)
-    all_features = list(features)
+    allfeatures = list(features)
     if gender == Gender.epicene:
-        all_features = [x for x in all_features if x != Number.singular]
-        all_features.append(Number.plural)
+        allfeatures = [x for x in allfeatures if x != Number.singular]
+        allfeatures.append(Number.plural)
     else:
-        all_features.append(gender)
-    all_features.extend(list(np._features.items()))
+        allfeatures.append(gender)
+    allfeatures.extend(list(np.features.items()))
     get_log().debug('Phrase features for pronominalisation:\n\t{}'
-                    .format(all_features))
-    res = lexicon.pronoun_for_features(*all_features)
+                    .format(allfeatures))
+    res = lexicon.pronoun_forfeatures(*allfeatures)
     get_log().debug('\tresult:{}'.format(res))
     return res

@@ -15,8 +15,9 @@ from copy import deepcopy
 from functools import update_wrapper
 
 from ._compat import BROKEN_PYPY_CTXMGR_EXIT, reraise
-from .globals import _pipeline_ctx_stack
+from .globals import _pipeline_ctx_stack, _linguistic_ctx_stack
 from .signals import pipeline_context_pushed, pipeline_context_popped
+from .signals import linguistic_context_pushed, linguistic_context_popped
 from .structures import NounPhrase, Coordination, Element, is_noun_t
 
 
@@ -82,6 +83,8 @@ class PipelineContext(object):
         if config:
             conf.update(config)
         self.config = pipeline.make_config(mappings=conf)
+        # globals
+        self.g = {}
 
         # Like request context, pipeline contexts can be pushed multiple times
         # but there a basic "refcount" is enough to track them.
@@ -135,7 +138,8 @@ class PipelineContext(object):
 
 
 class LinguisticContext(object):
-    def __init__(self, ontology=None):
+    def __init__(self, ontology=None, pipeline=None):
+        self.pipeline = pipeline
         self.ontology = ontology
         self.referents = dict()
         self.referent_stack = []
@@ -144,7 +148,6 @@ class LinguisticContext(object):
         # this can be used for direct speech or system/user customisation
         self.speakers = []
         self.hearers = []
-        self.templates = {}
 
     def is_speaker(self, element):
         """Return True if the element is a speaker. """
@@ -206,3 +209,41 @@ class LinguisticContext(object):
             unspec_np = deepcopy(np)
             unspec_np.spec = Element()
             self.np_stack.append(unspec_np)
+
+    def push(self):
+        """Binds the pipeline context to the current context."""
+        _linguistic_ctx_stack.push(self)
+        linguistic_context_pushed.send(self)
+
+    def pop(self):
+        """Pops the pipeline context."""
+        rv = _linguistic_ctx_stack.pop()
+        assert rv is self, 'Popped wrong pipeline context. ' \
+                           '(%r instead of %r)' % (rv, self)
+        linguistic_context_popped.send(self)
+
+    def copy(self):
+        """Creates a copy of this pipeline context with the same pipeline object.
+        This can be used to move a pipeline context to a different greenlet.
+        Because the actual pipeline object is the same this cannot be used to
+        move a pipeline context to a different thread unless access to the
+        pipeline object is locked.
+
+        """
+        rv = self.__class__(self.ontology, self.pipeline)
+        rv.referents = self.referents.copy()
+        rv.referent_stack = self.referent_stack[:]
+        rv.np_stack = self.np_stack[:]
+        rv.history = self.history[:]
+        rv.speakers = self.speakers[:]
+        rv.hearers = self.hearers[:]
+
+    def __enter__(self):
+        self.push()
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop()
+
+        if BROKEN_PYPY_CTXMGR_EXIT and exc_type is not None:
+            reraise(exc_type, exc_value, tb)

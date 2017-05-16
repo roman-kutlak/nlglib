@@ -4,15 +4,14 @@ import logging
 import os
 import sys
 
-from contextlib import ContextDecorator
 from threading import Lock
 from werkzeug.datastructures import ImmutableDict
 
-from . import macroplanning, lexicalisation, aggregation, reg, realisation, format
+from . import macroplanning, lexicalisation, aggregation, reg, format
 
 from .config import Config, ConfigAttribute
-from .ctx import PipelineContext
-from .globals import _pipeline_ctx_stack
+from .ctx import PipelineContext, LinguisticContext
+from .globals import _pipeline_ctx_stack, _linguistic_ctx_stack
 from .signals import pipeline_context_tearing_down
 from .utils import PackageBoundObject, locked_cached_property, find_package
 from .lexicon import Lexicon
@@ -120,6 +119,12 @@ class Pipeline(PackageBoundObject):
         if not context:
             with self.pipeline_context(kwargs):
                 return self.process(data, **kwargs)
+        linguistic_context = _linguistic_ctx_stack.top
+        if not linguistic_context:
+            with self.linguistic_context() as linguistic_context:
+                rv = self.process(data, **kwargs)
+                print(linguistic_context.referents)
+                return rv
         rv = data
         # TODO: add pre/post signals
         for name in self.stages:
@@ -266,32 +271,5 @@ class Pipeline(PackageBoundObject):
         """
         return PipelineContext(self, config)
 
-
-#
-# class PipelineContext(ContextDecorator):
-#     def __init__(self, pipeline=None, **kwargs):
-#         self.pipeline = pipeline
-#         self.kwargs = dict(kwargs)
-#         self.stages = dict([
-#             ('CONTENT_PREPROCESSING', self.pipeline.config.get('CONTENT_PREPROCESSING')),
-#             ('CONTENT_SELECTION', self.pipeline.config.get('CONTENT_SELECTION')),
-#             ('CONTENT_AGGREGATION', self.pipeline.config.get('CONTENT_AGGREGATION')),
-#             ('CONTENT_STRUCTURING', self.pipeline.config.get('CONTENT_STRUCTURING')),
-#             ('LEXICALISATION', self.pipeline.config.get('LEXICALISATION')),
-#             ('AGGREGATION', self.pipeline.config.get('AGGREGATION')),
-#             ('PRONOMINALISATION', self.pipeline.config.get('PRONOMINALISATION')),
-#             ('REFERRING', self.pipeline.config.get('REFERRING')),
-#             ('REALISATION', self.pipeline.config.get('REALISATION')),
-#             ('FORMATTING', self.pipeline.config.get('FORMATTING')),
-#         ])
-#
-#     def __enter__(self):
-#         self.original_context = self.pipeline.context
-#         self.pipeline.context = self
-#         return self
-#
-#     def __exit__(self, exc_type, exc_val, exc_tb):
-#         self.pipeline.context = self.original_context
-#         self.original_context = None
-#         del self.__dict__['pipeline']
-#         return False
+    def linguistic_context(self):
+        return LinguisticContext(pipeline=self)

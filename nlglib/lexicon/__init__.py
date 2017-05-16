@@ -4,7 +4,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pickle import load
 
-from nlglib.gender import gender  # name genders; first names as keys are in caps
+from lexicon.name_genders import name_genders  # name genders; first names as keys are in caps
 from nlglib.structures import AdjectivePhrase, AdverbPhrase
 from nlglib.structures import Element, Word, Phrase, Coordination
 from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
@@ -260,7 +260,7 @@ def str_or_element(fn):
             return fn(word, features=features)
         elif isinstance(word, Element):
             tmp = fn(str(word), features=features)
-            word._features.update(tmp._features)
+            word.features.update(tmp.features)
             return word
         else:
             return fn(str(word), features=features)
@@ -419,8 +419,8 @@ def AdvP(head, *complements, features=None):
 def guess_noun_gender(word):
     """Guess the gender of the given word. """
     key = word.upper()
-    if key in gender:
-        val = gender[key]
+    if key.upper() in name_genders:
+        val = name_genders[key]
         if val == 'male':
             return Gender.masculine
         elif val == 'female':
@@ -488,7 +488,8 @@ class Lexicon:
         self._variants = defaultdict(set)
         # setup tagger if supported:
         try:
-            with open('resources/averaged_perceptron_tagger.pickle', 'rb') as input:
+            with open('resources/averaged_perceptron_tagger.pickle',
+                      'rb') as input:
                 self.tagger = load(input)
         except Exception:
             get_log().exception('Could not load pickled tagger.')
@@ -646,7 +647,7 @@ class Lexicon:
         if self.tagger is not None:
             w, tag = self.tagger.tag([word])
             # map corpus tags to our tags
-            fs = self.brown_tag_to_features(tag)
+            fs = self.brown_tag_tofeatures(tag)
             t = self.brown_tag_to_standard_tag(tag)
             candidate = self.word(w, t, 'new')
             for k, v in fs: candidate.set_feature(k, v)
@@ -660,7 +661,7 @@ class Lexicon:
                     self.complementiser(word) or self.numeral(word) or
                     self.symbol(word))
 
-    def brown_tag_to_features(self, tag):
+    def brown_tag_tofeatures(self, tag):
         """ Return the features corresponding to the given (Brown corp) tag. """
         features = {}
         if tag.endswith('$'):
@@ -841,7 +842,7 @@ def inflection(word, **features):
     return word
 
 
-def pronoun_for_features(*features):
+def pronoun_forfeatures(*features):
     """Return a pronoun matching given features. """
     fs = frozenset(features)
     max_ = 0
@@ -862,11 +863,11 @@ def pronoun_for_features(*features):
     prefs_pu = [x[1] for x in PU.preference_order]
     # sort the candidates by a sensible order as defined in the class
     choices.sort(key=lambda x:
-                 prefs_number.index(x.get_feature(str(Number))))
+    prefs_number.index(x.get_feature(str(Number))))
     choices.sort(key=lambda x:
-                 prefs_person.index(x.get_feature(str(Person))))
+    prefs_person.index(x.get_feature(str(Person))))
     choices.sort(key=lambda x:
-                 prefs_pu.index(x.get_feature(str(PU))))
+    prefs_pu.index(x.get_feature(str(PU))))
     return choices[0]
 
 
@@ -914,7 +915,8 @@ pronouns = {
     (Number.singular, Person.third, PU.reflexive, Gender.neuter): 'itself',
     #    (Number.singular, Person.third, PU.reflexive, Gender.epicene): 'themself',
     (Number.singular, Person.generic, PU.reflexive, Register.formal): 'oneself',
-    (Number.singular, Person.generic, PU.reflexive, Register.informal): 'yourself',
+    (Number.singular, Person.generic, PU.reflexive,
+     Register.informal): 'yourself',
     # possessive use
     (Number.singular, Person.first, PU.possessive): 'mine',
     (Number.singular, Person.second, PU.possessive): 'yours',

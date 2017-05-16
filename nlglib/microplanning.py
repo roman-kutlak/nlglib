@@ -5,7 +5,7 @@ from nlglib.structures import Element, Word, Clause, Phrase, Coordination
 from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
 from nlglib.structures import AdjectivePhrase, AdverbPhrase, Var
 from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
-from nlglib.structures import NOUNPHRASE, VERBPHRASE, VAR, COORDINATION
+from nlglib.structures import NOUN_PHRASE, VERB_PHRASE, VAR, COORDINATION
 from nlglib.lexicon import POS_VERB, POS_ADVERB
 
 
@@ -30,8 +30,8 @@ def promote_to_clause(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
     if is_clause_t(e): return e
     if is_phrase_t(e):
-        if e._type == NOUNPHRASE: return Clause(e)
-        if e._type == VERBPHRASE: return Clause(Element(), e)
+        if e._type == NOUN_PHRASE: return Clause(e)
+        if e._type == VERB_PHRASE: return Clause(Element(), e)
     return Clause(e)
 
 
@@ -39,16 +39,16 @@ def promote_to_phrase(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
     if is_clause_t(e): return e
     if is_phrase_t(e): return e
-    if e._type == STRING: return NounPhrase(e, features=e._features)
-    if e._type == VAR: return NounPhrase(e, features=e._features)
+    if e._type == STRING: return NounPhrase(e, features=e.features)
+    if e._type == VAR: return NounPhrase(e, features=e.features)
     if e._type == WORD:
-        if e.pos == POS_VERB: return VerbPhrase(e, features=e._features)
-        if e.pos == POS_ADVERB: return VerbPhrase(e, features=e._features)
-        return NounPhrase(e, features=e._features)
+        if e.pos == POS_VERB: return VerbPhrase(e, features=e.features)
+        if e.pos == POS_ADVERB: return VerbPhrase(e, features=e.features)
+        return NounPhrase(e, features=e.features)
     if e._type == COORDINATION:
         return Coordination(*[promote_to_phrase(x) for x in e.coords],
-                            conj=e.conj, features=e._features)
-    return NounPhrase(e, features=e._features)
+                            conj=e.conj, features=e.features)
+    return NounPhrase(e, features=e.features)
 
 
 # Visitors -- printing, xml, etc.
@@ -288,15 +288,15 @@ class ReprVisitor(PrintVisitor):
     def visit_string(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0}'.format(repr(node.value))
-        if node._features != dict():
-            self.data += ', ' + repr(node._features)
+        if node.features != dict():
+            self.data += ', ' + repr(node.features)
         self.data += ')'
 
     def visit_word(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Word({0}, {1}'.format(repr(node.word), repr(node.pos))
-        if node._features != dict():
-            self.data += ', ' + repr(node._features)
+        if node.features != dict():
+            self.data += ', ' + repr(node.features)
         self.data += ')'
 
     def visit_var(self, node):
@@ -306,8 +306,8 @@ class ReprVisitor(PrintVisitor):
         else:
             self.data += 'Var({0}, {1}'.format(repr(node.id),
                                                        repr(node.value))
-        if node._features != dict():
-            self.data += ', ' + repr(node._features)
+        if node.features != dict():
+            self.data += ', ' + repr(node.features)
         self.data += ')'
 
     def visit_np(self, node):
@@ -319,8 +319,8 @@ class ReprVisitor(PrintVisitor):
         if node.spec != Element():
             self.data += ', '
             node.spec.accept(self)
-        if node._features != dict():
-            self.data += ', features=' + repr(node._features)
+        if node.features != dict():
+            self.data += ', features=' + repr(node.features)
         self.do_indent = True
         self._process_elements(node, 'front_modifiers')
         self._process_elements(node, 'pre_modifiers')
@@ -346,9 +346,9 @@ class ReprVisitor(PrintVisitor):
             i -= 1
             c.accept(self)
             self.do_indent = True
-        if node._features != dict():
+        if node.features != dict():
             self.data += ',\n'
-            self.data += self.indent + 'features=' + repr(node._features)
+            self.data += self.indent + 'features=' + repr(node.features)
         self._process_elements(node, 'front_modifiers')
         self._process_elements(node, 'pre_modifiers')
         self._process_elements(node, 'post_modifiers')
@@ -376,9 +376,9 @@ class ReprVisitor(PrintVisitor):
         self.data += ',\n'
         self.indent += ' ' * len('Clause(')
         node.vp.accept(self)
-        if node._features != dict():
+        if node.features != dict():
             self.data += ',\n'
-            self.data += self.indent + 'features=' + repr(node._features)
+            self.data += self.indent + 'features=' + repr(node.features)
         self._process_elements(node, 'front_modifiers')
         self._process_elements(node, 'pre_modifiers')
         self._process_elements(node, 'complements')
@@ -398,9 +398,9 @@ class ReprVisitor(PrintVisitor):
             self.data += ',\n'
             self.do_indent = True
         self.data += self.indent + 'conj={0}'.format(repr(node.conj))
-        if node._features != dict():
+        if node.features != dict():
             self.data += ',\n' + self.indent
-            self.data += 'features=' + repr(node._features)
+            self.data += 'features=' + repr(node.features)
         self.do_indent = True
         self.data += ')'
         self.indent = self.indent[:-len('Coordination(')]

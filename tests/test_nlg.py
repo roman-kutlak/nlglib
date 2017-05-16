@@ -8,7 +8,7 @@ from nlglib.macroplanning import StringMsgSpec
 def get_clause():
     clause = Clause(NounPhrase(Word('you', 'NOUN')),
                     VerbPhrase(Word('say', 'VERB'), String('hello')))
-    clause._features['FORM'] = "IMPERATIVE"
+    clause.features['FORM'] = "IMPERATIVE"
     return clause
 
 

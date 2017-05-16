@@ -1,16 +1,15 @@
 import itertools
 import logging
-
 from collections import defaultdict
 
-from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
-from nlglib.fol import OP_EXISTS, OP_FORALL
-from nlglib.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
-from nlglib.fol import is_predicate, is_variable, is_function
+from nlglib.logic.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
+from nlglib.logic.fol import OP_EXISTS, OP_FORALL
+from nlglib.logic.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
+from nlglib.logic.fol import expr
+from nlglib.logic.fol import is_predicate, is_variable, is_function
+from nlglib.logic.simplifications import simplification_ops
 from nlglib.structures import Message, MsgSpec, Word, String, Var
 from nlglib.structures import NounPhrase, Paragraph
-from nlglib.fol import expr
-from nlglib.simplifications import simplification_ops
 
 
 def get_log():
@@ -82,7 +81,7 @@ class PredicateMsg(MsgSpec):
         super().__init__(str(pred.op))
         self.predicate = pred
         self.args = list(arguments)
-        self._features = features or {}
+        self.features = features or {}
 
     def __str__(self):
         """ Return a suitable string representation. """
@@ -99,7 +98,7 @@ class PredicateMsg(MsgSpec):
             return p.op
         else:
             neg = ''
-            if 'NEGATED' in self._features and self._features['NEGATED'] == 'true':
+            if 'NEGATED' in self.features and self.features['NEGATED'] == 'true':
                 neg = 'not '
             return neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
 
@@ -180,7 +179,7 @@ def formula_to_rst(f):
         get_log().debug('negated predicate: ' + str(f))
         arg = f.args[0]
         m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
-        m._features = {'NEGATED': 'true'}
+        m.features = {'NEGATED': 'true'}
         return m
     if f.op == OP_NOT and is_variable(f.args[0]):
         get_log().debug('negated variable: ' + str(f))

@@ -155,7 +155,7 @@ class RealisationVisitor:
     def visit_clause(self, node):
         # do a bit of coordination
         logger.debug('Clause is "{0}"'.format(repr(node)))
-        node.vp.add_features(node._features)
+        node.vp.addfeatures(node.features)
         if node.subj.has_feature('NUMBER'):
             node.vp.set_feature('NUMBER', node.subj.get_feature('NUMBER'))
         if node.subj.has_feature('GENDER'):

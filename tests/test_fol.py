@@ -1,10 +1,10 @@
 import time
 import unittest
 
-from nlglib.fol import *
+from logic.fol import *
+from logic.simplifications import *
+from logic.simplifications import unique_vars
 from nlglib import prover
-from nlglib.simplifications import *
-from nlglib.simplifications import unique_vars
 
 
 class TestFOL(unittest.TestCase):

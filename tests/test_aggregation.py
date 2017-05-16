@@ -25,19 +25,19 @@ class TestAggregation(unittest.TestCase):
         vp.complements.append(pp)
         
         obj1 = NounPhrase(piano, the)
-        obj1._features["discourseFunction"] = 'OBJECT'
+        obj1.features["discourseFunction"] = 'OBJECT'
         obj2 = NounPhrase(drum, the)
-        obj2._features["discourseFunction"] = 'OBJECT'
+        obj2.features["discourseFunction"] = 'OBJECT'
         
         vp2 = deepcopy(vp)
         vp.complements.insert(0, obj1)
         vp2.complements.insert(0, obj2)
         
         self.c1 = Clause(vp=vp)
-        self.c1._features['FORM'] = "IMPERATIVE"
+        self.c1.features['FORM'] = "IMPERATIVE"
         
         self.c2 = Clause(vp=vp2)
-        self.c2._features['FORM'] = "IMPERATIVE"
+        self.c2.features['FORM'] = "IMPERATIVE"
         
         self.john = NounPhrase(Word('John'))
         self.a = Word('a', 'DETERNIMER')

@@ -1,16 +1,18 @@
-import re
 import logging
+import re
 from collections import defaultdict
 
-from nlglib import prover
-from nlglib.fol import flatten, var_for_idx
-from nlglib.fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
-from nlglib.fol import is_predicate, is_quantified, is_true, is_false, is_variable
-from nlglib.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
-from nlglib.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
-from nlglib.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
-from nlglib.fol import LOGIC_OPS, BINARY_LOGIC_OPS
-from nlglib.qm import qm
+from nlglib.logic.qm import qm
+
+from nlglib.logic.fol import Expr, Quantifier, fvars, opposite, subst, variant, deepen
+from nlglib.logic.fol import LOGIC_OPS, BINARY_LOGIC_OPS
+from nlglib.logic.fol import OP_EQUALS, OP_NOTEQUALS, OP_FORALL, OP_EXISTS
+from nlglib.logic.fol import OP_EQUIVALENT, OP_IMPLIES, OP_IMPLIED_BY
+from nlglib.logic.fol import OP_TRUE, OP_FALSE, OP_NOT, OP_AND, OP_OR
+from nlglib.logic.fol import flatten, var_for_idx
+from nlglib.logic.fol import is_predicate, is_quantified, is_true, is_false, \
+    is_variable
+from nlglib.logic import prover
 
 
 def get_log():
@@ -36,7 +38,8 @@ def kleene(f):
             return kleene(f.args[0])
         else:
             arg = kleene(f.args[0])
-            variables = [v for v in f.vars if v in needed]  # keep the same order
+            variables = [v for v in f.vars if
+                         v in needed]  # keep the same order
             if (arg != f.args[0]) or (len(needed) < len(f.vars)):
                 return kleene(Quantifier(f.op, variables, arg))
             else:
@@ -373,7 +376,8 @@ def push_quants(f):
         if is_quantified(f):
             arg = f.args[0]
             if arg.op == OP_NOT:
-                return ~pushquants(Quantifier(opposite(f.op), f.vars, arg.args[0]))
+                return ~pushquants(
+                    Quantifier(opposite(f.op), f.vars, arg.args[0]))
             elif is_quantified(arg):
                 arg1 = pushquants(arg)
                 # did pushquants have any effect?
@@ -402,13 +406,15 @@ def push_quants(f):
                         return Quantifier(f.op, f.vars, pushquants(arg))
                 if variable in fvars(arg1):
                     return pushquants(Expr(arg.op,
-                                           Quantifier(f.op, f.vars, arg1), arg2))
+                                           Quantifier(f.op, f.vars, arg1),
+                                           arg2))
                 if variable in fvars(arg2):
                     return pushquants(Expr(arg.op, arg1,
                                            Quantifier(f.op, f.vars, arg2)))
                 else:
-                    get_log().warning('Dropped quantifier "{0} : {1}" from "{2}"'
-                                      .format(f.op, f.vars, f))
+                    get_log().warning(
+                        'Dropped quantifier "{0} : {1}" from "{2}"'
+                        .format(f.op, f.vars, f))
                     return arg
             elif arg.op == OP_IMPLIES:
                 arg1 = arg.args[0]
@@ -424,8 +430,9 @@ def push_quants(f):
                     return (pushquants(arg1) >>
                             pushquants(Quantifier(f.op, variable, arg2)))
                 else:
-                    get_log().warning('Dropped quantifier "{0} : {1}" from "{2}"'
-                                      .format(f.op, f.vars, f))
+                    get_log().warning(
+                        'Dropped quantifier "{0} : {1}" from "{2}"'
+                        .format(f.op, f.vars, f))
                     return (pushquants(arg1) >> pushquants(arg2))
             elif arg.op == OP_IMPLIED_BY:
                 arg1 = arg.args[0]
@@ -441,8 +448,9 @@ def push_quants(f):
                     return (pushquants(arg1) <<
                             pushquants(Quantifier(quant, variable, arg2)))
                 else:
-                    get_log().warning('Dropped quantifier "{0} : {1}" from "{2}"'
-                                      .format(f.op, f.vars, f))
+                    get_log().warning(
+                        'Dropped quantifier "{0} : {1}" from "{2}"'
+                        .format(f.op, f.vars, f))
                     return (pushquants(arg1) << pushquants(arg2))
             else:
                 return Quantifier(f.op, f.vars[0], pushquants(f.args[0]))

@@ -14,7 +14,7 @@ def get_clause():
 def get_test_doc():
     m1 = Message('Leaf', Clause(String('hello'), None))
     c = get_clause()
-    c._features['FORM'] = "IMPERATIVE"
+    c.features['FORM'] = "IMPERATIVE"
     m2 = Message('Elaboration', c)
     para = Paragraph(m1, m2)
     return para
@@ -34,7 +34,7 @@ class TestRealiser(unittest.TestCase):
         expected = 'You say hello.'
         self.assertEqual(expected, text)
 
-        c._features['FORM'] = "IMPERATIVE"
+        c.features['FORM'] = "IMPERATIVE"
 
         text = realiser.realise(c)
         expected = 'Say hello.'

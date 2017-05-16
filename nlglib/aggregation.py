@@ -29,21 +29,21 @@ def add_elements(e1, e2, conj='and', **kwargs):
     if isinstance(e1, Coordination):
         cc = deepcopy(e1)
         cc.coords.append(deepcopy(e2))
-        if 'discourseFunction' in e2._features:
-            cc._features['discourseFunction'] = e2._features['discourseFunction']
+        if 'discourseFunction' in e2.features:
+            cc.features['discourseFunction'] = e2.features['discourseFunction']
 
     elif isinstance(e2, Coordination):
         cc = deepcopy(e2)
         cc.coords.append(deepcopy(e1))
-        if 'discourseFunction' in e1._features:
-            cc._features['discourseFunction'] = e1._features['discourseFunction']
+        if 'discourseFunction' in e1.features:
+            cc.features['discourseFunction'] = e1.features['discourseFunction']
     else:
         cc.coords.append(deepcopy(e1))
         cc.coords.append(deepcopy(e2))
-        if 'discourseFunction' in e2._features:
-            cc._features['discourseFunction'] = e2._features['discourseFunction']
-        elif 'discourseFunction' in e1._features:
-            cc._features['discourseFunction'] = e1._features['discourseFunction']
+        if 'discourseFunction' in e2.features:
+            cc.features['discourseFunction'] = e2.features['discourseFunction']
+        elif 'discourseFunction' in e1.features:
+            cc.features['discourseFunction'] = e1.features['discourseFunction']
     cc.set_feature('conj', conj)
     # TODO: figure out when it is appropriate to set number to plural
     if not cc.coords[0].has_feature('PROPER', 'true'):
@@ -229,7 +229,7 @@ def aggregate_clause(clause, **kwargs):
     subj = aggregate(clause.subj, **kwargs)
     obj = aggregate(clause.complements, **kwargs)
     vp = aggregate(clause.vp, **kwargs)
-    vp.add_features(clause.vp._features)
+    vp.addfeatures(clause.vp.features)
     c = deepcopy(clause)
     c.set_subj(subj)
     c.set_vp(vp)
@@ -243,10 +243,10 @@ def aggregate_coordination(cc, **kwargs):
     coords = aggregate_list(cc.coords, **kwargs)
     if len(coords) == 1:
         result = coords[0]
-        result.add_features(cc._features)
+        result.addfeatures(cc.features)
         return result
     else:
-        return Coordination(*coords, conj=cc.conj, features=cc._features)
+        return Coordination(*coords, conj=cc.conj, features=cc.features)
 
 
 def aggregate_message(msg, **kwargs):

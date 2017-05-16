@@ -1,6 +1,6 @@
 import unittest
 
-from nlglib.fol import expr, Expr
+from logic.fol import expr, Expr
 from nlglib.macroplanning import formula_to_rst, PredicateMsg
 
 

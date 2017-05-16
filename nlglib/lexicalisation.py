@@ -57,7 +57,7 @@ def lexicalise_element(elt, **kwargs):
                         .format(repr(arg), repr(elt), repr(result)))
         if isinstance(result, str):
             result = String(result)
-        result.add_features(elt._features)
+        result.addfeatures(elt.features)
         if elt == arg:
             return result
         else:
@@ -81,15 +81,15 @@ def lexicalise_message_spec(msg, **kwargs):
         if template is None:
             get_log().warning('No sentence template for "%s"' % msg.name)
             result = String(str(msg))
-            result.add_features(msg._features)
+            result.addfeatures(msg.features)
             return result
         if hasattr(template, '__call__'):  # callable passed -- invoke
             template = template(msg, **kwargs)
         if isinstance(template, str):
             result = String(template)
-            result.add_features(msg._features)
+            result.addfeatures(msg.features)
             return result
-        template.add_features(msg._features)
+        template.addfeatures(msg.features)
         if isinstance(template, Element) and not is_clause_t(template):
             result = lexicalise(template)
             return result  # return phrases and words
@@ -128,7 +128,7 @@ def lexicalise_message(msg, parenthesis=False, **kwargs):
         nucleus = lexicalise(msg.nucleus, **kwargs)
     satellites = [lexicalise(x, **kwargs) for x in msg.satellites if x is not None]
 
-    features = msg._features if hasattr(msg, '_features') else {}
+    features = msg.features if hasattr(msg, 'features') else {}
     # stick each message into a clause
     result = None
     if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
@@ -211,7 +211,7 @@ def lexicalise_message(msg, parenthesis=False, **kwargs):
         result.marker = msg.marker
         # TODO: decide how to handle features. Add to all? Drop?
         # return ([nucleus] if nucleus else []) + [x for x in satellites]
-    result.add_features(features)
+    result.addfeatures(features)
     return result
 
 
