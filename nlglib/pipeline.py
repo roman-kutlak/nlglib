@@ -46,7 +46,7 @@ class Pipeline(PackageBoundObject):
     debug = ConfigAttribute('DEBUG')
 
     #: The testing flag.  Set this to ``True`` to enable the test mode of
-    #: Flask extensions (and in the future probably also Flask itself).
+    #: nlglib extensions (and in the future probably also nlglib itself).
     #: For example this might activate unittest helpers that have an
     #: additional runtime cost which should not be enabled by default.
     #:
@@ -151,9 +151,9 @@ class Pipeline(PackageBoundObject):
         return rv
 
     def make_config(self, instance_relative=False, mappings=None):
-        """Used to create the config attribute by the Flask constructor.
+        """Used to create the config attribute by the Pipeline constructor.
         The `instance_relative` parameter is passed in from the constructor
-        of Flask (there named `instance_relative_config`) and indicates if
+        of Pipeline (there named `instance_relative_config`) and indicates if
         the config should be relative to the instance path or the root path
         of the application.
 
@@ -170,7 +170,7 @@ class Pipeline(PackageBoundObject):
         """The name of the application.  This is usually the import name
         with the difference that it's guessed from the run file if the
         import name is main.  This name is used as a display name when
-        Flask needs the name of the application.  It can be set and overridden
+        nlglib needs the name of the application.  It can be set and overridden
         to change the value.
 
         """

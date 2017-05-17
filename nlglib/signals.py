@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    flask.signals
-    ~~~~~~~~~~~~~
+    nlglib.signals
+    ~~~~~~~~~~~~~~
 
     Implements signals based on blinker if available, otherwise
     falls silently back to a noop.

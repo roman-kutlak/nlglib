@@ -49,7 +49,7 @@ def copy_current_pipeline_context(f):
         def process():
             @copy_current_request_context
             def do_some_work():
-                # do some work here, it can access flask.request like you
+                # do some work here, it can access nlglib.pipeline_context like you
                 # would otherwise in the view function.
                 ...
             gevent.spawn(do_some_work)

@@ -197,13 +197,7 @@ def formula_to_rst(f):
         return PredicateMsg(f, *[formula_to_rst(x) for x in f.args])
     if is_function(f):
         get_log().debug('function: ' + str(f))
-        return Var(f.op,
-                           PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
+        return Var(f.op, PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
     else:
         get_log().debug('None: ' + repr(f))
         return PredicateMsg(f)
-
-
-def fol_to_synt(f, do_parent=True):
-    """ FOL formula to syntactic structure. """
-    get_log().debug('fol_to_synt({0}).'.format(str(f)))
