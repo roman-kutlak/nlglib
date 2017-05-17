@@ -613,7 +613,7 @@ class Element(object, metaclass=FeatureModulesLoader):
         self.id = 0  # this is useful for replacing elements
         self._type = type
         self._visitor_name = VisitorNames[type]
-        self.features = features or dict()
+        self.features = deepcopy(features) if features else {}
         self.hash = -1
         self.parent = parent
 
@@ -982,7 +982,7 @@ class Var(Element):
         return self.hash
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.id, self.value, self.features, self.parent)
+        copyobj = self.__class__(self.id, self.value, features=self.features, parent=self.parent)
         copyobj.id = self.id
         copyobj.hash = self.hash
         return copyobj
@@ -1037,7 +1037,8 @@ class Coordination(Element):
         assert False, 'Coordination Element is not hashable'
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(*self.coords, self.conj, self.features, self.parent)
+        copyobj = self.__class__(conj=self.conj, features=self.features, parent=self.parent)
+        copyobj.coords = deepcopy(self.coords)
         copyobj.id = self.id
         return copyobj
 
@@ -1108,31 +1109,6 @@ class Coordination(Element):
         return self.coords[0].string
 
 
-# FIXME: incomplete implementation -- who is parent and who is subord child?
-class Subordination(Element):
-    """ Subordinate elment. """
-
-    def __init__(self, main, subordinate, features=None, parent=None):
-        super().__init__(SUBORDINATION, features, parent)
-        self.main = main
-        self.subordinate = subordinate
-
-    def __bool__(self):
-        """ Return True """
-        return True
-
-    def __eq__(self, other):
-        if not isinstance(other, Subordination):
-            return False
-        else:
-            return (self.main == other.main and
-                    self.subordinate == other.subordinate and
-                    super().__eq__(other))
-
-    def __hash__(self):
-        assert False, 'Coordination Element is not hashable'
-
-
 class Phrase(Element):
     """ A base class for all kinds of phrases - elements containing other
         elements in specific places of the construct (front-, pre-, post-
@@ -1187,13 +1163,13 @@ class Phrase(Element):
         return self
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self._type, self.features, self.parent)
+        copyobj = self.__class__(self._type, features=self.features, parent=self.parent)
         copyobj.id = self.id
-        copyobj.front_modifiers = self.front_modifiers
-        copyobj.pre_modifiers = self.pre_modifiers[:]
+        copyobj.front_modifiers = deepcopy(self.front_modifiers)
+        copyobj.pre_modifiers = deepcopy(self.pre_modifiers)
         copyobj.head = deepcopy(self.head)
-        copyobj.complements = self.complements[:]
-        copyobj.post_modifiers = self.post_modifiers[:]
+        copyobj.complements = deepcopy(self.complements)
+        copyobj.post_modifiers = deepcopy(self.post_modifiers)
         return copyobj
 
     def accept(self, visitor, element='Phrase'):
@@ -1391,7 +1367,8 @@ class NounPhrase(Phrase):
                 super().__eq__(other))
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.head, self.spec, self.features, self.parent)
+        copyobj = self.__class__(deepcopy(self.head), deepcopy(self.spec),
+                                 features=self.features, parent=self.parent)
         copyobj.id = self.id
         copyobj.hash = self.hash
         return copyobj
@@ -1443,6 +1420,14 @@ class VerbPhrase(Phrase):
         self.set_head(head)
         self.add_complement(*compl)
 
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(deepcopy(self.head),
+                                 features=self.features, parent=self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        copyobj.complements = deepcopy(self.complements)
+        return copyobj
+
     def get_object(self):
         for c in self.complements:
             if c.has_feature('discourseFunction', 'OBJECT'):
@@ -1472,6 +1457,14 @@ class PrepositionalPhrase(Phrase):
         self.set_head(head)
         self.add_complement(*compl)
 
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(deepcopy(self.head),
+                                 features=self.features, parent=self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        copyobj.complements = deepcopy(self.complements)
+        return copyobj
+
 
 class AdverbPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
@@ -1479,12 +1472,28 @@ class AdverbPhrase(Phrase):
         self.set_head(head)
         self.add_complement(*compl)
 
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(deepcopy(self.head),
+                                 features=self.features, parent=self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        copyobj.complements = deepcopy(self.complements)
+        return copyobj
+
 
 class AdjectivePhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(ADJECTIVE_PHRASE, features, **kwargs)
         self.set_head(head)
         self.add_complement(*compl)
+
+    def __deepcopy__(self, memodict={}):
+        copyobj = self.__class__(deepcopy(self.head),
+                                 features=self.features, parent=self.parent)
+        copyobj.id = self.id
+        copyobj.hash = self.hash
+        copyobj.complements = deepcopy(self.complements)
+        return copyobj
 
 
 class Clause(Element):
@@ -1549,12 +1558,15 @@ class Clause(Element):
             raise ValueError('Cannot add these up: "{}" + "{}"'.format(self, other))
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.subj, self.vp, self.features, self.parent)
+        copyobj = self.__class__(deepcopy(self.subj),
+                                 deepcopy(self.vp),
+                                 features=self.features,
+                                 parent=self.parent)
         copyobj.id = self.id
-        copyobj.front_modifiers = self.front_modifiers
-        copyobj.pre_modifiers = self.pre_modifiers[:]
-        copyobj.complements = self.complements[:]
-        copyobj.post_modifiers = self.post_modifiers[:]
+        copyobj.front_modifiers = deepcopy(self.front_modifiers)
+        copyobj.pre_modifiers = deepcopy(self.pre_modifiers)
+        copyobj.complements = deepcopy(self.complements)
+        copyobj.post_modifiers = deepcopy(self.post_modifiers)
         return copyobj
 
     def set_subj(self, subj):

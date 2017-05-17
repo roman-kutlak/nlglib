@@ -23,17 +23,19 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development :: Libraries',
         'Topic :: Text Processing :: Linguistic'
     ],
-    include_package_data=True,
     packages=find_packages(exclude=['test/*']),
-    zip_safe=False,
     keywords=['natural language generation', 'NLG', 'text generation', 'nlglib'],
     install_requires=[
         'rdflib',
         'werkzeug'
-    ]
+    ],
+
+    include_package_data=True,
+    package_dir={'nlglib': 'nlglib'},
+    package_data={'nlglib': ['resources/*']},
+    zip_safe=False,
 )

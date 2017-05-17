@@ -84,10 +84,10 @@ def try_to_aggregate(sent1, sent2, marker='and', **kwargs):
                 s1.replace(replacement, cc)
                 get_log().debug('Result of aggregation:\n%s' % repr(s1))
                 return s1
-                #            else:
-                #                print('Did not aggregate:\n\t%s\n\t%s' % (str(s1), str(s2)))
-                #                if (str(s1) == str(s2)):
-                #                    print('s1 == s2: %s' % str(s1 == s2))
+           # else:
+           #     print('Did not aggregate:\n\t%s\n\t%s' % (str(s1), str(s2)))
+           #     if (str(s1) == str(s2)):
+           #         print('s1 == s2: %s' % str(s1 == s2))
     return None
 
 
@@ -210,7 +210,7 @@ def aggregate(msg, **kwargs):
     else:
         #        get_log().warning('"%s" is neither a Message nor a MsgInstance' %
         #            str(type(msg)))
-        return msg
+        return deepcopy(msg)
 
 
 def aggregate_list(lst, **kwargs):
@@ -268,7 +268,8 @@ def aggregate_message(msg, **kwargs):
             marker = 'and'
         else:
             marker = msg.marker
-        elements = synt_aggregation(msg.satellites, **kwargs)
+        elements = synt_aggregation([aggregate(s, **kwargs) for s in msg.satellites],
+                                    **kwargs)
     elif len(msg.satellites) == 1:
         elements.append(msg.satellites[0])
     if msg.nucleus is not None:

@@ -1,4 +1,5 @@
 import logging
+import pkg_resources
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
@@ -488,10 +489,11 @@ class Lexicon:
         self._variants = defaultdict(set)
         # setup tagger if supported:
         try:
-            with open('resources/averaged_perceptron_tagger.pickle',
-                      'rb') as input:
-                self.tagger = load(input)
-        except Exception:
+            tagger_name = 'resources/averaged_perceptron_tagger.pickle'
+            tagger_path = pkg_resources.resource_filename('nlglib', tagger_name)
+            with open(tagger_path, 'rb') as tagger:
+                self.tagger = load(tagger)
+        except FileNotFoundError:
             get_log().exception('Could not load pickled tagger.')
             self.tagger = None
 

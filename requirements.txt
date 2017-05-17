@@ -1,1 +1,4 @@
 rdflib
+nose
+coverage
+werkzeug

@@ -76,7 +76,7 @@ def lexicalise_message_spec(msg, **kwargs):
     available_templates = kwargs.get('templates', templates)
     template = None
     try:
-        template = available_templates.get(msg.name)
+        template = deepcopy(available_templates.get(msg.name))
         # TODO: should MessageSpec correspond to a clause?
         if template is None:
             get_log().warning('No sentence template for "%s"' % msg.name)

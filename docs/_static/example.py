@@ -6,7 +6,7 @@ from nlglib.structures import String, Clause, Coordination, Var
 
 import logging
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
 def run_simple_examples():
@@ -33,7 +33,7 @@ def run_simple_examples():
     print(realise(aggregate(guitarists)))
 
     gringo = Coordination(Clause(NNP('George'),
-                                 VP('play', NP('a', 'base'),
+                                 VP('play', NP('a', 'bass'),
                                     features=dict([Aspect.progressive, Tense.past]))),
                           Clause(NNP('Ringo'),
                                  VP('play', NP('drum', features=dict([Number.plural])),
@@ -45,7 +45,7 @@ def run_simple_examples():
 
 def run_pipeline():
     templates = {
-        'john': NNP('John', features=dict([Gender.feminine])),
+        'john': NNP('John', features=dict([Gender.masculine])),
         'paul': NNP('Paul', features=dict([Gender.masculine])),
         'george': NNP('George', features=dict([Gender.masculine])),
         'ringo': NNP('Ringo', features=dict([Gender.masculine])),

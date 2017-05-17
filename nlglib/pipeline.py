@@ -32,8 +32,6 @@ def get_debug_flag(default=None):
 class Pipeline(PackageBoundObject):
     #: The name of the logger to use.  By default the logger name is the
     #: package name passed to the constructor.
-    #:
-    #: .. versionadded:: 0.4
     logger_name = ConfigAttribute('LOGGER_NAME')
 
     #: The debug flag.  Set this to ``True`` to enable debugging of the
@@ -136,7 +134,8 @@ class Pipeline(PackageBoundObject):
             if isinstance(func, str):
                 package, dot, obj = func.rpartition('.')
                 if not dot:
-                    raise RuntimeError('The function string has to contain the package.')
+                    msg = 'The function string "{}" has to contain the package.'
+                    raise RuntimeError(msg.format(func))
                 func = (package, obj)
             if isinstance(func, tuple):
                 pkg, obj = func
@@ -183,13 +182,13 @@ class Pipeline(PackageBoundObject):
 
     @property
     def logger(self):
-        """A :class:`logging.Logger` object for this application.  The
-        default configuration is to log to stderr if the application is
+        """A :class:`logging.Logger` object for this pipeline.  The
+        default configuration is to log to stderr if the pipeline is
         in debug mode.  This logger can be used to (surprise) log messages.
         Here some examples::
-            app.logger.debug('A value for debugging')
-            app.logger.warning('A warning occurred (%d apples)', 42)
-            app.logger.error('An error occurred')
+            pipeline.logger.debug('A value for debugging')
+            pipeline.logger.warning('A warning occurred (%d apples)', 42)
+            pipeline.logger.error('An error occurred')
 
         """
         if self._logger and self._logger.name == self.logger_name:
@@ -205,7 +204,6 @@ class Pipeline(PackageBoundObject):
         """Returns the value of the ``PROPAGATE_EXCEPTIONS`` configuration
         value in case it's set, otherwise a sensible default is returned.
 
-        .. versionadded:: 0.7
         """
         rv = self.config['PROPAGATE_EXCEPTIONS']
         if rv is not None:

@@ -388,7 +388,7 @@ class ReprVisitor(PrintVisitor):
 
     def visit_coordination(self, node):
         if self.do_indent: self.data += self.indent
-        self.data += 'Coordination('
+        self.data += 'Coordination(\n'
         self.do_indent = False
         self.indent += ' ' * len('Coordination(')
         i = len(node.coords)
