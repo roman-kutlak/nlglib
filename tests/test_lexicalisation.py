@@ -11,7 +11,7 @@ from nlglib.lexicalisation import lexicalise_paragraph
 from nlglib.lexicalisation import lexicalise_section
 from nlglib.lexicalisation import lexicalise_document
 
-from nlglib.realisation import simple_realisation as real
+from nlglib.realisation.backends.simplenlg import realise as real
 
 
 class DummyMsg(MsgSpec):
@@ -99,7 +99,9 @@ class TestLexicalisation(unittest.TestCase):
             '\n\tBoris is fast' + \
             '\n\nSection Two' + \
             '\n\tBoris is fast Boris is fast'
-        self.assertEqual(expected, real(tmp))
+        actual = real(tmp)
+        print(actual)
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':

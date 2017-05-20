@@ -1,6 +1,5 @@
 import unittest
 
-from nlglib.structures import *
 from nlglib.microplanning import *
 from nlglib.lexicon import *
 

@@ -139,10 +139,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def visit_string(self, node):
         neg = 'not ' if node.has_feature('NEGATED', 'true') else ''
-        #        text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
-        #                '{inner}<val>{neg}{val}</val>{sep}'
-        #                '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
-        #                                               neg=neg, **self._get_args())
+        # text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
+        #        '{inner}<val>{neg}{val}</val>{sep}'
+        #        '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
+        #                                       neg=neg, **self._get_args())
         features = node.features_to_xml_attributes()
         text = ('{outer}<{tag} xsi:type="WordElement" '
                 'cat="ANY" canned="true" {f}>{sep}'
@@ -159,7 +159,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         word = node.word
         if word == 'is': word = 'be'
         features = node.features_to_xml_attributes()
-        text = ('{outer}<{tag} xsi:type="WordElement" {f}>{sep}'
+        text = ('{outer}<{tag} xsi:type="WordElement"{f}>{sep}'
                 '{inner}<base>{word}</base>{sep}'
                 '{outer}</{tag}>{sep}').format(word=quote_plus(str(word)),
                                                **self._get_args(f=features))
@@ -273,9 +273,7 @@ class ReprVisitor(PrintVisitor):
         self.data += ', '.join(tmp_no_whites)
         self.data += ']'
         # restore the indent
-
-    #        self.indent = self.indent[:-len(name + '=(')]
-
+        # self.indent = self.indent[:-len(name + '=(')]
 
     def visit_msg_spec(self, node):
         if self.do_indent: self.data += self.indent

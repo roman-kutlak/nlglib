@@ -9,7 +9,6 @@ import urllib.parse
 
 from utils import LogPipe
 
-
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
@@ -37,6 +36,7 @@ class Socket:
     def __init__(self, host, port):
         self.host = host
         self.port = port
+        self.socket = None
 
     def connect(self):
         """ Connect to the server. This is called in 'with' block. """
@@ -99,7 +99,8 @@ class Socket:
             if self.socket is not None:
                 self.socket.close()
         except OSError as e:
-            get_log().exception('Socket.close() caught an exception: %s' % str(e))
+            get_log().exception(
+                'Socket.close() caught an exception: %s' % str(e))
             raise
 
     # allow the use in 'with' statement
@@ -125,9 +126,9 @@ class SimplenlgClient:
         self.socket = Socket(self.host, int(self.port))
 
     def xml_request(self, data):
-        with self.socket as socket:
-            socket.send_string(data)
-            result = socket.recv_string()
+        with self.socket as sock:
+            sock.send_string(data)
+            result = sock.recv_string()
             if 'Exception: XML unmarshal error' == result:
                 raise ServerError
             # decode xml symbols
@@ -149,14 +150,17 @@ class SimpleNLGServer(threading.Thread):
         super(SimpleNLGServer, self).__init__()
         get_log().debug('Creating simpleNLG server (%s)' % jar_path)
         get_log().debug('simpleNLG server port: ' + str(port))
+        if not os.path.exists(jar_path):
+            msg = 'The simpleNLG jar file "{}" does not exist.'
+            raise ServerError(msg.format(jar_path))
         self.jar_path = jar_path
         self.port = port
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
         self._ready = False
         self._shutdown = False
-        self.error_log = LogPipe(get_log('nlg.simplenlg.server').error)
-        self.output_log = LogPipe(get_log('nlg.simplenlg.server').debug)
+        self.error_log = LogPipe(get_log('nlglib.simplenlg.server').error)
+        self.output_log = LogPipe(get_log('nlglib.simplenlg.server').debug)
 
     def start(self):
         """ Start the server (calling run() on a different thread) and wait for
@@ -167,6 +171,7 @@ class SimpleNLGServer(threading.Thread):
         get_log().debug('Starting simpleNLG server (%s)' % self.jar_path)
         super(SimpleNLGServer, self).start()
         self._wait_for_startup()
+        get_log().info('Server up and running (%s)', self.port)
 
     def run(self):
         """ Start up SimpleNLG server as a subprocess and wait until someone
@@ -194,12 +199,11 @@ class SimpleNLGServer(threading.Thread):
                         get_log().error('Server errors: "{0}"'.format(errs))
                 except subprocess.TimeoutExpired:
                     proc.kill()
-                #            self.output_log.close()
-                #            self.error_log.close()
+                    #            self.output_log.close()
+                    #            self.error_log.close()
 
     def is_ready(self):
         """ Return true if the server is initialised. """
-        ready = False
         self.start_cv.acquire()
         ready = self._ready
         self.start_cv.release()
@@ -226,7 +230,7 @@ class SimpleNLGServer(threading.Thread):
                         % self.jar_path)
 
     def _wait_for_shutdown(self):
-        """ Block until self._shutdown is set to true (by calling shutdown())."""
+        """Block until self._shutdown is set to true (by calling shutdown())."""
         get_log().debug('SimpleNLG server (%s): is up and running...'
                         % self.jar_path)
         self.exit_cv.acquire()

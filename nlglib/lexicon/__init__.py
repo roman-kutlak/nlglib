@@ -5,10 +5,9 @@ from collections import defaultdict
 from copy import deepcopy
 from pickle import load
 
-from lexicon.name_genders import name_genders  # name genders; first names as keys are in caps
-from nlglib.structures import AdjectivePhrase, AdverbPhrase
-from nlglib.structures import Element, Word, Phrase, Coordination
-from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
+# name genders; first names as keys are in caps
+from .name_genders import name_genders
+from nlglib.structures import *
 
 
 def get_log():

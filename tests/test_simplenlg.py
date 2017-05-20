@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 import realisation.backends.simplenlg.client as snlg
@@ -62,7 +63,6 @@ test_data = """\
 </nlg:NLGSpec>
     """
 
-
 test_data2 = """\
 <?xml version="1.0" encoding="utf-8"?>
 <nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
@@ -87,7 +87,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:Request>
 </nlg:NLGSpec>
 """
-
 
 test_data3 = """\
 <?xml version="1.0" encoding="utf-8"?>
@@ -126,7 +125,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:Request>
 </nlg:NLGSpec>
 """
-
 
 test_data4 = """\
 <?xml version="1.0" encoding="utf-8"?>
@@ -266,22 +264,31 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:NLGSpec>
 """
 
+
 class TestSimplenlgClient(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(obj):
-        jp = 'resources/simplenlg.jar'
-        port = '50007'
-        obj.test_result = 'Put the piano and the drum into the truck.'
-        obj.simplenlg_server = snlg.SimpleNLGServer(jp, port)
-        obj.simplenlg_server.start()
+    simplenlg_server = None
 
     @classmethod
-    def tearDownClass(obj):
+    def setUpClass(cls):
+        try:
+            jp = '../nlglib/resources/simplenlg.jar'
+            port = '50007'
+            cls.test_result = 'Put the piano and the drum into the truck.'
+            cls.simplenlg_server = snlg.SimpleNLGServer(jp, port)
+            cls.simplenlg_server.start()
+        except Exception as e:
+            logging.exception(e)
+
+    @classmethod
+    def tearDownClass(cls):
         # signal that we would like to shut the server down
-        obj.simplenlg_server.shutdown()
+        if cls.simplenlg_server:
+            cls.simplenlg_server.shutdown()
 
     def test_socket(self):
+        self.assertIsNotNone(self.simplenlg_server)
+        self.simplenlg_server.wait_for_init()
         mysocket = snlg.Socket('', 50007)
         with mysocket as sock:
             n = sock.send_string(test_data)
@@ -301,6 +308,8 @@ class TestSimplenlgClient(unittest.TestCase):
             SimplenlgHost and SimplenlgPort.
 
         """
+        self.assertIsNotNone(self.simplenlg_server)
+        self.simplenlg_server.wait_for_init()
         host = 'localhost'
         port = 50007
         client = snlg.SimplenlgClient(host, port)
@@ -314,11 +323,11 @@ class TestSimplenlgClient(unittest.TestCase):
         expected = 'Roman is not at work.'
         realisation = client.xml_request(test_data4)
         self.assertEqual(expected, realisation)
-        
+
         expected = 'If p then q.'
         realisation = client.xml_request(test_data5)
         self.assertEqual(expected, realisation)
-        
+
         # expected = 'There exists x such that p.'
         # realisation = client.xml_request(test_data6)
         # self.assertEqual(expected, realisation)
@@ -328,6 +337,6 @@ class TestSimplenlgClient(unittest.TestCase):
         # self.assertEqual(expected, realisation)
 
 
-# main
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     unittest.main()

@@ -4,7 +4,6 @@ from nlglib.structures import *
 
 
 class TestRhetRep(unittest.TestCase):
-
     expected1 = """\
   <rhetrep name="elaboration">
     <marker>and</marker>
@@ -58,7 +57,6 @@ class DummyMessage(MsgSpec):
 
 
 class TestMessageSpec(unittest.TestCase):
-
     def test_str(self):
         tm = DummyMessage('nice_name')
         descr = str(tm)
@@ -76,7 +74,6 @@ class TestMessageSpec(unittest.TestCase):
 
 
 class TestMessage(unittest.TestCase):
-
     def test_str(self):
         expected = 'foo bar baz'
         m = Message('Elaboration', 'foo', 'bar', 'baz')
@@ -94,14 +91,14 @@ class TestMessage(unittest.TestCase):
         descr = repr(m)
         self.assertEqual(expected, descr)
 
-        expected = ("Message (Contrast): Message (Elaboration): 'foo' 'bar' 'baz' 'bar' 'baz'")
+        expected = (
+        "Message (Contrast): Message (Elaboration): 'foo' 'bar' 'baz' 'bar' 'baz'")
         m2 = Message('Contrast', m, 'bar', 'baz')
         descr = repr(m2)
         self.assertEqual(expected, descr)
 
 
 class TestParagraph(unittest.TestCase):
-
     def test_str(self):
         expected = '\tfoo bar'
         m = Message('Elaboration', 'foo', 'bar')
@@ -136,7 +133,7 @@ Message (Contrast): Message (Elaboration): 'foo' 'bar' 'bar' 'baz'"""
         descr = repr(p)
         self.assertEqual(expected, descr)
 
-        expected ="""Paragraph (2):
+        expected = """Paragraph (2):
 Message (Contrast): Message (Elaboration): 'foo' 'bar' \
 'bar' 'baz'; Message (Leaf): 'foobar'"""
         m3 = Message('Leaf', 'foobar')
@@ -146,7 +143,6 @@ Message (Contrast): Message (Elaboration): 'foo' 'bar' \
 
 
 class TestSection(unittest.TestCase):
-
     def test_str(self):
         expected = 'One\n\tfoo bar'
         m = Message('Elaboration', 'foo', 'bar')
@@ -183,7 +179,6 @@ Message (Contrast): 'baz' 'bar'"""
 
 
 class TestDocument(unittest.TestCase):
-
     def test_str(self):
         expected = 'MyDoc\nOne\n\tfoo bar'
         m = Message('Elaboration', 'foo', 'bar')
@@ -351,17 +346,18 @@ class TestString(unittest.TestCase):
         s2.set_feature('type', 'greeting')
         self.assertEqual(s1, s2)
 
+
 class TestWord(unittest.TestCase):
     """ Tests for a word element. """
 
-#    def test_str(self):
-#        """ Test basic printing. """
-#        w = Word('foo', 'NOUN')
-#        expected = 'foo'
-#        self.assertEqual(expected, str(w))
-#
-#        w.set_feature('countable', 'yes')
-#        self.assertEqual(expected, str(w))
+    # def test_str(self):
+    #    """ Test basic printing. """
+    #    w = Word('foo', 'NOUN')
+    #    expected = 'foo'
+    #    self.assertEqual(expected, str(w))
+    #
+    #    w.set_feature('countable', 'yes')
+    #    self.assertEqual(expected, str(w))
 
     # def test_repr(self):
     #     """ Test debug printing. """
@@ -438,37 +434,37 @@ class TestVar(unittest.TestCase):
 
 class TestPhrase(unittest.TestCase):
     """ Test harness for the Phrase base class. """
-
-#    def test_str(self):
-#        """ Test basic printing. """
-#        p = Phrase()
-#        expected = ''
-#        self.assertEqual(expected, str(p))
-#
-#        p.head = 'went'
-#        expected = 'went'
-#        self.assertEqual(expected, str(p))
-#
-#        p.front_modifiers.append('yesterday')
-#        expected = 'yesterday went'
-#        self.assertEqual(expected, str(p))
-#
-#        p.pre_modifiers.append('Peter')
-#        expected = 'yesterday Peter went'
-#        self.assertEqual(expected, str(p))
-#
-#        p.complements.append('to')
-#        expected = 'yesterday Peter went to'
-#        self.assertEqual(expected, str(p))
-#
-#        p.post_modifiers.append('Russia')
-#        expected = 'yesterday Peter went to Russia'
-#        self.assertEqual(expected, str(p))
-#
-#        p.set_feature('tense', 'past')
-#        expected = 'yesterday Peter went to Russia'
-#        self.assertEqual(expected, str(p))
-
+    #
+    #    def test_str(self):
+    #        """ Test basic printing. """
+    #        p = Phrase()
+    #        expected = ''
+    #        self.assertEqual(expected, str(p))
+    #
+    #        p.head = 'went'
+    #        expected = 'went'
+    #        self.assertEqual(expected, str(p))
+    #
+    #        p.front_modifiers.append('yesterday')
+    #        expected = 'yesterday went'
+    #        self.assertEqual(expected, str(p))
+    #
+    #        p.pre_modifiers.append('Peter')
+    #        expected = 'yesterday Peter went'
+    #        self.assertEqual(expected, str(p))
+    #
+    #        p.complements.append('to')
+    #        expected = 'yesterday Peter went to'
+    #        self.assertEqual(expected, str(p))
+    #
+    #        p.post_modifiers.append('Russia')
+    #        expected = 'yesterday Peter went to Russia'
+    #        self.assertEqual(expected, str(p))
+    #
+    #        p.set_feature('tense', 'past')
+    #        expected = 'yesterday Peter went to Russia'
+    #        self.assertEqual(expected, str(p))
+    #
     # def test_repr(self):
     #     """ Test debug printing. """
     #     p = Phrase()
@@ -598,25 +594,25 @@ class TestPhrase(unittest.TestCase):
 
         p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
         self.assertEqual(False,
-            Var('arg_place') in list(p.constituents()))
+                         Var('arg_place') in list(p.constituents()))
 
 
 class TestClause(unittest.TestCase):
     """ Tests for Clause. """
 
-#    def test_str(self):
-#        """ Test printing. """
-#        c = Clause()
-#        expected = ''
-#        self.assertEqual(expected, str(c))
-#
-#        c = Clause('Roman')
-#        expected = 'Roman'
-#        self.assertEqual(expected, str(c))
-#
-#        c = Clause('Roman', 'is slow!')
-#        expected = 'Roman is slow!'
-#        self.assertEqual(expected, str(c))
+    #    def test_str(self):
+    #        """ Test printing. """
+    #        c = Clause()
+    #        expected = ''
+    #        self.assertEqual(expected, str(c))
+    #
+    #        c = Clause('Roman')
+    #        expected = 'Roman'
+    #        self.assertEqual(expected, str(c))
+    #
+    #        c = Clause('Roman', 'is slow!')
+    #        expected = 'Roman is slow!'
+    #        self.assertEqual(expected, str(c))
 
     def test_constituents(self):
         """ Test iterating through constituents. """
@@ -649,7 +645,7 @@ class TestClause(unittest.TestCase):
 
         p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
         self.assertEqual(False,
-            Var('arg_place') in list(p.constituents()))
+                         Var('arg_place') in list(p.constituents()))
 
 
 class TestNP(unittest.TestCase):
@@ -681,15 +677,16 @@ class TestVP(unittest.TestCase):
     def test_replace(self):
         """ Test replacing an element. """
         p = VerbPhrase('give', 'the book', 'to the cook')
-        expected = [String('give'), String('the book'), String('to the cook')]
+        expected = [p, String('give'), String('the book'), String('to the cook')]
         self.assertEqual(expected, list(p.constituents()))
         p.replace(String('to the cook'), String('to the cheff'))
-        expected = [String('give'), String('the book'), String('to the cheff')]
+        expected = [p, String('give'), String('the book'), String('to the cheff')]
         self.assertEqual(expected, list(p.constituents()))
 
     def test_arguments(self):
         """ Test replacing arguments. """
-        p = VerbPhrase('give', Var('arg_obj'), PrepositionalPhrase('to', Var('arg_rec')))
+        p = VerbPhrase('give', Var('arg_obj'),
+                       PrepositionalPhrase('to', Var('arg_rec')))
         expected = [Var('arg_obj'), Var('arg_rec')]
         self.assertEqual(expected, list(p.arguments()))
 
@@ -721,14 +718,5 @@ class TestCC(unittest.TestCase):
         self.assertEqual(expected, list(p.constituents()))
 
 
-
-
-
-
-
-
-
-
-# main
 if __name__ == '__main__':
     unittest.main()

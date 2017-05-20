@@ -14,6 +14,22 @@ def trim(text):
     return ' '.join(text.strip().split())
 
 
+def flatten(lst):
+    """ Return a list where all elemts are items.
+    Any encountered iterable will be expanded. Method is recursive.
+
+    """
+    result = []
+    for x in lst:
+        if isinstance(x, list):
+            for y in flatten(x):
+                result.append(y)
+        else:
+            if x is not None:
+                result.append(x)
+    return result
+
+
 def total_seconds(td):
     """Returns the total seconds from a timedelta object.
     :param timedelta td: the timedelta to be converted in seconds

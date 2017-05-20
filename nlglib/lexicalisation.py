@@ -53,7 +53,7 @@ def lexicalise_element(elt, **kwargs):
     for arg in args:
         result = available_templates.get(arg.id)
         if result is None: continue
-        get_log().debug('Replacing\n{0} in \n{1} by \n{2}.'
+        get_log().info('Replacing\n{0} in \n{1} by \n{2}.'
                         .format(repr(arg), repr(elt), repr(result)))
         if isinstance(result, str):
             result = String(result)
@@ -98,7 +98,7 @@ def lexicalise_message_spec(msg, **kwargs):
         # if there are any arguments, replace them by values
         # TODO: check that features are propagated
         for arg in args:
-            get_log().debug('Replacing\n{0} in \n{1}.'
+            get_log().info('Replacing\n{0} in \n{1}.'
                             .format(str(arg), repr(template)))
             val = msg.value_for(arg.id)
             # check if value is a template
@@ -106,8 +106,8 @@ def lexicalise_message_spec(msg, **kwargs):
                 t = templates.get(val.string if isinstance(val, String) else val)
                 if t:
                     val = t
-            get_log().debug(' val = {0}'.format(repr(val)))
             val = lexicalise(val, **kwargs)
+            get_log().info('Replacement val = \n{0}'.format(repr(val)))
             template.replace(arg, val)
         return template
     except Exception as e:

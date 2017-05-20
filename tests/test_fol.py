@@ -1,10 +1,10 @@
 import time
 import unittest
 
-from logic.fol import *
-from logic.simplifications import *
-from logic.simplifications import unique_vars
-from nlglib import prover
+from nlglib.logic.fol import *
+from nlglib.logic.simplifications import *
+from nlglib.logic.simplifications import unique_vars
+from nlglib.logic import prover
 
 
 class TestFOL(unittest.TestCase):
@@ -79,7 +79,8 @@ class TestFOL(unittest.TestCase):
         e = expr('forall x: x + y = z ==> exists c: z > 0')
         expected = Quantifier(OP_FORALL, ['x'],
                               Expr(OP_IMPLIES,
-                                   Expr(OP_EQUALS, Expr('+', Expr('x'), Expr('y')),
+                                   Expr(OP_EQUALS,
+                                        Expr('+', Expr('x'), Expr('y')),
                                         Expr('z')),
                                    Quantifier(OP_EXISTS, ['c'],
                                               Expr('>', Expr('z'), Expr(0)))))

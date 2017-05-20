@@ -10,23 +10,9 @@ from copy import deepcopy
 from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
+from nlglib.utils import flatten
+
 logger = logging.getLogger(__name__)
-
-
-def _flatten(lst):
-    """ Return a list where all elemts are items.
-    Any encountered iterable will be expanded. Method is recursive.
-
-    """
-    result = []
-    for x in lst:
-        if isinstance(x, list):
-            for y in _flatten(x):
-                result.append(y)
-        else:
-            if x is not None:
-                result.append(x)
-    return result
 
 
 class Document:
@@ -138,7 +124,7 @@ class Paragraph:
 
     def __init__(self, *messages):
         """ Create a new Paragraph with zero or more messages. """
-        self.messages = [m if isinstance(m, Message) else Message('Leaf', m) for m in _flatten(messages)]
+        self.messages = [m if isinstance(m, Message) else Message('Leaf', m) for m in flatten(messages)]
 
     def __repr__(self):
         return '<Paragraph {}>'.format(str(self.messages)[:25])
@@ -198,7 +184,7 @@ class Message:
     def __str__(self):
         descr = ' '.join([str(x) for x in
                           ([self.nucleus] + self.satellites) if x is not None])
-        return (descr.strip() if descr is not None else '')
+        return descr.strip() if descr is not None else ''
 
     def __eq__(self, other):
         return (isinstance(other, Message) and
@@ -1089,7 +1075,7 @@ class Coordination(Element):
         Return True if successful.
 
         """
-        logger.info('Replacing "{}" in "{}" by "{}.'
+        logger.debug('Replacing "{}" in "{}" by "{}.'
                     .format(one, self, another))
         for i, o in enumerate(self.coords):
             if o == one:
