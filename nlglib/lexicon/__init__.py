@@ -1013,7 +1013,7 @@ irregulars = {
     'moose': 'moose',
     'mouse': 'mice',
     'nebula': 'nebulae',
-    'nucleus': 'nuclei',
+    'nuclei': 'nuclei',
     'oasis': 'oases',
     'offspring': 'offspring',
     'opus': 'opera',

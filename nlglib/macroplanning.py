@@ -9,11 +9,10 @@ from nlglib.logic.fol import expr
 from nlglib.logic.fol import is_predicate, is_variable, is_function
 from nlglib.logic.simplifications import simplification_ops
 from nlglib.structures import Message, MsgSpec, Word, String, Var
-from nlglib.structures import NounPhrase, Paragraph
+from nlglib.structures import NounPhrase, Document
 
 
-def get_log():
-    return logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def preprocess_content(data, **kwargs):
@@ -32,14 +31,14 @@ def preprocess_content(data, **kwargs):
     return rv
 
 
-def select_content(formulas, **kwargs):
+def select_content(formulas, **_):
     rv = []
     for item in formulas:
         rv.append(formula_to_rst(item))
     return rv
 
 
-def aggregate_content(items, **kwargs):
+def aggregate_content(items, **_):
     if isinstance(items, (list, tuple)):
         # order predicates for aggregation (e.g., clause, mod, mod)
         subj_groups = defaultdict(list)
@@ -54,17 +53,17 @@ def aggregate_content(items, **kwargs):
         for group in by_length:
             group.sort(key=lambda x: len(x.args if hasattr(x, 'args') else []), reverse=True)
         new_items = list(itertools.chain(*by_length))
-        rv =Message('Sequence', None, *new_items)
+        rv = Message('Sequence', None, *new_items)
     else:
         rv = items
     return rv
 
 
-def structure_content(items, **kwargs):
+def structure_content(items, **_):
     if isinstance(items, (list, tuple)):
-        rv = Paragraph(*items)
+        rv = Document(*items)
     else:
-        rv = Paragraph(items)
+        rv = Document(items)
     return rv
 
 
@@ -109,10 +108,9 @@ class PredicateMsg(MsgSpec):
 
         """
         if idx >= len(self.args):
-            msg = ('Requested index (' +
-                   str(idx) + ') larger than number of variables in predicate "' + str(self.predicate) + '"')
-            raise SignatureError(msg)
-
+            msg = ('Requested index ({}) is larger than '
+                   'the number of variables in the predicate "{}"')
+            raise SignatureError(msg.format(idx, self.predicate))
         return self.args[idx]
 
 
@@ -129,7 +127,7 @@ class StringMsgSpec(MsgSpec):
 
 def formula_to_rst(f):
     """ Convert a FOL formula to an RST tree. """
-    get_log().debug(str(f))
+    logger.debug(str(f))
     if f.op == OP_AND:
         msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Conjunction', None, *msgs)
@@ -176,28 +174,28 @@ def formula_to_rst(f):
             m.marker = 'there exist'
         return m
     if f.op == OP_NOT and is_predicate(f.args[0]):
-        get_log().debug('negated predicate: ' + str(f))
+        logger.debug('negated predicate: ' + str(f))
         arg = f.args[0]
         m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
         m.features = {'NEGATED': 'true'}
         return m
     if f.op == OP_NOT and is_variable(f.args[0]):
-        get_log().debug('negated variable: ' + str(f))
+        logger.debug('negated variable: ' + str(f))
         arg = f.args[0]
         m = NounPhrase(Var(arg.op), Word('not', 'DETERMINER'))
         return m
     if f.op == OP_NOT:
-        get_log().debug('negated formula: ' + str(f))
+        logger.debug('negated formula: ' + str(f))
         msgs = [formula_to_rst(x) for x in f.args]
         m = Message('Negation', msgs[0], *msgs[1:])
         m.marker = 'it is not the case that'
         return m
     if is_predicate(f):
-        get_log().debug('predicate: ' + str(f))
+        logger.debug('predicate: ' + str(f))
         return PredicateMsg(f, *[formula_to_rst(x) for x in f.args])
     if is_function(f):
-        get_log().debug('function: ' + str(f))
+        logger.debug('function: ' + str(f))
         return Var(f.op, PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
     else:
-        get_log().debug('None: ' + repr(f))
+        logger.debug('None: ' + repr(f))
         return PredicateMsg(f)

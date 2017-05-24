@@ -3,9 +3,7 @@ import logging
 
 from copy import deepcopy, copy
 
-from nlglib.structures import Clause, Coordination, Document, Element, Message
-from nlglib.structures import MsgSpec, NounPhrase, Paragraph
-from nlglib.structures import PrepositionalPhrase, Section, String, Word
+from nlglib.structures import *
 from nlglib.microplanning import replace_element, replace_element_with_id
 from nlglib import lexicon
 from nlglib.lexicon import Person, Case, Number, Gender, Features, PronounUse
@@ -33,10 +31,6 @@ def generate_re(msg, **kwargs):
         return generate_re_element(msg, **kwargs)
     elif isinstance(msg, Message):
         return generate_re_message(msg, **kwargs)
-    elif isinstance(msg, Paragraph):
-        return generate_re_paragraph(msg, **kwargs)
-    elif isinstance(msg, Section):
-        return generate_re_section(msg, **kwargs)
     elif isinstance(msg, Document):
         return generate_re_document(msg, **kwargs)
     else:
@@ -59,23 +53,6 @@ def generate_re_message(msg, **kwargs):
     satellites = [generate_re(x, **kwargs)
                   for x in msg.satellites if x is not None]
     return Message(msg.rst, nucleus, *satellites)
-
-
-def generate_re_paragraph(para, **kwargs):
-    get_log().debug('Generating RE for paragraph.')
-    if para is None: return None
-    messages = [generate_re(x, **kwargs)
-                for x in para.messages if x is not None]
-    return Paragraph(*messages)
-
-
-def generate_re_section(sec, **kwargs):
-    get_log().debug('Generating RE for section.')
-    if sec is None: return None
-    title = generate_re(sec.title, **kwargs)
-    paragraphs = [generate_re(x, **kwargs)
-                  for x in sec.content if x is not None]
-    return Section(title, *paragraphs)
 
 
 def generate_re_document(doc, **kwargs):

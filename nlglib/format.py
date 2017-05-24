@@ -50,13 +50,13 @@ def to_text_list(messages):
 def to_text_message(msg):
     get_log().debug('Formatting message(%s).' % repr(msg))
     # FIXME: here needs to be some logic to join a rhetorical relation into a sentence
-    # for example, add the marker to the front, then nucleus, then satellites joined with 'and'
+    # for example, add the marker to the front, then nuclei, then satellites joined with 'and'
     if msg.marker in ('however', 'although'):
-        pattern = '{marker}, {nucleus}'
+        pattern = '{marker}, {nuclei}'
     elif msg.marker in ('but', 'and', 'or'):
-        pattern = '{nucleus} {marker}'
+        pattern = '{nuclei} {marker}'
     else:
-        pattern = '{nucleus}'
+        pattern = '{nuclei}'
     sentence = pattern.format(nucleus=to_text(msg.nucleus), marker=msg.marker)
     if msg.satellites:
         sentence += ' ' + ' and '.join(to_text(s).strip() for s in msg.satellites)

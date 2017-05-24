@@ -21,7 +21,7 @@ def flatten(lst):
     """
     result = []
     for x in lst:
-        if isinstance(x, list):
+        if isinstance(x, (tuple, list)):
             for y in flatten(x):
                 result.append(y)
         else:

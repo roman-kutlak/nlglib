@@ -3,45 +3,45 @@ import unittest
 from nlglib.structures import *
 
 
-class TestRhetRep(unittest.TestCase):
+class TestRhetRel(unittest.TestCase):
     expected1 = """\
-  <rhetrep name="elaboration">
+  <RhetRel name="elaboration">
     <marker>and</marker>
     <semrep>
-      This is the nucleus
+      This is the nuclei
     </semrep>
     <semrep>
       this is the satelite
     </semrep>
-  </rhetrep>
+  </RhetRel>
 """
 
     expected2 = """\
-  <rhetrep name="elaboration">
+  <RhetRel name="elaboration">
     <marker>and</marker>
     <semrep>
-      This is the nucleus
+      This is the nuclei
     </semrep>
-    <rhetrep name="concession">
+    <RhetRel name="concession">
       <marker>however</marker>
       <semrep>
-        this is another nucleus
+        this is another nuclei
       </semrep>
       <semrep>
         this is the satelite
       </semrep>
-    </rhetrep>
-  </rhetrep>
+    </RhetRel>
+  </RhetRel>
 """
 
     def test_init(self):
-        nucleus = SemRep('This is the nucleus')
+        nucleus = SemRep('This is the nuclei')
         satelite = SemRep('this is the satelite')
-        r = RhetRep('elaboration', nucleus, satelite, marker='and')
+        r = RhetRel('elaboration', nucleus, satelite, marker='and')
         self.assertEqual(self.expected1, r.to_xml(1))
-        nucleus2 = SemRep('this is another nucleus')
-        r2 = RhetRep('concession', nucleus2, satelite, marker='however')
-        r = RhetRep('elaboration', nucleus, r2, marker='and')
+        nucleus2 = SemRep('this is another nuclei')
+        r2 = RhetRel('concession', nucleus2, satelite, marker='however')
+        r = RhetRel('elaboration', nucleus, r2, marker='and')
         self.assertEqual(self.expected2, r.to_xml(1))
 
 
@@ -538,10 +538,10 @@ class TestPhrase(unittest.TestCase):
         p2.set_feature('tense', 'past')
         self.assertEqual(p1, p2)
 
-        p1._type = PHRASE
+        p1.type = PHRASE
         self.assertNotEqual(p1, p2)
 
-        p2._type = PHRASE
+        p2.type = PHRASE
         self.assertEqual(p1, p2)
 
     def test_constituents(self):

@@ -189,7 +189,7 @@ def lexicalise_message(msg, parenthesis=False, **kwargs):
         front_mod = front_mod[0].lower() + front_mod[1:]
         # front_mod should go in front of existing front_mods
         # In case of CC, modify the first coordinate
-        if result._type == COORDINATION:
+        if result.type == COORDINATION:
             result.coords[0].add_front_modifier(String(front_mod), pos=0)
         else:
             result.add_front_modifier(String(front_mod), pos=0)
@@ -205,12 +205,12 @@ def lexicalise_message(msg, parenthesis=False, **kwargs):
         result.vp.add_complement(cl)
     else:
         get_log().debug('RST relation: ' + repr(msg))
-        get_log().debug('RST nucleus:  ' + repr(nucleus))
+        get_log().debug('RST nuclei:  ' + repr(nucleus))
         get_log().debug('RST satellite: ' + repr(satellites))
         result = Message(msg.rst, nucleus, *satellites)
         result.marker = msg.marker
         # TODO: decide how to handle features. Add to all? Drop?
-        # return ([nucleus] if nucleus else []) + [x for x in satellites]
+        # return ([nuclei] if nuclei else []) + [x for x in satellites]
     result.addfeatures(features)
     return result
 

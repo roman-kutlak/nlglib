@@ -10,454 +10,7 @@ from copy import deepcopy
 from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
-from nlglib.utils import flatten
-
 logger = logging.getLogger(__name__)
-
-
-class Document:
-    """Document represents a container holding information about a document.
-
-    This includes the document title and a list of sections.
-
-    """
-
-    def __init__(self, title, *sections):
-        """ Create a new Document instance with given title and with zero or more sections. """
-        self.title = title if isinstance(title, Message) else Message('', title)
-        self.sections = [s if isinstance(s, Section) else Section('', s)
-                         for s in sections if s is not None]
-
-    def __repr__(self):
-        return '<Document: ({})'.format(self.title)
-
-    def __str__(self):
-        return str(self.title) + '\n' + '\n\n'.join([str(s) for s in self.sections])
-
-    def __eq__(self, other):
-        return (isinstance(other, Document) and
-                self.title == other.title and
-                self.sections == other.sections)
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def constituents(self):
-        """ Return a generator to iterate through the elements. """
-        yield self.title
-        for x in self.sections:
-            yield from x.constituents()
-
-    def to_xml(self, offset='', indent='  '):
-        """Return an XML representation of the document indented by initial ``offset``"
-        :param offset: the initial offset
-        :param indent: the indent for nested elements.
-        """
-        result = offset + '<document>\n'
-        result += offset + indent + '<title>\n'
-        result += self.title.to_xml(offset + 2 * indent)
-        result += offset + indent + '</title>\n'
-        result += offset + indent + '<sections>\n'
-        for s in self.sections:
-            result += s.to_xml(offset=(offset + indent))
-        result += offset + indent + '</sections>\n'
-        result += offset + '</document>\n'
-        return result
-
-
-class Section:
-    """Section is a container holding information about a section of a document.
-
-     A section has a title and a list of ``Paragraph``s or ``Section``s.
-
-    """
-
-    def __init__(self, title, *paragraphs):
-        """ Create a new section with given title and zero or more paragraphs. """
-        self.title = title if isinstance(title, Message) else Message('', title)
-        self.content = [p if isinstance(p, (Paragraph, Section)) else Paragraph(p)
-                        for p in paragraphs if p is not None]
-
-    def __repr__(self):
-        return '<Section: {}>'.format(self.title)
-
-    def __str__(self):
-        return str(self.title) + '\n' + '\n'.join([str(p) for p in self.content])
-
-    def __eq__(self, other):
-        return (isinstance(other, Section) and
-                self.title == other.title and
-                self.content == other.paragraphs)
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def constituents(self):
-        """ Return a generator to iterate through the elements. """
-        yield self.title
-        for x in self.content:
-            yield from x.constituents()
-
-    def to_xml(self, offset='', indent='  '):
-        """Return an XML representation of the section indented by initial ``offset``"
-        :param offset: the initial offset
-        :param indent: the indent for nested elements.
-        """
-        result = offset + '<section>\n'
-        result += offset + indent + '<title>\n'
-        result += self.title.to_xml(offset + 2 * indent)
-        result += offset + indent + '</title>\n'
-        result += offset + indent + '<paragraphs>\n'
-        for p in self.content:
-            result += p.to_xml(offset=(offset + 2 * indent))
-        result += offset + indent + '</paragraphs>\n'
-        result += offset + '</section>\n'
-        return result
-
-
-class Paragraph:
-    """Paragraph represents a container holding information about a paragraph of a document.
-
-     Paragraph is a list of ``Message``s.
-
-    """
-
-    def __init__(self, *messages):
-        """ Create a new Paragraph with zero or more messages. """
-        self.messages = [m if isinstance(m, Message) else Message('Leaf', m) for m in flatten(messages)]
-
-    def __repr__(self):
-        return '<Paragraph {}>'.format(str(self.messages)[:25])
-
-    def __str__(self):
-        descr = ('\t' +
-                 '; '.join([str(m) for m in self.messages if m is not None]))
-        return descr
-
-    def __eq__(self, other):
-        return (isinstance(other, Paragraph) and
-                self.messages == other.messages)
-
-    def constituents(self):
-        """ Return a generator to iterate through the elements. """
-        for x in self.messages: yield from x.constituents()
-
-    def to_xml(self, offset='', indent='  '):
-        """Return an XML representation of the paragraph indented by initial ``offset``"
-        :param offset: the initial offset
-        :param indent: the indent for nested elements.
-        """
-        result = offset + '<paragraph>\n'
-        result += offset + indent + '<messages>\n'
-        for m in self.messages:
-            result += m.to_xml(offset=(offset + indent))
-        result += offset + indent + '</messages>\n'
-        result += offset + '</paragraph>\n'
-        return result
-
-
-class Message:
-    """ A representation of a message (usually a sentence).
-        A message has a nucleus and zero or more satellites joined
-        by an RST (Rhetorical Structure Theory) relation.
-
-    """
-
-    def __init__(self, rel, nucleus, *satellites, features=None):
-        """ Create a new Message with given relation between
-        the nucleus and zero or more satellites.
-
-        """
-        # FIXME: messages should have only one satellite and 1+ nuclei
-        self.rst = rel
-        self.nucleus = nucleus
-        self.satellites = [s for s in satellites if s is not None]
-        self.marker = ''
-        self.features = features or {}
-
-    def __repr__(self):
-        descr = ' '.join([repr(x) for x in
-                          ([self.nucleus] + self.satellites) if x is not None])
-        if descr == '': descr = '_empty_'
-        return 'Message (%s): %s' % (self.rst, descr.strip())
-
-    def __str__(self):
-        descr = ' '.join([str(x) for x in
-                          ([self.nucleus] + self.satellites) if x is not None])
-        return descr.strip() if descr is not None else ''
-
-    def __eq__(self, other):
-        return (isinstance(other, Message) and
-                self.rst == other.rst and
-                self.nucleus == other.nucleus and
-                self.satellites == other.satellites)
-
-    def constituents(self):
-        """ Return a generator to iterate through the elements. """
-        if self.nucleus:
-            if hasattr(self.nucleus, 'constituents'):
-                yield from self.nucleus.constituents()
-            else:
-                yield self.nucleus
-        for x in self.satellites:
-            if hasattr(x, 'constituents'):
-                yield from x.constituents()
-            else:
-                yield x
-
-    def del_feature(self, feat, val=None):
-        """ Delete a feature, if the element has it else do nothing.
-        If val is None, delete whathever value is assigned to the feature.
-        Otherwise only delete the feature if it has matching value.
-
-        """
-        if feat in self.features:
-            if val is not None:
-                del self.features[feat]
-            elif val == self.features[feat]:
-                del self.features[feat]
-
-    def addfeatures(self, features):
-        """ Add the given features (dict) to the existing features. """
-        for k, v in features.items():
-            self.features[k] = v
-
-    def to_xml(self, offset='', indent='  '):
-        """Return an XML representation of the paragraph indented by initial ``offset``"
-        :param offset: the initial offset
-        :param indent: the indent for nested elements.
-        """
-        result = offset + '<message type="{}">\n'.format(self.rst)
-        result += offset + indent + '<marker>{}</marker>\n'.format(self.marker)
-        result += offset + indent + '<nucleus>\n'
-        result += self.nucleus.to_xml(offset=(offset + 2 * indent))
-        result += offset + indent + '</nucleus>\n'
-        for s in self.satellites:
-            result += offset + indent + '<satellite>\n'
-            result += s.to_xml(offset=(offset + 2 * indent))
-            result += offset + indent + '</satellite>\n'
-        result += offset + '</message>\n'
-        return result
-
-
-class RhetRep:
-    """ A representation of a rhetorical structure.
-    The data structure is from RAGS (Mellish et. al. 2006) and it represents
-    an element in the rhetorical structure of the document. Each element has
-    a nucleus, a satellite and a relation name. Some relations allow multiple
-    nuclei instead of a satellite (e.g., lists).
-
-    Rhetorical structure is a tree. The children can be either RhetReps
-    or MsgSpecs.
-
-    """
-
-    def __init__(self, relation, *nuclei, satellite=None, marker=None):
-        self.relation = relation
-        self.nucleus = list(nuclei)
-        self.satellite = satellite
-        self.is_multinuclear = (len(nuclei) > 1)
-        self.marker = marker
-
-    def to_xml(self, lvl=0, indent='  '):
-        spaces = indent * lvl
-        data = spaces + '<rhetrep name="' + str(self.relation) + '">\n'
-        data += indent + spaces + '<marker>' + (self.marker or '') + '</marker>\n'
-        if self.is_multinuclear:
-            data += ''.join([e.to_xml(lvl + 1) for e in self.nucleus])
-        else:
-            data += ''.join([e.to_xml(lvl + 1) for e in (self.nucleus, self.satellite)])
-        data += spaces + '</rhetrep>\n'
-        return data
-
-    def to_str(self):
-        pass
-
-
-class SemRep:
-    def __init__(self, clause, **features):
-        self.clause = clause
-        self.features = features or dict()
-
-    def to_xml(self, lvl=0, indent='  '):
-        spaces = indent * lvl
-        data = spaces + '<semrep>\n'
-        data += spaces + indent + str(self.clause) + '\n'
-        data += spaces + '</semrep>\n'
-        return data
-
-
-class MsgSpec:
-    """ MsgSpec specifies an interface for various message specifications.
-    Because the specifications are domain dependent, this is just a convenience
-    interface that allows the rest of the library to operate on the messages.
-
-    The name of the message is used during lexicalisation where the name is
-    looked up in an ontology to find corresponding syntactic frame. To populate
-    the frame, the lexicaliser finds all variables and uses their names
-    as a key to look up the values in the corresponding message. For example,
-    if the syntactic structure in the domain ontology specifies a variable
-    named 'foo', the lexicaliser will call msg.value_for('foo'), which
-    in turn calls self.foo(). This should return the value for the key 'foo'.
-
-    """
-
-    def __init__(self, name, features=None):
-        self.name = name
-        self.features = features or {}
-        self._visitor_name = 'visit_msg_spec'
-
-    def __repr__(self):
-        return 'MsgSpec({0}, {1})'.format(self.name, self.features)
-
-    def __str__(self):
-        return str(self.name)
-
-    def __eq__(self, other):
-        return (isinstance(other, type(self)) and
-                self.name == other.name)
-
-    def value_for(self, data_member):
-        """ Return a value for an argument using introspection. """
-        if not hasattr(self, data_member):
-            raise ValueError('Error: cannot find value for key: %s' %
-                             data_member)
-        m = getattr(self, data_member)
-        if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call the method "%s"' %
-                             data_member)
-        return m()
-
-    def accept(self, visitor, element='Element'):
-        """Implementation of the Visitor pattern."""
-        if self._visitor_name == None:
-            raise ValueError('Error: visit method of uninitialized visitor '
-                             'called!')
-        # get the appropriate method of the visitor instance
-        m = getattr(visitor, self._visitor_name)
-        # ensure that the method is callable
-        if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call undefined method: %s on '
-                             'visitor' % self._visitor_name)
-        sig = inspect.signature(m)
-        # and finally call the callback
-        if len(sig.parameters) == 1:
-            return m(self)
-        if len(sig.parameters) == 2:
-            return m(self, element)
-
-    def constituents(self):
-        return [self]
-
-    @classmethod
-    def instantiate(Klass, data):
-        return None
-
-    def del_feature(self, feat, val=None):
-        """ Delete a feature, if the element has it else do nothing.
-        If val is None, delete whathever value is assigned to the feature.
-        Otherwise only delete the feature if it has matching value.
-
-        """
-        if feat in self.features:
-            if val is not None:
-                del self.features[feat]
-            elif val == self.features[feat]:
-                del self.features[feat]
-
-    def addfeatures(self, features):
-        """ Add the given features (dict) to the existing features. """
-        for k, v in features.items():
-            self.features[k] = v
-
-
-class StringMsgSpec(MsgSpec):
-    """ Use this as a simple message that contains canned text. """
-
-    def __init__(self, text):
-        super().__init__('string_message')
-        self.text = text
-
-    def __str__(self):
-        return str(self.text)
-
-    def value_for(self, _):
-        return String(self.text)
-
-    def to_xml(self, offset='', indent='  '):
-        """Return an XML representation of the paragraph indented by initial ``offset``"
-        :param offset: the initial offset
-        :param indent: the indent for nested elements.
-        """
-        result = offset + '<msgspec template_name="{}">\n'.format(self.name)
-        result += offset + indent + '<text>{}</text>\n'.format(self.text)
-        result += offset + '</msgspec>\n'
-        return result
-
-
-class DiscourseContext:
-    """ A class that captures the discourse referents and history. """
-
-    def __init__(self):
-        self.referents = []
-        self.history = []
-        self.referent_info = {}
-
-
-class OperatorContext:
-    """ A class that captures the operators in a logical formula. """
-
-    def __init__(self):
-        self.variables = []
-        self.symbols = []
-        self.negations = 0
-
-
-###############################################################################
-#                                                                              #
-#                              microplanning                                   #
-#                                                                              #
-###############################################################################
-
-
-class ElemntCoder(json.JSONEncoder):
-    @staticmethod
-    def to_json(python_object):
-        if isinstance(python_object, Element):
-            return {'__class__': str(type(python_object)),
-                    '__value__': python_object.__dict__}
-        raise TypeError(repr(python_object) + ' is not JSON serializable')
-
-    @staticmethod
-    def from_json(json_object):
-        if '__class__' in json_object:
-            if json_object['__class__'] == "<class 'nlglib.structures.Element'>":
-                return Element.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.String'>":
-                return String.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.Word'>":
-                return Word.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.Var'>":
-                return Var.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.Phrase'>":
-                return Phrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.Clause'>":
-                return Clause.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.NounPhrase'>":
-                return NounPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.VerbPhrase'>":
-                return VerbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.PrepositionalPhrase'>":
-                return PrepositionalPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.AdjectivePhrase'>":
-                return AdjectivePhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.AdverbPhrase'>":
-                return AdverbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.Coordination'>":
-                return Coordination.from_dict(json_object['__value__'])
-
-        return json_object
-
 
 # types of clauses:
 ELEMENT = 0  # abstract
@@ -485,7 +38,6 @@ VisitorNames = {
     CLAUSE: 'visit_clause',
 
     COORDINATION: 'visit_coordination',
-    SUBORDINATION: 'visit_subordination',
 
     PHRASE: 'visit_phrase',
     NOUN_PHRASE: 'visit_np',
@@ -497,11 +49,11 @@ VisitorNames = {
 
 
 def is_element_t(o):
-    """ An object is an element if it has attr _type and one of the types. """
-    if not hasattr(o, '_type'):
+    """ An object is an element if it has attr type and one of the types. """
+    if not hasattr(o, 'type'):
         return False
     else:
-        return o._type in VisitorNames
+        return o.type in VisitorNames
 
 
 def is_phrase_t(o):
@@ -510,8 +62,9 @@ def is_phrase_t(o):
 
     """
     return (is_element_t(o) and
-            (o._type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase, ADJECTIVE_PHRASE, ADVERB_PHRASE} or
-             (o._type == COORDINATION and
+            (o.type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase,
+                        ADJECTIVE_PHRASE, ADVERB_PHRASE} or
+             (o.type == COORDINATION and
               (o.coords == [] or is_phrase_t(o.coords[0])))))
 
 
@@ -521,8 +74,8 @@ def is_clause_t(o):
 
     """
     return (is_element_t(o) and
-            ((o._type in {CLAUSE, SUBORDINATION}) or
-             (o._type == COORDINATION and any(map(is_clause_t, o.coords)))))
+            ((o.type in {CLAUSE, SUBORDINATION}) or
+             (o.type == COORDINATION and any(map(is_clause_t, o.coords)))))
 
 
 def is_adj_mod_t(o):
@@ -554,12 +107,12 @@ def str_to_elt(*params):
     and any strings to String.
 
     """
-    fn = lambda x: String(x) if isinstance(x, str) else x
-    return list(map(fn, params))
+    def helper(x):
+        return String(x) if isinstance(x, str) else x
+    return list(map(helper, params))
 
 
 class FeatureModulesLoader(type):
-
     """Metaclass injecting the feature module property onto a class."""
 
     def __new__(cls, clsname, bases, dct):
@@ -588,7 +141,7 @@ class FeatureModulesLoader(type):
 
 class Element(object, metaclass=FeatureModulesLoader):
     """ A base class representing an NLG element.
-        Aside for providing a base class for othe kinds of NLG elements,
+        Aside for providing a base class for other kinds of NLG elements,
         the class also implements basic functionality for elements.
 
     """
@@ -597,7 +150,7 @@ class Element(object, metaclass=FeatureModulesLoader):
         if features and not isinstance(features, dict):
             raise ValueError('Features have to be a dict instance.')
         self.id = 0  # this is useful for replacing elements
-        self._type = type
+        self.type = type
         self._visitor_name = VisitorNames[type]
         self.features = deepcopy(features) if features else {}
         self.hash = -1
@@ -609,33 +162,38 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     def __eq__(self, other):
         if not is_element_t(other): return False
-        if not self._type is other._type: return False
+        if self.type is not other.type: return False
         return (self.id == other.id and
                 self.features == other.features)
 
     def __hash__(self):
         if self.hash == -1:
             self.hash = (hash(self.id) ^ hash(tuple(['k:v'.format(k, v)
-                                                     for k, v in self.features.items()])))
+                                                     for k, v in
+                                                     self.features.items()])))
         return self.hash
 
     @classmethod
-    def from_dict(Cls, dct):
-        o = Cls()
-        o.__dict__ = dct
+    def from_dict(cls, dct):
+        o = cls(None, None, None)
+        o.__dict__.update(dct)
         return o
 
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__, indent=4)
+    @classmethod
+    def from_json(cls, s):
+        return json.loads(s, cls=ElementDecoder)
+
+    def to_json(self):
+        return json.dumps(self, cls=ElementEncoder)
 
     def __repr__(self):
-        from .microplanning import ReprVisitor
+        from nlglib.microplanning import ReprVisitor
         v = ReprVisitor()
         self.accept(v)
         return str(v)
 
     def __str__(self):
-        from .microplanning import StrVisitor
+        from nlglib.microplanning import StrVisitor
         v = StrVisitor()
         self.accept(v)
         return str(v)
@@ -684,22 +242,17 @@ class Element(object, metaclass=FeatureModulesLoader):
         If no such match is found, raise an AttributeError.
 
         Example:
-        >>> elt = NLGElement(features={'plural': 'plop', 'infl': ['lala']})
+        >>> elt = NLGElement(features={'plural': 'plop', 'infl': ['foo']})
         >>> elt.plural
         'plop'  # because 'plural' is in features
         >>> elt.infl
-        ['lala']  # because 'infl' is in features
+        ['foo']  # because 'infl' is in features
         >>> elt.inflections
-        ['lala']  # because INFLECTIONS='infl' is defined as a feature constant
-                # constant, and elt.features['infl'] = ['lala']
+        ['foo']  # because INFLECTIONS='infl' is defined as a feature constant
+                # constant, and elt.features['infl'] = ['foo']
 
         """
         n = name.upper()
-        flag = 'features' in self.__dict__
-        if not flag:
-            print('features: {}'.format(flag))
-            print(self.__class__)
-            raise Exception('flag!')
         if name in self.features:
             return self.features[name]
         elif n in self._feature_constants:
@@ -707,23 +260,34 @@ class Element(object, metaclass=FeatureModulesLoader):
             return self.features.get(new_name)
         raise AttributeError(name)
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self._type, self.features, self.parent)
+    def __deepcopy__(self, memodict=None):
+        copyobj = self.__class__(self.type, self.features, self.parent)
         copyobj.id = self.id
         copyobj.hash = self.hash
         return copyobj
 
+    def to_str(self):
+        from nlglib.microplanning import SimpleStrVisitor
+        visitor = SimpleStrVisitor()
+        self.accept(visitor)
+        return str(visitor)
+
+    def to_xml(self, depth=0):
+        from nlglib.microplanning import XmlVisitor
+        visitor = XmlVisitor(depth=depth)
+        self.accept(visitor)
+        return str(visitor.xml)
+
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
-        if self._visitor_name == None:
-            raise ValueError('Error: visit method of uninitialized visitor '
-                             'called!')
+        if self._visitor_name is None:
+            raise ValueError('Error: visit method of uninitialized visitor called!')
         # get the appropriate method of the visitor instance
         m = getattr(visitor, self._visitor_name)
         # ensure that the method is callable
         if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call undefined method: %s on '
-                             'visitor' % self._visitor_name)
+            raise ValueError('Error: cannot call undefined method: %s on visitor'
+                             % self._visitor_name)
         sig = inspect.signature(m)
         # and finally call the callback
         if len(sig.parameters) == 1:
@@ -740,52 +304,6 @@ class Element(object, metaclass=FeatureModulesLoader):
             return ' ' + features
         return ''
 
-    def set_feature(self, feature, value):
-        """ Add a feature to the feature set.
-        If the feature exists, overwrite the old value.
-
-        """
-        self.features[feature] = value
-
-    def has_feature(self, feature, value=None):
-        """ Return True if the element has the given feature.
-        If a value is given, return true if the feature matches the value,
-        otherwise return true if the element has some value for the feature.
-
-        """
-        if feature in self.features:
-            if value is None: return True
-            return value == self.features[feature]
-        return False
-
-    def get_feature(self, feature):
-        """ Return value for given feature or raise KeyError. """
-        return self.features[feature]
-
-    def feature(self, feat):
-        """ Return value for given feature or None. """
-        if feat in self.features:
-            return self.features[feat]
-        else:
-            return None
-
-    def del_feature(self, feat, val=None):
-        """ Delete a feature, if the element has it else do nothing.
-        If val is None, delete whathever value is assigned to the feature.
-        Otherwise only delete the feature if it has matching value.
-
-        """
-        if feat in self.features:
-            if val is not None:
-                del self.features[feat]
-            elif val == self.features[feat]:
-                del self.features[feat]
-
-    def addfeatures(self, features):
-        """ Add the given features (dict) to the existing features. """
-        for k, v in features.items():
-            self.features[k] = v
-
     def constituents(self):
         """ Return a generator representing constituents of an element. """
         return []
@@ -798,22 +316,22 @@ class Element(object, metaclass=FeatureModulesLoader):
                            self.constituents()))
 
     def replace(self, one, another):
-        """ Replace first occurance of one with another.
+        """ Replace first occurrence of one with another.
         Return True if successful.
 
         """
         return False  # basic implementation does nothing
 
-    def replace_argument(self, arg_id, repl):
-        """ Replace an argument with given id by repl if such argumen exists."""
+    def replace_argument(self, arg_id, replacement):
+        """ Replace an argument with given id by `replacement` if such argument exists."""
         for a in self.arguments():
             if a.id == arg_id:
-                return self.replace(a, repl)
+                return self.replace(a, replacement)
         return False
 
     def replace_arguments(self, *args, **kwargs):
-        """ Replace arguments with ids in the kwargs by the corresponding
-        values.
+        """ Replace arguments with ids in the kwargs by the corresponding values.
+        
         Replacements can be passed as a single dictionary or a kwarg list
         (e.g., arg1=x, arg2=y, ...)
 
@@ -897,7 +415,7 @@ class Word(Element):
         self.pos = pos
         self.base = base or word
         self.do_inflection = False
-        self.set_feature('cat', pos)
+        self.cat = pos
 
     def __bool__(self):
         """ Return True """
@@ -968,7 +486,8 @@ class Var(Element):
         return self.hash
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.id, self.value, features=self.features, parent=self.parent)
+        copyobj = self.__class__(self.id, self.value, features=self.features,
+                                 parent=self.parent)
         copyobj.id = self.id
         copyobj.hash = self.hash
         return copyobj
@@ -990,7 +509,8 @@ class Var(Element):
 class Coordination(Element):
     """ Coordinated clause with a conjunction. """
 
-    def __init__(self, *coords, conj='and', features=None, parent=None, **kwargs):
+    def __init__(self, *coords, conj='and', features=None, parent=None,
+                 **kwargs):
         super().__init__(COORDINATION, features, parent)
         self.coords = list()
         self.add_coordinate(*coords)
@@ -1023,7 +543,8 @@ class Coordination(Element):
         assert False, 'Coordination Element is not hashable'
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(conj=self.conj, features=self.features, parent=self.parent)
+        copyobj = self.__class__(conj=self.conj, features=self.features,
+                                 parent=self.parent)
         copyobj.coords = deepcopy(self.coords)
         copyobj.id = self.id
         return copyobj
@@ -1076,7 +597,7 @@ class Coordination(Element):
 
         """
         logger.debug('Replacing "{}" in "{}" by "{}.'
-                    .format(one, self, another))
+                     .format(one, self, another))
         for i, o in enumerate(self.coords):
             if o == one:
                 if another:
@@ -1130,7 +651,7 @@ class Phrase(Element):
     def __eq__(self, other):
         if not isinstance(other, Phrase):
             return False
-        return (self._type == other._type and
+        return (self.type == other.type and
                 self.front_modifiers == other.front_modifiers and
                 self.pre_modifiers == other.pre_modifiers and
                 self.head == other.head and
@@ -1149,7 +670,8 @@ class Phrase(Element):
         return self
 
     def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self._type, features=self.features, parent=self.parent)
+        copyobj = self.__class__(self.type, features=self.features,
+                                 parent=self.parent)
         copyobj.id = self.id
         copyobj.front_modifiers = deepcopy(self.front_modifiers)
         copyobj.pre_modifiers = deepcopy(self.pre_modifiers)
@@ -1287,7 +809,7 @@ class Phrase(Element):
             for k in self.head.features.keys():
                 if k in self.features:
                     del self.features[k]
-            if hasattr(another, '_type') and self._type == another._type:
+            if hasattr(another, 'type') and self.type == another.type:
                 if hasattr(self, 'spec') and hasattr(another, 'spec'):
                     self.spec = another.spec
                 self.add_front_modifier(*another.front_modifiers)
@@ -1339,7 +861,8 @@ class NounPhrase(Phrase):
      * </UL>
      """
 
-    def __init__(self, head=None, spec=None, features=None, parent=None, **kwargs):
+    def __init__(self, head=None, spec=None, features=None, parent=None,
+                 **kwargs):
         super().__init__(NOUN_PHRASE, features, parent, **kwargs)
         self.spec = None
         self.set_spec(spec)
@@ -1363,7 +886,8 @@ class NounPhrase(Phrase):
         """ Set the specifier (e.g., determiner) of the NounPhrase. """
         if spec is None: spec = Element()
         # convert str to String if necessary
-        self.spec = String(spec) if isinstance(spec, str) else spec  # use raise_to_element
+        self.spec = String(spec) if isinstance(spec,
+                                               str) else spec  # use raise_to_element
 
     def constituents(self):
         """ Return a generator to iterate through constituents. """
@@ -1497,7 +1021,8 @@ class Clause(Element):
     subj = None
     vp = None
 
-    def __init__(self, subj=None, vp=Element(), features=None, parent=None, **kwargs):
+    def __init__(self, subj=None, vp=Element(), features=None, parent=None,
+                 **kwargs):
         super().__init__(CLAUSE, features, parent=parent)
         self.front_modifiers = list()
         self.pre_modifiers = list()
@@ -1541,7 +1066,8 @@ class Clause(Element):
             self_.vp += other_
             return self_
         else:
-            raise ValueError('Cannot add these up: "{}" + "{}"'.format(self, other))
+            raise ValueError(
+                'Cannot add these up: "{}" + "{}"'.format(self, other))
 
     def __deepcopy__(self, memodict={}):
         copyobj = self.__class__(deepcopy(self.subj),
@@ -1558,7 +1084,8 @@ class Clause(Element):
     def set_subj(self, subj):
         """ Set the subject of the clause. """
         # convert str to String if necessary
-        self.subj = String(subj) if isinstance(subj, str) else (subj or Element())
+        self.subj = String(subj) if isinstance(subj, str) else (
+            subj or Element())
         self.subj.parent = self
 
     def set_vp(self, vp):
@@ -1726,3 +1253,48 @@ def raise_to_element(element):
     if not isinstance(element, Element):
         return String(str(element))  # use str() in case of numbers
     return element
+
+
+class ElementEncoder(json.JSONEncoder):
+    def default(self, python_object):
+        if isinstance(python_object, Element):
+            return {'__class__': str(type(python_object)),
+                    '__value__': python_object.__dict__}
+        return super(ElementEncoder, self).default(python_object)
+
+
+class ElementDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        kwargs['object_hook'] = ElementDecoder.from_json
+        super(ElementDecoder, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    def from_json(json_object):
+        if '__class__' in json_object:
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Element'>":
+                return Element.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.String'>":
+                return String.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Word'>":
+                return Word.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Var'>":
+                return Var.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Phrase'>":
+                return Phrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Clause'>":
+                return Clause.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.NounPhrase'>":
+                return NounPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.VerbPhrase'>":
+                return VerbPhrase.from_dict(json_object['__value__'])
+            if json_object[
+                '__class__'] == "<class 'nlglib.structures.microplanning.PrepositionalPhrase'>":
+                return PrepositionalPhrase.from_dict(json_object['__value__'])
+            if json_object[
+                '__class__'] == "<class 'nlglib.structures.microplanning.AdjectivePhrase'>":
+                return AdjectivePhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.AdverbPhrase'>":
+                return AdverbPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Coordination'>":
+                return Coordination.from_dict(json_object['__value__'])
+        return json_object

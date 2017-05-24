@@ -1,37 +1,23 @@
 import logging
 from urllib.parse import quote_plus
 
-from nlglib.structures import Element, Word, Clause, Phrase, Coordination
-from nlglib.structures import NounPhrase, VerbPhrase, PrepositionalPhrase
-from nlglib.structures import AdjectivePhrase, AdverbPhrase, Var
+from nlglib.structures import Element, Clause, Phrase, Coordination
+from nlglib.structures import NounPhrase, VerbPhrase
 from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
 from nlglib.structures import NOUN_PHRASE, VERB_PHRASE, VAR, COORDINATION
 from nlglib.lexicon import POS_VERB, POS_ADVERB
 
 
-# from nlglib.lexicon import POS_ANY, POS_ADJECTIVE, POS_ADVERB, POS_AUXILIARY
-# from nlglib.lexicon import POS_COMPLEMENTISER, POS_CONJUNCTION, POS_DETERMINER
-# from nlglib.lexicon import POS_MODAL, POS_NOUN, POS_NUMERAL, POS_PREPOSITION
-# from nlglib.lexicon import POS_PRONOUN, POS_SYMBOL, POS_VERB, POS_EXCLAMATION
-
-def get_log():
-    return logging.getLogger(__name__)
-
-
-get_log().addHandler(logging.NullHandler())
-
-
-# def template(word, lexicon, pos=POS_ANY):
-#    """ Create syntactic template for expressing a word. """
-#    assert False, "not implemented"
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 def promote_to_clause(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
     if is_clause_t(e): return e
     if is_phrase_t(e):
-        if e._type == NOUN_PHRASE: return Clause(e)
-        if e._type == VERB_PHRASE: return Clause(Element(), e)
+        if e.type == NOUN_PHRASE: return Clause(e)
+        if e.type == VERB_PHRASE: return Clause(Element(), e)
     return Clause(e)
 
 
@@ -39,13 +25,13 @@ def promote_to_phrase(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
     if is_clause_t(e): return e
     if is_phrase_t(e): return e
-    if e._type == STRING: return NounPhrase(e, features=e.features)
-    if e._type == VAR: return NounPhrase(e, features=e.features)
-    if e._type == WORD:
+    if e.type == STRING: return NounPhrase(e, features=e.features)
+    if e.type == VAR: return NounPhrase(e, features=e.features)
+    if e.type == WORD:
         if e.pos == POS_VERB: return VerbPhrase(e, features=e.features)
         if e.pos == POS_ADVERB: return VerbPhrase(e, features=e.features)
         return NounPhrase(e, features=e.features)
-    if e._type == COORDINATION:
+    if e.type == COORDINATION:
         return Coordination(*[promote_to_phrase(x) for x in e.coords],
                             conj=e.conj, features=e.features)
     return NounPhrase(e, features=e.features)
@@ -109,9 +95,6 @@ class PrintVisitor:
         for k, v in kwargs.items(): args[k] = v
         return args
 
-    def visit_element(self):
-        pass
-
 
 class XmlVisitor(PrintVisitor):
     """ Convert an NLG element structure into an XML readable by SimpleNLG. """
@@ -138,7 +121,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.ancestors.append('child')
 
     def visit_string(self, node):
-        neg = 'not ' if node.has_feature('NEGATED', 'true') else ''
+        neg = 'not ' if node.negated == 'true' else ''
         # text = ('{outer}<{tag} xsi:type="StringElement">{sep}'
         #        '{inner}<val>{neg}{val}</val>{sep}'
         #        '{outer}</{tag}>{sep}').format(val=quote_plus(str(node.value)),
@@ -192,10 +175,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self._process_elements(node, 'post_modifiers', 'postMod')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
-    def visit_phrase(self, node, type):
+    def visit_phrase(self, node, typ):
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="{type}"{f}>{sep}' \
-            .format(type=type, **self._get_args(f=features))
+            .format(type=typ, **self._get_args(f=features))
         self._process_elements(node, 'front_modifiers', 'frontMod')
         self._process_elements(node, 'pre_modifiers', 'preMod')
         self._process_element(node, 'head')
@@ -225,9 +208,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self._process_elements(node, 'post_modifiers', 'postMod')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
-    def visit_subordination(self, node):
-        assert False, 'Not implemented'
-
     def to_xml(self):
         return (self.header + self.xml + self.footer).strip()
 
@@ -235,7 +215,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml = ''
 
     def __str__(self):
-        return (self.to_xml())
+        return self.to_xml()
 
     def __repr__(self):
         return 'XmlVisitor({0})'.format(self.xml)
@@ -253,7 +233,7 @@ class ReprVisitor(PrintVisitor):
         self.data = data
         self.do_indent = True
 
-    def _process_elements(self, node, name):
+    def _process_elements(self, node, name, _=None):
         attr = getattr(node, name)
         if len(attr) == 0: return
         self.data += ',\n'
@@ -267,7 +247,7 @@ class ReprVisitor(PrintVisitor):
             x.accept(r)
             return str(r)
 
-        #        get_log().debug('*' * 4 + repr(attr))
+        #        logger.debug('*' * 4 + repr(attr))
         tmp = map(fn, attr)
         tmp_no_whites = [' '.join(x.split()) for x in tmp if x is not None]
         self.data += ', '.join(tmp_no_whites)
@@ -279,7 +259,7 @@ class ReprVisitor(PrintVisitor):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(repr(node))
 
-    def visit_element(self, node):
+    def visit_element(self, _):
         if self.do_indent: self.data += self.indent
         self.data += 'Element()'
 
@@ -302,8 +282,7 @@ class ReprVisitor(PrintVisitor):
         if not node.value:
             self.data += 'Var({0}'.format(repr(node.id))
         else:
-            self.data += 'Var({0}, {1}'.format(repr(node.id),
-                                                       repr(node.value))
+            self.data += 'Var({0}, {1}'.format(repr(node.id), repr(node.value))
         if node.features != dict():
             self.data += ', ' + repr(node.features)
         self.data += ')'
@@ -432,7 +411,7 @@ class StrVisitor(PrintVisitor):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(node)
 
-    def visit_element(self, node):
+    def visit_element(self, _):
         self.data += ''
 
     def visit_string(self, node):
@@ -448,8 +427,7 @@ class StrVisitor(PrintVisitor):
         if node.value == Element():
             self.data += 'Var({0})'.format(repr(node.id))
         else:
-            self.data += 'Var({0}, {1})'.format(repr(node.id),
-                                                        repr(node.value))
+            self.data += 'Var({0}, {1})'.format(repr(node.id), repr(node.value))
 
     def visit_np(self, node):
         if self.do_indent: self.data += self.indent
@@ -523,6 +501,103 @@ class StrVisitor(PrintVisitor):
         self.do_indent = True
         self.data += ')'
         self.indent = self.indent[:-len('Coordination(')]
+
+    def clear(self):
+        self.data = ''
+
+    def __str__(self):
+        return self.data.strip()
+
+    def __repr__(self):
+        return 'StrVisitor({0})'.format(self.data)
+
+
+class SimpleStrVisitor(PrintVisitor):
+    """Collect strings of an element and its sub-elements."""
+
+    def __init__(self, data='', depth=0, indent='', sep=',\n'):
+        super(SimpleStrVisitor, self).__init__(depth, indent, sep)
+        self.data = data
+        self.do_indent = True
+
+    def visit_msg_spec(self, node):
+        if self.do_indent: self.data += self.indent
+        self.data += '{0}'.format(node)
+
+    def visit_element(self, _):
+        self.data += ''
+
+    def visit_string(self, node):
+        if self.do_indent: self.data += self.indent
+        self.data += str(node.value)
+
+    def visit_word(self, node):
+        if self.do_indent: self.data += self.indent
+        self.data += str(node.word)
+
+    def visit_var(self, node):
+        if self.do_indent: self.data += self.indent
+        if node.value == Element():
+            self.data += str(node.id)
+        else:
+            self.data += str(node.value)
+
+    def visit_np(self, node):
+        if node.spec != Element():
+            node.spec.accept(self)
+        for mod in node.pre_modifiers:
+            mod.accept(self)
+        node.head.accept(self)
+        for mod in node.complements:
+            mod.accept(self)
+        for mod in node.post_modifiers:
+            mod.accept(self)
+
+    def visit_phrase(self, node, _=''):
+        for mod in node.pre_modifiers:
+            mod.accept(self)
+        node.head.accept(self)
+        for mod in node.complements:
+            mod.accept(self)
+        for mod in node.post_modifiers:
+            mod.accept(self)
+
+    def visit_vp(self, node):
+        self.visit_phrase(node, 'VerbPhrase')
+
+    def visit_pp(self, node):
+        self.visit_phrase(node, 'PrepositionalPhrase')
+
+    def visit_adjp(self, node):
+        self.visit_phrase(node, 'AdjectivePhrase')
+
+    def visit_advp(self, node):
+        self.visit_phrase(node, 'AdverbPhrase')
+
+    def visit_clause(self, node):
+        for mod in node.front_modifiers:
+            mod.accept(self)
+        for mod in node.pre_modifiers:
+            mod.accept(self)
+        if node.subj:
+            node.subj.accept(self)
+        if node.vp:
+            node.vp.accept(self)
+        for mod in node.complements:
+            mod.accept(self)
+        for mod in node.post_modifiers:
+            mod.accept(self)
+
+    def visit_coordination(self, node):
+        i = len(node.coords) - 2
+        node.coords[0].accept(self)
+        for c in node.coords[1:]:
+            i -= 1
+            if i > 0:
+                self.data += ', '
+            else:
+                self.data += str(node.conj)
+            c.accept(self)
 
     def clear(self):
         self.data = ''
@@ -659,7 +734,6 @@ def sentence_iterator(sent):
             yield x
         yield sent.vp
         yield sent.subj
-
         return
 
     if isinstance(sent, Phrase):
@@ -691,7 +765,6 @@ def sentence_iterator(sent):
         for x in sent.coords:
             yield x
         yield sent
-
     else:
         yield (sent)
 
@@ -720,6 +793,8 @@ def aggregation_sentence_iterator(sent):
 
 
 def replace_element(sent, elt, replacement=None):
+    import warnings
+    warnings.warn('replace_element is deprecated')
     if sent == elt:
         return True
 
@@ -729,7 +804,7 @@ def replace_element(sent, elt, replacement=None):
             return True
         else:
             if replace_element(sent.subj, elt, replacement):
-                return True;
+                return True
 
         if sent.vp == elt:
             sent.vp = replacement
@@ -737,11 +812,11 @@ def replace_element(sent, elt, replacement=None):
 
         else:
             if replace_element(sent.vp, elt, replacement):
-                return True;
+                return True
 
     if isinstance(sent, Coordination):
         for i, o in list(enumerate(sent.coords)):
-            if (o == elt):
+            if o == elt:
                 if replacement is None:
                     del sent.coords[i]
                 else:
@@ -753,7 +828,7 @@ def replace_element(sent, elt, replacement=None):
 
     if isinstance(sent, Phrase):
         for i, o in reversed(list(enumerate(sent.post_modifiers))):
-            if (o == elt):
+            if o == elt:
                 if replacement is None:
                     del sent.post_modifiers[i]
                 else:
@@ -763,7 +838,7 @@ def replace_element(sent, elt, replacement=None):
                 if replace_element(o, elt, replacement):
                     return True
         for i, o in reversed(list(enumerate(sent.complements))):
-            if (o == elt):
+            if o == elt:
                 if replacement is None:
                     del sent.complements[i]
                 else:
@@ -776,7 +851,7 @@ def replace_element(sent, elt, replacement=None):
             sent.head = replacement
             return True
         for i, o in reversed(list(enumerate(sent.pre_modifiers))):
-            if (o == elt):
+            if o == elt:
                 if replacement is None:
                     del sent.pre_modifiers[i]
                 else:
@@ -792,7 +867,7 @@ def replace_element(sent, elt, replacement=None):
                 return True
 
         for i, o in reversed(list(enumerate(sent.front_modifiers))):
-            if (o == elt):
+            if o == elt:
                 if replacement is None:
                     del sent.front_modifiers[i]
                 else:
@@ -805,12 +880,15 @@ def replace_element(sent, elt, replacement=None):
 
 
 def replace_element_with_id(sent, elt_id, replacement=None):
+    import warnings
+    warnings.warn('replace_element is deprecated')
+
     if id(sent) == elt_id:
         return True
 
     if isinstance(sent, Coordination):
         for i, o in list(enumerate(sent.coords)):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.coords[i]
                 else:
@@ -822,7 +900,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
 
     if isinstance(sent, Clause):
         for i, o in reversed(list(enumerate(sent.pre_modifiers))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.pre_modifiers[i]
                 else:
@@ -837,7 +915,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
             return True
         else:
             if replace_element_with_id(sent.subj, elt_id, replacement):
-                return True;
+                return True
 
         if id(sent.vp) == elt_id:
             sent.vp = replacement
@@ -845,10 +923,10 @@ def replace_element_with_id(sent, elt_id, replacement=None):
 
         else:
             if replace_element_with_id(sent.vp, elt_id, replacement):
-                return True;
+                return True
 
         for i, o in reversed(list(enumerate(sent.complements))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.complements[i]
                 else:
@@ -859,7 +937,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                     return True
 
         for i, o in reversed(list(enumerate(sent.post_modifiers))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.post_modifiers[i]
                 else:
@@ -871,7 +949,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
 
     if isinstance(sent, Phrase):
         for i, o in reversed(list(enumerate(sent.post_modifiers))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.post_modifiers[i]
                 else:
@@ -881,7 +959,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                 if replace_element_with_id(o, elt_id, replacement):
                     return True
         for i, o in reversed(list(enumerate(sent.complements))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.complements[i]
                 else:
@@ -894,7 +972,7 @@ def replace_element_with_id(sent, elt_id, replacement=None):
             sent.head = replacement
             return True
         for i, o in reversed(list(enumerate(sent.pre_modifiers))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.pre_modifiers[i]
                 else:
@@ -905,12 +983,12 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                     return True
 
         if isinstance(sent, NounPhrase):
-            if (sent.spec) == elt_id:
+            if sent.spec == elt_id:
                 sent.spec = replacement
                 return True
 
         for i, o in reversed(list(enumerate(sent.front_modifiers))):
-            if (id(o) == elt_id):
+            if id(o) == elt_id:
                 if replacement is None:
                     del sent.front_modifiers[i]
                 else:

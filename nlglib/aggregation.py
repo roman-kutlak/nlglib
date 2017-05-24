@@ -259,7 +259,7 @@ def aggregate_message(msg, **kwargs):
     if not (msg.rst == 'Sequence' or
                     msg.rst == 'Alternative' or
                     msg.rst == 'List'): return msg
-    # TODO: Sequence and list are probably multi-nucleus and not multi-satellite
+    # TODO: Sequence and list are probably multi-nuclei and not multi-satellite
     get_log().debug('Aggregating list or sequence.')
     elements = []
     if len(msg.satellites) > 1:
@@ -274,7 +274,7 @@ def aggregate_message(msg, **kwargs):
         elements.append(msg.satellites[0])
     if msg.nucleus is not None:
         elements.insert(0, msg.nucleus)
-        # TODO: put elements in nucleus or come up with a different struct.
+        # TODO: put elements in nuclei or come up with a different struct.
     return Message(msg.rst, None, *elements)
 
 

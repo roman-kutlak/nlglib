@@ -161,13 +161,13 @@ def type_to_category(t):
 def nlglib_to_pynlg(element, lexicon):
     if element == Element() or element is None:
         return None
-    if element._type == structures.STRING:
+    if element.type == structures.STRING:
         return StringElement(element.string, language=lexicon.language)
-    if element._type == structures.VAR:
+    if element.type == structures.VAR:
         return StringElement(str(element), language=lexicon.language)
-    if element._type == structures.WORD:
+    if element.type == structures.WORD:
         return WordElement(element.word, category=pos_to_category(element.pos), lexicon=lexicon)
-    if element._type == structures.CLAUSE:
+    if element.type == structures.CLAUSE:
         p = PhraseElement(lexicon=lexicon, category=category.CLAUSE)
         p.subjects = [nlglib_to_pynlg(element.subj, lexicon)]
         p.verb_phrase = nlglib_to_pynlg(element.vp, lexicon)
@@ -180,7 +180,7 @@ def nlglib_to_pynlg(element, lexicon):
         for m in element.complements:
             p.add_post_complement(nlglib_to_pynlg(m, lexicon))
         return p
-    if element._type == structures.NOUN_PHRASE:
+    if element.type == structures.NOUN_PHRASE:
         p = NounPhraseElement(lexicon=lexicon)
         p.specifier = nlglib_to_pynlg(element.spec, lexicon)
         p.head = nlglib_to_pynlg(element.head, lexicon)
@@ -189,11 +189,11 @@ def nlglib_to_pynlg(element, lexicon):
         for m in element.post_modifiers:
             p.add_post_modifier(nlglib_to_pynlg(m, lexicon))
         return p
-    if element._type in (structures.VERB_PHRASE,
+    if element.type in (structures.VERB_PHRASE,
                          structures.ADJECTIVE_PHRASE,
                          structures.ADVERB_PHRASE,
                          structures.PREPOSITIONAL_PHRASE):
-        cat = type_to_category(element._type)
+        cat = type_to_category(element.type)
         p = PhraseElement(lexicon=lexicon, category=cat)
         p.head = nlglib_to_pynlg(element.head, lexicon)
         for m in element.pre_modifiers:

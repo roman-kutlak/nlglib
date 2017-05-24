@@ -46,7 +46,7 @@ class TestLexicalisation(unittest.TestCase):
 
     def test_lexicalise_msg(self):
         """ Test lexicalisation of Message. """
-        # a message with 1 nucleus and 2 satellites
+        # a message with 1 nuclei and 2 satellites
         m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         lex = lexicalise_message(m)
         tmp = list(lexicalise_message_spec(DummyMsg()).constituents())
