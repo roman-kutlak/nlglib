@@ -154,7 +154,7 @@ class AdjectivePhraseElement(PhraseElement):
 
     It is essentially a wrapper around the
     PhraseElement class, with methods for setting common constituents
-    such as pre_modifiers.
+    such as premodifiers.
 
     """
 

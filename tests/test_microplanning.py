@@ -258,12 +258,12 @@ class TestRepresentation(unittest.TestCase):
         
         v = ReprVisitor()
         s = Clause(NP(Noun('Python')), VP(Verb('rocks')))
-        s.pre_modifiers.append(Adverb('today'))
+        s.premodifiers.append(Adverb('today'))
         s.set_feature('foo', 'bar')
         expected = ("Clause(NP(Word('Python', 'NOUN')),\n"
                     "       VP(Word('rocks', 'VERB')),\n"
                     "       {'foo': 'bar'},\n"
-                    "       pre_modifiers=[Word('today', 'ADVERB')])")
+                    "       premodifiers=[Word('today', 'ADVERB')])")
         s.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
@@ -292,11 +292,11 @@ class TestRepresentation(unittest.TestCase):
         
         v = ReprVisitor()
         s = NP('the', 'war')
-        s.post_modifiers.append(PP('of',
+        s.postmodifiers.append(PP('of',
                                    NP('the', 'worlds',
                                       features={'NUMBER': 'PLURAL'})))
         expected = ("NP(Word('war', 'NOUN'), Word('the', 'DETERMINER'),\n"
-                    "   post_modifiers=[PP(String('of'),\n"
+                    "   postmodifiers=[PP(String('of'),\n"
                     "                      NP(Word('worlds', 'NOUN'), "\
                     "Word('the', 'DETERMINER'), "\
                     "features={'NUMBER': 'PLURAL'}))])")

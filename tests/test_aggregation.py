@@ -14,7 +14,7 @@ class TestAggregation(unittest.TestCase):
         truck = Word("truck", "NOUN")
         the_truck = NounPhrase(head=truck, spec=the)
         into = Word("into", "PREPOSITION")
-        pp = PrepositionalPhrase(head=into)
+        pp = PrepositionPhrase(head=into)
         pp.complements.append(the_truck)
         
         put = Word("put", "VERB")

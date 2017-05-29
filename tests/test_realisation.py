@@ -132,8 +132,8 @@ class TestStringRealisation(unittest.TestCase):
         v = RealisationVisitor()
         c = Clause(Word('Peter', 'NOUN'),
                    Word('run', 'VERB'),
-                   pre_modifiers=[String('yesterday')],
-                   post_modifiers=[String('abundantly')])
+                   premodifiers=[String('yesterday')],
+                   postmodifiers=[String('abundantly')])
         expected = 'yesterday Peter run abundantly'
         c.accept(v)
         actual = str(v)
@@ -142,8 +142,8 @@ class TestStringRealisation(unittest.TestCase):
         v = RealisationVisitor()
         c = Clause(Word('Peter', 'NOUN'),
                    Word('run', 'VERB'),
-                   pre_modifiers=['yesterday'],
-                   post_modifiers=['abundantly'])
+                   premodifiers=['yesterday'],
+                   postmodifiers=['abundantly'])
         expected = 'yesterday Peter run abundantly'
         c.accept(v)
         actual = str(v)
@@ -161,8 +161,8 @@ class TestStringRealisation(unittest.TestCase):
         v = RealisationVisitor()
         c = NounPhrase(Word('house', 'NOUN'),
                Word('this', 'DETERMINER'),
-               pre_modifiers=['tall', 'yellow'],
-               post_modifiers=['that we lived in'])
+               premodifiers=['tall', 'yellow'],
+               postmodifiers=['that we lived in'])
         expected = 'this tall yellow house that we lived in'
         c.accept(v)
         actual = str(v)
@@ -189,7 +189,7 @@ class TestStringRealisation(unittest.TestCase):
 
     def test_pp(self):
         v = RealisationVisitor()
-        c = PrepositionalPhrase(Word('in', 'PREPOSITION'),
+        c = PrepositionPhrase(Word('in', 'PREPOSITION'),
                String('the house'))
         expected = 'in the house'
         c.accept(v)
@@ -197,7 +197,7 @@ class TestStringRealisation(unittest.TestCase):
         self.assertEqual(expected, actual)
         
         v = RealisationVisitor()
-        c = PrepositionalPhrase(Word('in', 'PREPOSITION'),
+        c = PrepositionPhrase(Word('in', 'PREPOSITION'),
                NounPhrase(Word('house', 'NOUN'), Word('the', 'DETERMINER')))
         expected = 'in the house'
         c.accept(v)
@@ -223,7 +223,7 @@ class TestStringRealisation(unittest.TestCase):
     def test_complex(self):
         house = NounPhrase('house', 'the')
         shopping = NounPhrase('shopping', 'the')
-        put = VerbPhrase('put', shopping, PrepositionalPhrase('in', house))
+        put = VerbPhrase('put', shopping, PrepositionPhrase('in', house))
         s = Clause(NounPhrase('Peter'), put)
         expected = 'Peter put the shopping in the house'
         v = RealisationVisitor()

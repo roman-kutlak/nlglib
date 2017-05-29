@@ -166,14 +166,14 @@ class RealisationVisitor:
             node.vp.set_feature('NEGATED', node.get_feature('NEGATED'))
         for o in node.front_modifiers: o.accept(self)
         node.subj.accept(self)
-        for o in node.pre_modifiers: o.accept(self)
+        for o in node.premodifiers: o.accept(self)
         node.vp.accept(self)
         if len(node.complements) > 0:
             if node.complements[0].has_feature('COMPLEMENTISER'):
                 self.text += node.complements[0].get_feature('COMPLEMENTISER')
                 self.text += ' '
         for c in node.complements: c.accept(self)
-        for o in node.post_modifiers: o.accept(self)
+        for o in node.postmodifiers: o.accept(self)
 
     def visit_coordination(self, node):
         if node.coords is None or len(node.coords) == 0: return ''
@@ -193,21 +193,21 @@ class RealisationVisitor:
     def visit_subordination(self, node):
         assert False, 'not implemented'
 
-    def visit_np(self, node):
+    def visit_noun_phrase(self, node):
         for c in node.front_modifiers: c.accept(self)
         node.spec.accept(self)
-        for c in node.pre_modifiers: c.accept(self)
+        for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
         if len(node.complements) > 0:
             if node.complements[0].has_feature('COMPLEMENTISER'):
                 self.text += node.complements[0].get_feature('COMPLEMENTISER')
                 self.text += ' '
         for c in node.complements: c.accept(self)
-        for c in node.post_modifiers: c.accept(self)
+        for c in node.postmodifiers: c.accept(self)
 
-    def visit_vp(self, node):
+    def visit_verb_phrase(self, node):
         for c in node.front_modifiers: c.accept(self)
-        for c in node.pre_modifiers: c.accept(self)
+        for c in node.premodifiers: c.accept(self)
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
@@ -260,12 +260,12 @@ class RealisationVisitor:
                     node.complements[0].get_feature('COMPLEMENTISER'))
         for c in node.complements:
             c.accept(self)
-        for c in node.post_modifiers: c.accept(self)
+        for c in node.postmodifiers: c.accept(self)
 
-    def visit_pp(self, node):
+    def visit_preposition_phrase(self, node):
         self.visit_phrase(node)
 
-    def visit_adjp(self, node):
+    def visit_adjective_phrase(self, node):
         self.visit_phrase(node)
 
     def visit_advp(self, node):
@@ -273,12 +273,12 @@ class RealisationVisitor:
 
     def visit_phrase(self, node):
         for c in node.front_modifiers: c.accept(self)
-        for c in node.pre_modifiers: c.accept(self)
+        for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
         if node.has_feature('COMPLEMENTISER'):
             self.text += ' {0} '.format(node.get_feature('COMPLEMENTISER'))
         for c in node.complements: c.accept(self)
-        for c in node.post_modifiers: c.accept(self)
+        for c in node.postmodifiers: c.accept(self)
 
 
 def simple_realisation(struct, **kwargs):

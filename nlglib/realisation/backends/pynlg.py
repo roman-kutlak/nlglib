@@ -151,7 +151,7 @@ def type_to_category(t):
     mappings = {
         structures.NOUN_PHRASE: category.NOUN_PHRASE,
         structures.VERB_PHRASE: category.VERB_PHRASE,
-        structures.PREPOSITIONAL_PHRASE: category.PREPOSITIONAL_PHRASE,
+        structures.PREPOSITION_PHRASE: category.PREPOSITION_PHRASE,
         structures.ADJECTIVE_PHRASE: category.ADJECTIVE_PHRASE,
         structures.ADVERB_PHRASE: category.ADVERB_PHRASE,
     }
@@ -173,9 +173,9 @@ def nlglib_to_pynlg(element, lexicon):
         p.verb_phrase = nlglib_to_pynlg(element.vp, lexicon)
         for m in element.front_modifiers:
             p.add_pre_modifier(nlglib_to_pynlg(m, lexicon))
-        for m in element.pre_modifiers:
+        for m in element.premodifiers:
             p.add_pre_modifier(nlglib_to_pynlg(m, lexicon))
-        for m in element.post_modifiers:
+        for m in element.postmodifiers:
             p.add_post_modifier(nlglib_to_pynlg(m, lexicon))
         for m in element.complements:
             p.add_post_complement(nlglib_to_pynlg(m, lexicon))
@@ -184,21 +184,21 @@ def nlglib_to_pynlg(element, lexicon):
         p = NounPhraseElement(lexicon=lexicon)
         p.specifier = nlglib_to_pynlg(element.spec, lexicon)
         p.head = nlglib_to_pynlg(element.head, lexicon)
-        for m in element.pre_modifiers:
+        for m in element.premodifiers:
             p.add_pre_modifier(nlglib_to_pynlg(m, lexicon))
-        for m in element.post_modifiers:
+        for m in element.postmodifiers:
             p.add_post_modifier(nlglib_to_pynlg(m, lexicon))
         return p
     if element.type in (structures.VERB_PHRASE,
                          structures.ADJECTIVE_PHRASE,
                          structures.ADVERB_PHRASE,
-                         structures.PREPOSITIONAL_PHRASE):
+                         structures.PREPOSITION_PHRASE):
         cat = type_to_category(element.type)
         p = PhraseElement(lexicon=lexicon, category=cat)
         p.head = nlglib_to_pynlg(element.head, lexicon)
-        for m in element.pre_modifiers:
+        for m in element.premodifiers:
             p.add_pre_modifier(nlglib_to_pynlg(m, lexicon))
-        for m in element.post_modifiers:
+        for m in element.postmodifiers:
             p.add_post_modifier(nlglib_to_pynlg(m, lexicon))
         for m in element.complements:
             p.add_complement(nlglib_to_pynlg(m, lexicon))

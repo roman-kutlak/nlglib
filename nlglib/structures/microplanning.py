@@ -1,5 +1,16 @@
-""" Data structures used by other packages. """
+"""Data structures used by other packages. """
 
+# FIXME: more unit tests with coverage
+# TODO: check serialisation of phrases/clause
+# TODO: check deepcopy
+# TODO: raise_to_xxx should use category
+# TODO: set discourse features of elements (matrix clause, object, subject, head, spec, ...)
+# TODO: create module `element_algebra` and pud add/iadd into it
+# TODO: move current microplanning visitors into mod microplanning.visitors or struct.visitors
+# TODO: remove 'subj' and 'vp' from clause?
+
+
+import collections
 import inspect
 import importlib
 import json
@@ -13,69 +24,65 @@ from urllib.parse import quote_plus
 logger = logging.getLogger(__name__)
 
 # types of clauses:
-ELEMENT = 0  # abstract
-STRING = 1
-WORD = 2
-VAR = 3
-CLAUSE = 4
+ELEMENT = 'ELEMENT'  # abstract
+VAR = 'VAR'
+STRING = 'STRING'
+WORD = 'WORD'
 
-COORDINATION = 5
-SUBORDINATION = 6
+#  A default value, indicating an unspecified category.
+ANY = "ANY"
+#  The element represents a symbol.
+SYMBOL = "SYMBOL"
 
-PHRASE = 10  # abstract
-NOUN_PHRASE = 11
-VERB_PHRASE = 12
-PREPOSITIONAL_PHRASE = 13
-ADJECTIVE_PHRASE = 14
-ADVERB_PHRASE = 15
+NOUN = "NOUN"
+ADJECTIVE = "ADJECTIVE"
+ADVERB = "ADVERB"
+VERB = "VERB"
+DETERMINER = "DETERMINER"
+PRONOUN = "PRONOUN"
+CONJUNCTION = "CONJUNCTION"
+PREPOSITION = "PREPOSITION"
+COMPLEMENTISER = "COMPLEMENTISER"
+MODAL = "MODAL"
+AUXILIARY = "AUXILIARY"
 
-# visitor names
-VisitorNames = {
-    ELEMENT: 'visit_element',
-    STRING: 'visit_string',
-    WORD: 'visit_word',
-    VAR: 'visit_var',
-    CLAUSE: 'visit_clause',
+PHRASE = 'PHRASE'  # abstract
+NOUN_PHRASE = 'NOUN_PHRASE'
+VERB_PHRASE = 'VERB_PHRASE'
+PREPOSITION_PHRASE = 'PREPOSITION_PHRASE'
+ADJECTIVE_PHRASE = 'ADJECTIVE_PHRASE'
+ADVERB_PHRASE = 'ADVERB_PHRASE'
 
-    COORDINATION: 'visit_coordination',
+CLAUSE = 'CLAUSE'
+COORDINATION = 'COORDINATION'
 
-    PHRASE: 'visit_phrase',
-    NOUN_PHRASE: 'visit_np',
-    VERB_PHRASE: 'visit_vp',
-    PREPOSITIONAL_PHRASE: 'visit_pp',
-    ADJECTIVE_PHRASE: 'visit_adjp',
-    ADVERB_PHRASE: 'visit_advp',
-}
+CATEGORIES = [
+    ELEMENT, STRING, WORD, VAR,
+    COORDINATION,
+    PHRASE, NOUN_PHRASE, VERB_PHRASE,
+    PREPOSITION_PHRASE, ADJECTIVE_PHRASE, ADVERB_PHRASE,
+    CLAUSE
+]
 
 
 def is_element_t(o):
-    """ An object is an element if it has attr type and one of the types. """
-    if not hasattr(o, 'type'):
-        return False
-    else:
-        return o.type in VisitorNames
+    """Return True if `o` is an instance of `Element`."""
+    return isinstance(o, Element)
 
 
 def is_phrase_t(o):
-    """ An object is a phrase type if it is a phrase or a coordination of
-    phrases.
-
-    """
+    """Return True if `o` is a phrase. """
     return (is_element_t(o) and
-            (o.type in {PHRASE, NounPhrase, VerbPhrase, PrepositionalPhrase,
-                        ADJECTIVE_PHRASE, ADVERB_PHRASE} or
-             (o.type == COORDINATION and
-              (o.coords == [] or is_phrase_t(o.coords[0])))))
+            (o.category in {PHRASE, NOUN_PHRASE, VERB_PHRASE,
+                            ADJECTIVE_PHRASE, ADVERB_PHRASE, PREPOSITION_PHRASE}))
 
 
 def is_clause_t(o):
-    """ An object is a clause type if it is a clause, subordination or
+    """An object is a clause type if it is a clause, subordination or
     a coordination of clauses.
 
     """
-    return (is_element_t(o) and
-            ((o.type in {CLAUSE, SUBORDINATION}) or
-             (o.type == COORDINATION and any(map(is_clause_t, o.coords)))))
+    return is_element_t(o) and o.category == CLAUSE
 
 
 def is_adj_mod_t(o):
@@ -103,13 +110,11 @@ def is_noun_t(o):
 
 
 def str_to_elt(*params):
-    """ Check that all params are Elements and convert
+    """Check that all params are Elements and convert
     and any strings to String.
 
     """
-    def helper(x):
-        return String(x) if isinstance(x, str) else x
-    return list(map(helper, params))
+    return [raise_to_element(param) for param in params if params is not None]
 
 
 class FeatureModulesLoader(type):
@@ -126,7 +131,7 @@ class FeatureModulesLoader(type):
                     continue
                 pkg_path = pkg_root + '.' + filename.replace('.py', '')
                 if pkg_path.startswith('.'):  # no relative imports please
-                    _, root, child = pkg_path.rpartition('pynlg')
+                    _, root, child = pkg_path.rpartition('nlglib')
                     pkg_path = root + child
                 mod = importlib.import_module(pkg_path)
                 modfeatures = [c for c in dir(mod) if c.isupper()]
@@ -140,37 +145,51 @@ class FeatureModulesLoader(type):
 
 
 class Element(object, metaclass=FeatureModulesLoader):
-    """ A base class representing an NLG element.
+    """A base class representing an NLG element.
         Aside for providing a base class for other kinds of NLG elements,
         the class also implements basic functionality for elements.
 
     """
 
-    def __init__(self, type=ELEMENT, features=None, parent=None):
-        if features and not isinstance(features, dict):
-            raise ValueError('Features have to be a dict instance.')
-        self.id = 0  # this is useful for replacing elements
-        self.type = type
-        self._visitor_name = VisitorNames[type]
-        self.features = deepcopy(features) if features else {}
-        self.hash = -1
+    def __init__(self, category=ELEMENT, features=None, parent=None, key=0):
+        self.category = category
+        self.features = features or {}
         self.parent = parent
+        self.key = key
+        self.hash = -1
+        if 'cat' not in self.features:
+            self.features['cat'] = 'ANY'
+
+    def __copy__(self):
+        rv = self.__class__(category=self.category,
+                            features=self.features,
+                            parent=self.parent,
+                            key=self.key)
+        return rv
+
+    def __deepcopy__(self, memo):
+        rv = self.__class__(category=self.category,
+                            features=None,
+                            parent=None,
+                            key=self.key)
+        memo[id(self)] = rv
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.parent = memo.get(id(self.parent), None)
+        return rv
 
     def __bool__(self):
-        """ Because Element is abstract, it will evaluate to false. """
+        """Because Element is abstract, it will evaluate to false. """
         return False
 
     def __eq__(self, other):
-        if not is_element_t(other): return False
-        if self.type is not other.type: return False
-        return (self.id == other.id and
+        return (isinstance(other, Element) and
+                self.key == other.key and
+                self.category == other.category and
                 self.features == other.features)
 
     def __hash__(self):
         if self.hash == -1:
-            self.hash = (hash(self.id) ^ hash(tuple(['k:v'.format(k, v)
-                                                     for k, v in
-                                                     self.features.items()])))
+            self.hash = hash(str(self))
         return self.hash
 
     @classmethod
@@ -198,7 +217,6 @@ class Element(object, metaclass=FeatureModulesLoader):
         self.accept(v)
         return str(v)
 
-    # feature-related methods
     def __contains__(self, feature_name):
         """Check if the argument feature name is contained in the element."""
         return feature_name in self.features
@@ -242,7 +260,7 @@ class Element(object, metaclass=FeatureModulesLoader):
         If no such match is found, raise an AttributeError.
 
         Example:
-        >>> elt = NLGElement(features={'plural': 'plop', 'infl': ['foo']})
+        >>> elt = Element(features={'plural': 'plop', 'infl': ['foo']})
         >>> elt.plural
         'plop'  # because 'plural' is in features
         >>> elt.infl
@@ -260,11 +278,14 @@ class Element(object, metaclass=FeatureModulesLoader):
             return self.features.get(new_name)
         raise AttributeError(name)
 
-    def __deepcopy__(self, memodict=None):
-        copyobj = self.__class__(self.type, self.features, self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        return copyobj
+    def __add__(self, other):
+        """Add two elements resulting in a coordination if both elements are not "False" else 
+        return the "True" element."""
+        if not self:
+            return other
+        if not other:
+            return self
+        return Coordination(self, other)
 
     def to_str(self):
         from nlglib.microplanning import SimpleStrVisitor
@@ -280,14 +301,13 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
-        if self._visitor_name is None:
-            raise ValueError('Error: visit method of uninitialized visitor called!')
+        visitor_name = 'visit_' + self.category.lower()
         # get the appropriate method of the visitor instance
-        m = getattr(visitor, self._visitor_name)
+        m = getattr(visitor, visitor_name)
         # ensure that the method is callable
         if not hasattr(m, '__call__'):
             raise ValueError('Error: cannot call undefined method: %s on visitor'
-                             % self._visitor_name)
+                             % visitor_name)
         sig = inspect.signature(m)
         # and finally call the callback
         if len(sig.parameters) == 1:
@@ -305,97 +325,182 @@ class Element(object, metaclass=FeatureModulesLoader):
         return ''
 
     def constituents(self):
-        """ Return a generator representing constituents of an element. """
+        """Return a list or a generator representing constituents of an element. """
         return []
 
     def arguments(self):
-        """ Return any arguments (vars) from the elemen as a generator.
-
-        """
-        return list(filter(lambda x: isinstance(x, Var),
-                           self.constituents()))
+        """Return any arguments (vars) from the element as a list. """
+        return [x for x in self.constituents() if x.category == VAR]
 
     def replace(self, one, another):
-        """ Replace first occurrence of one with another.
-        Return True if successful.
+        """Replace the first occurrence of `one` by 
+        a deep copy of `another`.
+
+        Return True if successful, False if not found.
 
         """
         return False  # basic implementation does nothing
 
-    def replace_argument(self, arg_id, replacement):
-        """ Replace an argument with given id by `replacement` if such argument exists."""
+    def replace_by_key(self, key, another):
+        """Replace the first occurrence of an element 
+        with the key `key` by a deep copy of `another`.
+
+        Return True if successful, False if not found.
+
+        """
+        return False  # basic implementation does nothing
+
+    def replace_argument(self, key, replacement):
+        """Replace an argument with given `key` by `replacement` if such argument exists."""
         for a in self.arguments():
-            if a.id == arg_id:
+            if a.key == key:
                 return self.replace(a, replacement)
         return False
 
-    def replace_arguments(self, *args, **kwargs):
-        """ Replace arguments with ids in the kwargs by the corresponding values.
-        
-        Replacements can be passed as a single dictionary or a kwarg list
-        (e.g., arg1=x, arg2=y, ...)
-
-        """
-        # FIXME: this does not look correct...
-        if len(args) > 1:
-            raise ValueError('too many parameters')
-        elif len(args) > 0:
-            for k, v in args[0]:
-                self.replace_argument(k, v)
-        else:
-            for k, v in kwargs.items():
-                self.replace_argument(k, v)
+    def replace_arguments(self, **kwargs):
+        """Replace arguments with ids in the kwargs by the corresponding values. """
+        for k, v in kwargs.items():
+            self.replace_argument(k, v)
 
     @property
     def string(self):
         """Return the string inside the value. """
-        return None
+        return ''
 
-    def _add_to_list(self, lst, *mods, pos=None):
-        """ Add modifiers to the given list. Convert any strings to String. """
-        if pos is None:
-            for mod in mods:
-                mod.parent = self
+    def _add_to_list(self, lst, *mods, position=None):
+        """Add modifiers to the list `lst`. Convert any strings to String. """
+        for mod in str_to_elt(*mods):
+            mod.parent = self
+            if position is None:
                 lst.append(mod)
-        else:
-            for mod in mods:
-                mod.parent = self
-                lst.insert(pos, mod)
+            else:
+                lst.insert(position, mod)
 
     @staticmethod
     def _del_from_list(lst, *mods):
-        """ Delete elements from a list. Convert any strings to String. """
+        """Delete elements from the list `lst`. Convert any strings to String. """
         for p in str_to_elt(*mods):
-            if p in lst: lst.remove(p)
+            if p in lst:
+                lst.remove(p)
+
+
+class ElementList(collections.UserList):
+    def __init__(self, lst=None, parent=None):
+        super().__init__()
+        self.parent = parent
+        for o in lst or []:
+            self.append(o)
+
+    def append(self, item):
+        item = raise_to_element(item)
+        item.parent = self.parent
+        super().append(item)
+
+    def __iadd__(self, other):
+        for x in other:
+            self.append(x)
+        return self
+
+    def __setitem__(self, i, value):
+        value = raise_to_element(value)
+        super().__setitem__(i, value)
+
+    def __deepcopy__(self, memo):
+        rv = self.__class__()
+        memo[id(self)] = rv
+        rv.parent = memo.get(id(self.parent), None)
+        for o in self.data:
+            rv.data.append(deepcopy(o, memo))
+        return rv
+
+    @classmethod
+    def from_dict(cls, dct):
+        o = cls()
+        o.__dict__.update(dct)
+        return o
+
+    @classmethod
+    def from_json(cls, s):
+        return json.loads(s, cls=ElementDecoder)
+
+    def to_json(self):
+        return json.dumps(self, cls=ElementEncoder)
+
+    def constituents(self):
+        return iter(self)
+
+
+class Var(Element):
+    """An element used as a place-holder in a sentence. The purpose of this
+        element is to make replacing arguments easier. For example, in a plan
+        one might want to replace arguments of an action with the instantiated
+        objects
+        E.g.,   move (x, a, b) -->
+                move Var(x) from Var(a) to Var(b) -->
+                move (the block) from (the table) to (the green block)
+
+    """
+
+    def __init__(self, key=None, obj=None, features=None, parent=None):
+        super().__init__(VAR, features, parent, key)
+        self.value = None
+        self.set_value(obj)
+        self.features['cat'] = 'ANY'
+
+    def __bool__(self):
+        """Return True """
+        return True
+
+    def __eq__(self, other):
+        return super().__eq__(other) and self.value == other.value
+
+    def __copy__(self):
+        return self.__class__(self.key, self.value, self.features, self.parent)
+
+    def __deepcopy__(self, memo):
+        rv = self.__class__(self.key, self.value)
+        memo[id(self)] = rv
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.parent = memo.get(id(self.parent), None)
+        return rv
+
+    def constituents(self):
+        return [self]
+
+    def set_value(self, val):
+        if val is None: val = Word(str(self.key), 'NOUN')
+        self.value = String(val) if isinstance(val, str) else val
+
+    @property
+    def string(self):
+        """Return the string inside the value. """
+        return self.value.string
 
 
 class String(Element):
-    """ String is a basic element representing canned text. """
+    """String is a basic element representing canned text. """
 
-    def __init__(self, val='', features=None, parent=None):
-        super().__init__(STRING, features, parent)
-        self.value = val
+    def __init__(self, value='', features=None, parent=None, key=0):
+        super().__init__(STRING, features, parent, key)
+        self.value = str(value)
+        self.features['cat'] = 'ANY'
 
     def __bool__(self):
-        """ Return True if the string is non-empty. """
+        """Return True if the string is non-empty. """
         return len(self.value) > 0
 
     def __eq__(self, other):
-        if (not isinstance(other, String)):
-            return False
-        return (self.value == other.value and
-                super().__eq__(other))
+        return super().__eq__(other) and self.value == other.value
 
-    def __hash__(self):
-        if self.hash == -1:
-            self.hash = (11 * super().__hash__()) ^ hash(self.value)
-        return self.hash
+    def __copy__(self):
+        return self.__class__(self.value, self.features, self.parent, self.key)
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.value, self.features, self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        return copyobj
+    def __deepcopy__(self, memo):
+        rv = self.__class__(self.value, None, None, self.key)
+        memo[id(self)] = rv
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.parent = memo.get(id(self.parent), None)
+        return rv
 
     def constituents(self):
         return [self]
@@ -407,39 +512,34 @@ class String(Element):
 
 
 class Word(Element):
-    """ Word represents word and its corresponding POS (Part-of-Speech) tag. """
+    """Word represents word and its corresponding POS (Part-of-Speech) tag. """
 
-    def __init__(self, word, pos='ANY', features=None, base=None, parent=None):
-        super().__init__(WORD, features, parent)
-        self.word = word
-        self.pos = pos
-        self.base = base or word
+    def __init__(self, word, pos='ANY', features=None, parent=None, key=0):
+        super().__init__(WORD, features, parent, key)
+        self.word = str(word)
+        self.features['cat'] = pos
         self.do_inflection = False
-        self.cat = pos
 
     def __bool__(self):
-        """ Return True """
+        """Return True """
         return True
 
     def __eq__(self, other):
-        if (not isinstance(other, Word)):
-            return False
-        return (self.word == other.word and
-                self.pos == other.pos and
-                super().__eq__(other))
+        return super().__eq__(other) and self.word == other.word
 
-    def __hash__(self):
-        if self.hash == -1:
-            self.hash = ((11 * super().__hash__()) ^
-                         (hash(self.pos) ^ hash(self.word)))
-        return self.hash
+    def __copy__(self):
+        # pos is in features
+        return self.__class__(self.word, features=self.features,
+                              parent=self.parent, key=self.key)
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.word, self.pos,
-                                 self.features, self.base, self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        return copyobj
+    def __deepcopy__(self, memo):
+        # pos is in features
+        rv = self.__class__(self.word, features=None,
+                            parent=None, key=self.key)
+        memo[id(self)] = rv
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.parent = memo.get(id(self.parent), None)
+        return rv
 
     def constituents(self):
         return [self]
@@ -450,157 +550,99 @@ class Word(Element):
         return self.word
 
 
-class Var(Element):
-    """ An element used as a place-holder in a sentence. The purpose of this
-        element is to make replacing arguments easier. For example, in a plan
-        one might want to replace arguments of an action with the instantiated
-        objects
-        E.g.,   move (x, a, b) -->
-                move Var(x) from Var(a) to Var(b) -->
-                move (the block) from (the table) to (the green block)
-
+class Coordination(Element):
+    """Coordinated clause with a conjunction. 
+    
+    The class enforces that the coordinates are of the same type.
+    
     """
 
-    def __init__(self, id=None, obj=None, features=None, parent=None):
-        super().__init__(VAR, features, parent)
-        self.id = id
-        self.value = None
-        self.set_value(obj)
+    def __init__(self, *coords, conj='and', features=None, parent=None, key=0):
+        super().__init__(COORDINATION, features, parent, key)
+        self.coordinate_category = None
+        self.coords = ElementList(parent=self)
+        self.add_coordinates(*coords)
+        self.features['conj'] = conj
 
     def __bool__(self):
-        """ Return True """
-        return True
+        """Return True """
+        return len(self.coords)
 
     def __eq__(self, other):
-        if not isinstance(other, Var):
-            return False
-        else:
-            return (self.id == other.id and
-                    self.value == other.value and
-                    super().__eq__(other))
+        return super().__eq__(other) and self.coords == other.coords
 
-    def __hash__(self):
-        if self.hash == -1:
-            self.hash = ((11 * super().__hash__()) ^
-                         (hash(self.id) & hash(self.value)))
-        return self.hash
+    def __copy__(self):
+        return self.__class__(*self.coords, features=self.features,
+                              parent=self.parent, key=self.key)
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.id, self.value, features=self.features,
-                                 parent=self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        return copyobj
+    def __deepcopy__(self, memo):
+        # pos is in features
+        rv = self.__class__(features=None, parent=None, key=self.key)
+        memo[id(self)] = rv
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.coords = deepcopy(self.coords, memo=memo)
+        rv.parent = memo.get(id(self.parent), None)
+        return rv
 
-    def constituents(self):
-        return [self]
+    @staticmethod
+    def _reset_parent(coordination):
+        """Set the `parent` of coordinates and the list to None.
+        
+        Necessary for serialising to json.
+        
+        """
+        coordination.coords.parent = None
+        for x in coordination.coords:
+            x.parent = None
+            if x.category == COORDINATION:
+                Coordination._reset_parent(x)
 
-    def set_value(self, val):
-        if val is None: val = Word(str(self.id), 'NOUN')
-        self.value = String(val) if isinstance(val, str) else val
+    def set_parent(self):
+        self.coords.parent = self
+        for x in self.coords:
+            x.parent = self
+            if x.category == COORDINATION:
+                x.set_parent()
 
-    @property
-    def string(self):
-        """Return the string inside the value. """
-        if self.value:
-            return self.value.string
+    def to_json(self):
+        cp = deepcopy(self)
+        Coordination._reset_parent(cp)
+        return super(Coordination, cp).to_json()
 
-
-class Coordination(Element):
-    """ Coordinated clause with a conjunction. """
-
-    def __init__(self, *coords, conj='and', features=None, parent=None,
-                 **kwargs):
-        super().__init__(COORDINATION, features, parent)
-        self.coords = list()
-        self.add_coordinate(*coords)
-        self.set_feature('conj', conj)
-        self.conj = conj
-        self.pre_modifiers = list()
-        self.complements = list()
-        self.post_modifiers = list()
-        # see if anything was passed from above...
-        if 'pre_modifiers' in kwargs:
-            self.pre_modifiers = str_to_elt(*kwargs['pre_modifiers'])
-        if 'complements' in kwargs:
-            self.complements = str_to_elt(*kwargs['complements'])
-        if 'post_modifiers' in kwargs:
-            self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
-
-    def __bool__(self):
-        """ Return True """
-        return True
-
-    def __eq__(self, other):
-        if (not isinstance(other, Coordination)):
-            return False
-        else:
-            return (self.coords == other.coords and
-                    self.conj == other.conj and
-                    super().__eq__(other))
-
-    def __hash__(self):
-        assert False, 'Coordination Element is not hashable'
-
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(conj=self.conj, features=self.features,
-                                 parent=self.parent)
-        copyobj.coords = deepcopy(self.coords)
-        copyobj.id = self.id
-        return copyobj
-
-    def add_front_modifier(self, *mods, pos=0):
-        """ Add front modifiers to the first element. """
-        # promote the element to a phrase
-        if not is_phrase_t(self.coords[0]):
-            self.coords[0] = NounPhrase(self.coords[0])
-        self.coords[0].add_front_modifier(*mods, pos=pos)
-
-    def add_pre_modifier(self, *mods, pos=0):
-        """ Add pre-modifiers to the first element. """
-        # promote the element to a phrase
-        if not is_phrase_t(self.coords[0]):
-            self.coords[0] = NounPhrase(self.coords[0])
-        self.coords[0].add_pre_modifier(*mods, pos=pos)
-
-    def add_complement(self, *mods, pos=None):
-        """ Add complements to the last element. """
-        # promote the element to a phrase
-        if not is_phrase_t(self.coords[0]):
-            self.coords[-1] = NounPhrase(self.coords[-1])
-        self.coords[-1].add_complement(*mods, pos=pos)
-
-    def add_post_modifier(self, *mods, pos=None):
-        """ Add post modifiers to the last element. """
-        # promote the element to a phrase
-        if not is_phrase_t(self.coords[0]):
-            self.coords[-1] = NounPhrase(self.coords[-1])
-        self.coords[-1].add_post_modifier(*mods, pos=pos)
-
-    def add_coordinate(self, *elts):
-        """ Add one or more elements as a co-ordinate in the clause. """
+    def add_coordinates(self, *elts):
+        """Add one or more elements as a co-ordinate in the clause. """
         for e in str_to_elt(*elts):
+            if e is None:
+                continue
             self.coords.append(e)
+            cat = self.coords[0].cat
+            if not all(x.cat == cat for x in self.coords):
+                msg = ('All elements of a coordination have to have '
+                       'the same lexical category ({} but entering {}).')
+                raise TypeError(msg.format(cat, self.coords[-1].cat))
 
     def constituents(self):
-        """ Return a generator to iterate through constituents. """
+        """Return a generator to iterate through constituents. """
         yield self
         for c in self.coords:
+            yield c
             if hasattr(c, 'constituents'):
                 yield from c.constituents()
-            else:
-                yield c
 
     def replace(self, one, another):
-        """ Replace first occurance of one with another.
-        Return True if successful.
+        """Replace first occurrence of `one` with `another`.
+        
+        Return True if successful, False if `one` not found. 
+        Note that the call is recursive on elements within.
 
         """
-        logger.debug('Replacing "{}" in "{}" by "{}.'
-                     .format(one, self, another))
-        for i, o in enumerate(self.coords):
+        one = raise_to_element(one)
+        another = deepcopy(raise_to_element(another))
+        for i, o in enumerate(self.coords[:]):
             if o == one:
+                o.parent = None
                 if another:
+                    another.parent = self
                     self.coords[i] = another
                 else:
                     del self.coords[i]
@@ -610,249 +652,188 @@ class Coordination(Element):
                     return True
         return False
 
-    @property
-    def string(self):
-        """Return the string inside the value. """
-        return self.coords[0].string
+    def replace_by_key(self, key, another):
+        """Replace first occurrence of an element with key `key`
+        with a deep copy of `another`.
+        
+        Return True if successful, False if no such element found.
+        Note that the call is recursive on elements within.
+
+        """
+        another = deepcopy(raise_to_element(another))
+        for i, o in enumerate(self.coords[:]):
+            if o.key == key:
+                o.parent = None
+                if another:
+                    another.parent = self
+                    self.coords[i] = another
+                else:
+                    del self.coords[i]
+                return True
+            else:
+                if o.replace_by_key(key, another):
+                    return True
+        return False
 
 
 class Phrase(Element):
-    """ A base class for all kinds of phrases - elements containing other
-        elements in specific places of the construct (front-, pre-, post-
+    """A base class for all kinds of phrases - elements containing other
+        elements in specific places of the construct (pre-, post-
         modifiers as well as the head of the phrase and any complements.
-
-        Not every phrase has need for all of the kinds of modiffications.
 
     """
 
-    def __init__(self, type=PHRASE, features=None, parent=None, **kwargs):
-        super().__init__(type, features, parent)
-        self.front_modifiers = list()
-        self.pre_modifiers = list()
-        self.head = Element()
-        self.complements = list()
-        self.post_modifiers = list()
-        # see if anything was passed from above...
-        if 'front_modifiers' in kwargs:
-            self.front_modifiers = str_to_elt(*kwargs['front_modifiers'])
-        if 'pre_modifiers' in kwargs:
-            self.pre_modifiers = str_to_elt(*kwargs['pre_modifiers'])
-        if 'head' in kwargs:
-            self.head = kwargs['head']
-        if 'complements' in kwargs:
-            self.complements = str_to_elt(*kwargs['complements'])
-        if 'post_modifiers' in kwargs:
-            self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
+    _head = None
+
+    def __init__(self, category=PHRASE, features=None, parent=None, key=0, **kwargs):
+        super().__init__(category, features, parent, key)
+        self['cat'] = category
+        self.premodifiers = ElementList(parent=self) + kwargs.get('premodifiers', [])
+        self.head = kwargs.get('head')
+        self.complements = ElementList(parent=self) + kwargs.get('complements', [])
+        self.postmodifiers = ElementList(parent=self) + kwargs.get('postmodifiers', [])
 
     def __bool__(self):
-        """ Return True """
-        return True
+        """Return True """
+        return any([x for x in self.constituents() if x is not self])
 
     def __eq__(self, other):
-        if not isinstance(other, Phrase):
-            return False
-        return (self.type == other.type and
-                self.front_modifiers == other.front_modifiers and
-                self.pre_modifiers == other.pre_modifiers and
+        return (super().__eq__(other) and
+                self.premodifiers == other.premodifiers and
                 self.head == other.head and
                 self.complements == other.complements and
-                self.post_modifiers == other.post_modifiers and
-                super().__eq__(other))
+                self.postmodifiers == other.postmodifiers)
 
-    def __hash__(self):
-        assert False, 'Coordination Element is not hashable'
+    def __copy__(self):
+        rv = self.__class__(self.category, features=self.features,
+                            parent=self.parent, key=self.key)
+        rv.head = self.head
+        rv.premodifiers = self.premodifiers[:]
+        rv.complements = self.complements[:]
+        rv.postmodifiers = self.postmodifiers[:]
+        return rv
+
+    def __deepcopy__(self, memo):
+        rv = self.__class__(self.category, key=self.key)
+        memo[id(self)] = rv
+        rv.parent = memo.get(id(self.parent), None)
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.premodifiers = deepcopy(self.premodifiers, memo=memo)
+        rv.head = deepcopy(self.head, memo=memo)
+        rv.complements = deepcopy(self.complements, memo=memo)
+        rv.postmodifiers = deepcopy(self.postmodifiers, memo=memo)
+        return rv
 
     def __iadd__(self, other):
         if is_adj_mod_t(other) or is_adv_mod_t(other):
-            self.pre_modifiers.append(other)
-        if isinstance(other, PrepositionalPhrase):
+            self.premodifiers.append(other)
+        if other.category == PREPOSITION_PHRASE:
             self.add_complement(other)
         return self
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(self.type, features=self.features,
-                                 parent=self.parent)
-        copyobj.id = self.id
-        copyobj.front_modifiers = deepcopy(self.front_modifiers)
-        copyobj.pre_modifiers = deepcopy(self.pre_modifiers)
-        copyobj.head = deepcopy(self.head)
-        copyobj.complements = deepcopy(self.complements)
-        copyobj.post_modifiers = deepcopy(self.post_modifiers)
-        return copyobj
+    @property
+    def head(self):
+        return self._head
 
-    def accept(self, visitor, element='Phrase'):
-        return super().accept(visitor, element)
+    @head.setter
+    def head(self, value):
+        if self._head:
+            self._head.parent = None
+        if value is not None:
+            new_value = raise_to_element(value)
+            new_value.parent = self
+            self._head = new_value
+        else:
+            self._head = Element()
 
-    def set_front_modifiers(self, *mods):
-        """ Set front-modifiers to the passed parameters. """
-        self.front_modifiers = str_to_elt(*mods)
-
-    def add_front_modifier(self, *mods, pos=0):
-        """ Add one or more front-modifiers. """
-        self._add_to_list(self.front_modifiers, *str_to_elt(*mods), pos=pos)
-
-    def del_front_modifier(self, *mods):
-        """ Remove one or more front-modifiers if present. """
-        self._del_from_list(self.front_modifiers, *mods)
-
-    def set_pre_modifiers(self, *mods):
-        """ Set pre-modifiers to the passed parameters. """
-        self.pre_modifiers = list(str_to_elt(*mods))
-
-    def add_pre_modifier(self, *mods, pos=0):
-        """ Add one or more pre-modifiers. """
-        self._add_to_list(self.pre_modifiers, *str_to_elt(*mods), pos=pos)
-
-    def del_pre_modifier(self, *mods):
-        """ Delete one or more pre-modifiers if present. """
-        self._del_from_list(self.pre_modifiers, *mods)
-
-    def set_complements(self, *mods):
-        """ Set complemets to the given ones. """
-        self.complements = list(str_to_elt(*mods))
-
-    def add_complement(self, *mods, pos=None):
-        """ Add one or more complements. """
-        self._add_to_list(self.complements, *str_to_elt(*mods), pos=pos)
-
-    def del_complement(self, *mods):
-        """ Delete one or more complements if present. """
-        self._del_from_list(self.complements, *mods)
-
-    def set_post_modifiers(self, *mods):
-        """ Set post-modifiers to the given parameters. """
-        self.post_modifiers = list(str_to_elt(*mods))
-
-    def add_post_modifier(self, *mods, pos=None):
-        """ Add one or more post-modifiers. """
-        self._add_to_list(self.post_modifiers, *str_to_elt(*mods), pos=pos)
-
-    def del_post_modifier(self, *mods):
-        """ Delete one or more post-modifiers if present. """
-        self._del_from_list(self.post_modifiers, *mods)
-
-    def set_head(self, elt):
-        """ Set head of the phrase to the given element. """
-        if elt is None: elt = Element()
-        self.head = String(elt) if isinstance(elt, str) else elt
-        self.head.parent = self
-        self.features.update(self.head.features)
-
-    def yield_front_modifiers(self):
-        """ Iterate through front modifiers. """
-        for o in self.front_modifiers:
-            for x in o.constituents():
-                yield from x.constituents()
-
-    def yield_pre_modifiers(self):
-        """ Iterate through pre-modifiers. """
-        for o in self.pre_modifiers:
+    def yield_premodifiers(self):
+        """Iterate through pre-modifiers. """
+        for o in self.premodifiers:
             for x in o.constituents():
                 yield from x.constituents()
 
     def yield_head(self):
-        """ Iterate through the elements composing the head. """
+        """Iterate through the elements composing the head. """
         if self.head is not None:
             for x in self.head.constituents():
                 yield from x.constituents()
 
     def yield_complements(self):
-        """ Iterate through complements. """
+        """Iterate through complements. """
         for o in self.complements:
             for x in o.constituents():
                 yield from x.constituents()
 
-    def yield_post_modifiers(self):
-        """ Iterate throught post-modifiers. """
-        for o in self.post_modifiers:
+    def yield_postmodifiers(self):
+        """Iterate throught post-modifiers. """
+        for o in self.postmodifiers:
             for x in o.constituents():
                 yield from x.constituents()
 
     def constituents(self):
-        """ Return a generator to iterate through constituents. """
+        """Return a generator to iterate through constituents. """
         yield self
-        yield from self.yield_front_modifiers()
-        yield from self.yield_pre_modifiers()
+        yield from self.yield_premodifiers()
         yield from self.yield_head()
         yield from self.yield_complements()
-        yield from self.yield_post_modifiers()
+        yield from self.yield_postmodifiers()
 
-    # TODO: consider spliting the code below similarly to 'constituents()'
-    def replace(self, one, another):
-        """ Replace first occurance of one with another.
-        Return True if successful.
-
-        """
-        for i, o in enumerate(self.front_modifiers):
+    def _replace_in_list(self, lst, one, another):
+        for i, o in enumerate(lst):
             if o == one:
                 if another is None:
-                    del self.front_modifiers[i]
+                    lst[i].parent = None
+                    del lst[i]
                 else:
-                    self.front_modifiers[i] = another
-                return True
-            else:
-                if o.replace(one, another):
-                    return True
-
-        for i, o in enumerate(self.pre_modifiers):
-            if o == one:
-                if another is None:
-                    del self.pre_modifiers[i]
-                else:
-                    self.pre_modifiers[i] = another
-                return True
-            else:
-                if o.replace(one, another):
-                    return True
-
-        if self.head == one:
-            for k in self.head.features.keys():
-                if k in self.features:
-                    del self.features[k]
-            if hasattr(another, 'type') and self.type == another.type:
-                if hasattr(self, 'spec') and hasattr(another, 'spec'):
-                    self.spec = another.spec
-                self.add_front_modifier(*another.front_modifiers)
-                self.add_pre_modifier(*another.pre_modifiers)
-                self.head = another.head
-                self.add_complement(*another.complements)
-                self.add_post_modifier(*another.post_modifiers)
-            else:
-                self.head = another
-            self.features.update(another.features)
-            return True
-        elif self.head is not None:
-            if self.head.replace(one, another):
-                return True
-
-        for i, o in enumerate(self.complements):
-            if o == one:
-                if another is None:
-                    del self.complements[i]
-                else:
-                    self.complements[i] = another
-                return True
-            else:
-                if o.replace(one, another):
-                    return True
-
-        for i, o in enumerate(self.post_modifiers):
-            if o == one:
-                if another is None:
-                    del self.post_modifiers[i]
-                else:
-                    self.post_modifiers[i] = another
+                    another.parent = self
+                    lst[i] = another
                 return True
             else:
                 if o.replace(one, another):
                     return True
         return False
 
+    def replace(self, one, another):
+        """Replace first occurrence of one with another.
+        
+        Return True if successful.
+
+        """
+        if self._replace_in_list(self.premodifiers, one, another):
+            return True
+        # TODO: unify when replacement is a phrase of the same kind?
+        if self.head == one:
+            self.head.parent = None
+            for k in self.head.features.keys():
+                if k in self.features:
+                    del self.features[k]
+            self.head = another
+            self.features.update(another.features)
+            return True
+        elif self.head is not None:
+            if self.head.replace(one, another):
+                return True
+        if self._replace_in_list(self.complements, one, another):
+            return True
+        if self._replace_in_list(self.postmodifiers, one, another):
+            return True
+        return False
+
+    def unify(self, another, clear_features=True):
+        if self.category != another.category:
+            return False
+        if clear_features:
+            self.features.clear()
+        self.premodifiers += another.premodifiers
+        self.head = self.head + another.head
+        self.complements += another.complements
+        self.postmodifiers += another.postmodifiers
+        return True
+
 
 class NounPhrase(Phrase):
     """
      * <UL>
-     * <li>FrontModifier (eg, "some of")</LI>
      * <li>Specifier     (eg, "the")</LI>
      * <LI>PreModifier   (eg, "green")</LI>
      * <LI>Noun (head)   (eg, "apples")</LI>
@@ -861,57 +842,75 @@ class NounPhrase(Phrase):
      * </UL>
      """
 
-    def __init__(self, head=None, spec=None, features=None, parent=None,
-                 **kwargs):
-        super().__init__(NOUN_PHRASE, features, parent, **kwargs)
-        self.spec = None
-        self.set_spec(spec)
-        self.set_head(head)
+    _spec = None
+
+    def __init__(self, head=None, spec=None, features=None, parent=None, key=0, **kwargs):
+        super().__init__(NOUN_PHRASE, features, parent, key, **kwargs)
+        self.spec = spec
+        self.head = head
 
     def __eq__(self, other):
-        if not isinstance(other, NounPhrase):
-            return False
-        return (self.spec == other.spec and
-                self.head == other.head and
-                super().__eq__(other))
+        return (super().__eq__(other) and
+                self.spec == other.spec and
+                self.head == other.head)
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(deepcopy(self.head), deepcopy(self.spec),
-                                 features=self.features, parent=self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        return copyobj
+    def __copy__(self):
+        rv = self.__class__(self.head, self.spec, features=self.features,
+                            parent=self.parent, key=self.key)
+        rv.premodifiers = self.premodifiers[:]
+        rv.complements = self.complements[:]
+        rv.postmodifiers = self.postmodifiers[:]
+        return rv
 
-    def set_spec(self, spec):
-        """ Set the specifier (e.g., determiner) of the NounPhrase. """
-        if spec is None: spec = Element()
-        # convert str to String if necessary
-        self.spec = String(spec) if isinstance(spec,
-                                               str) else spec  # use raise_to_element
+    def __deepcopy__(self, memo):
+        rv = super().__deepcopy__(memo=memo)
+        rv.spec = deepcopy(self.spec, memo=memo)
+        return rv
+
+    @property
+    def spec(self):
+        return self._spec
+
+    @spec.setter
+    def spec(self, value):
+        if self.spec:
+            self._spec.parent = None
+        if value:
+            new_value = raise_to_element(value)
+            new_value.parent = self
+            self._spec = new_value
+        else:
+            self._spec = Element()
 
     def constituents(self):
-        """ Return a generator to iterate through constituents. """
+        """Return a generator to iterate through constituents. """
         yield self
-        if self.spec is not None:
-            for c in self.spec.constituents(): yield from c.constituents()
-        yield from self.yield_front_modifiers()
-        yield from self.yield_pre_modifiers()
+        for c in self.spec.constituents():
+            yield from c.constituents()
+        yield from self.yield_premodifiers()
         yield from self.yield_head()
         yield from self.yield_complements()
-        yield from self.yield_post_modifiers()
+        yield from self.yield_postmodifiers()
 
     def replace(self, one, another):
-        """ Replace first occurance of one with another.
+        """Replace first occurance of one with another.
         Return True if successful.
 
         """
         if self.spec == one:
+            self.spec.parent = None
+            another.parent = self
             self.spec = another
             return True
-        elif self.spec is not None:
-            if self.spec.replace(one, another): return True
-
+        if self.spec.replace(one, another):
+            return True
         return super().replace(one, another)
+
+    def unify(self, another, clear_features=True):
+        if another.category != NOUN_PHRASE:
+            return False
+        self.spec = self.spec + another.spec
+        return super().unify(another, clear_features)
 
 
 class VerbPhrase(Phrase):
@@ -925,133 +924,108 @@ class VerbPhrase(Phrase):
      * </UL>
      """
 
-    def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(VERB_PHRASE, features, **kwargs)
-        self.set_head(head)
-        self.add_complement(*compl)
+    def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
+        super().__init__(VERB_PHRASE, features, parent, **kwargs)
+        self.head = head
+        self.complements += compl
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(deepcopy(self.head),
-                                 features=self.features, parent=self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        copyobj.complements = deepcopy(self.complements)
-        return copyobj
-
-    def get_object(self):
+    @property
+    def object(self):
         for c in self.complements:
-            if c.has_feature('discourseFunction', 'OBJECT'):
+            if c['discourseFunction'] == 'OBJECT':
                 return c
         return None
 
-    def remove_object(self):
-        compls = list()
+    @object.setter
+    def object(self, value):
+        to_remove = [c for c in self.complements if c['discourseFunction'] == 'OBJECT']
+        for c in to_remove:
+            self.complements.remove(c)
+        if value is None:
+            return
+        new_value = raise_to_element(value)
+        new_value.parent = self
+        new_value['discourseFunction'] = 'OBJECT'
+        self.complements.append(new_value)
+
+    @property
+    def direct_object(self):
+        return self.object
+
+    @property
+    def indirect_object(self):
         for c in self.complements:
-            if c.has_feature('discourseFunction', 'OBJECT'):
-                continue
-            else:
-                compls.append(c)
-        self.complements = compls
+            if c['discourseFunction'] == 'INDIRECT_OBJECT':
+                return c
+        return None
 
-    def set_object(self, obj):
-        self.remove_object()
-        if obj is not None:
-            if isinstance(obj, str): obj = String(obj)
-            obj.set_feature('discourseFunction', 'OBJECT')
-            self.complements.insert(0, obj)
+    @indirect_object.setter
+    def indirect_object(self, value):
+        to_remove = [c for c in self.complements if c['discourseFunction'] == 'INDIRECT_OBJECT']
+        for c in to_remove:
+            self.complements.remove(c)
+        if value is None:
+            return
+        new_value = raise_to_element(value)
+        new_value.parent = self
+        new_value['discourseFunction'] = 'INDIRECT_OBJECT'
+        self.complements.insert(0, new_value)
 
 
-class PrepositionalPhrase(Phrase):
+class PrepositionPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(PREPOSITIONAL_PHRASE, features, **kwargs)
-        self.set_head(head)
-        self.add_complement(*compl)
-
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(deepcopy(self.head),
-                                 features=self.features, parent=self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        copyobj.complements = deepcopy(self.complements)
-        return copyobj
+        super().__init__(PREPOSITION_PHRASE, features, **kwargs)
+        self.head = head
+        self.complements += compl
 
 
 class AdverbPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(ADVERB_PHRASE, features, **kwargs)
-        self.set_head(head)
-        self.add_complement(*compl)
-
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(deepcopy(self.head),
-                                 features=self.features, parent=self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        copyobj.complements = deepcopy(self.complements)
-        return copyobj
+        self.head = head
+        self.complements += compl
 
 
 class AdjectivePhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(ADJECTIVE_PHRASE, features, **kwargs)
-        self.set_head(head)
-        self.add_complement(*compl)
-
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(deepcopy(self.head),
-                                 features=self.features, parent=self.parent)
-        copyobj.id = self.id
-        copyobj.hash = self.hash
-        copyobj.complements = deepcopy(self.complements)
-        return copyobj
+        self.head = head
+        self.complements += compl
 
 
-class Clause(Element):
-    """ Clause - sentence.
+class Clause(Phrase):
+    """Clause - sentence.
     From simplenlg:
-     * <UL>
-     * <li>PreModifier (eg, "Yesterday")
-     * <LI>Subject (eg, "John")
-     * <LI>VerbPhrase (eg, "gave Mary an apple before school")
-     * <LI>PostModifier (eg, ", didn't he?")
-     * </UL>
+ * <UL>
+ * <li>FrontModifier (eg, "Yesterday")
+ * <LI>Subject (eg, "John")
+ * <LI>PreModifier (eg, "reluctantly")
+ * <LI>Verb (eg, "gave")
+ * <LI>IndirectObject (eg, "Mary")
+ * <LI>Object (eg, "an apple")
+ * <LI>PostModifier (eg, "before school")
+ * </UL>
+ * Note that verb, indirect object, and object are propagated to the underlying
+ * verb phrase
 
     """
 
-    subj = None
-    vp = None
+    _subject = None
+    _predicate = None
 
-    def __init__(self, subj=None, vp=Element(), features=None, parent=None,
-                 **kwargs):
-        super().__init__(CLAUSE, features, parent=parent)
-        self.front_modifiers = list()
-        self.pre_modifiers = list()
-        self.set_subj(raise_to_np(subj))
-        self.set_vp(raise_to_vp(vp))
-        self.complements = list()
-        self.post_modifiers = list()
-        # see if anything was passed from above...
-        if 'front_modifiers' in kwargs:
-            self.front_modifiers = str_to_elt(*kwargs['front_modifiers'])
-        if 'pre_modifiers' in kwargs:
-            self.pre_modifiers = str_to_elt(*kwargs['pre_modifiers'])
-        if 'complements' in kwargs:
-            self.complements = str_to_elt(*kwargs['complements'])
-        if 'post_modifiers' in kwargs:
-            self.post_modifiers = str_to_elt(*kwargs['post_modifiers'])
-
-    def __bool__(self):
-        """ Return True """
-        return True
+    def __init__(self, subject=None, predicate=None, object=None, features=None, parent=None, **kwargs):
+        super().__init__(CLAUSE, features, parent=parent, **kwargs)
+        self.front_modifiers = ElementList(parent=self) + kwargs.get('front_modifiers', [])
+        self.subject = subject
+        self.predicate = predicate
+        self.object = object
 
     def __eq__(self, other):
-        if not isinstance(other, Clause):
-            return False
-        return (self.pre_modifiers == other.pre_modifiers and
+        return (self.premodifiers == other.premodifiers and
                 self.subj == other.subj and
                 self.vp == other.vp and
                 self.complements == other.complements and
-                self.post_modifiers == other.post_modifiers and
+                self.postmodifiers == other.postmodifiers and
                 super().__eq__(other))
 
     def __add__(self, other):
@@ -1069,145 +1043,141 @@ class Clause(Element):
             raise ValueError(
                 'Cannot add these up: "{}" + "{}"'.format(self, other))
 
-    def __deepcopy__(self, memodict={}):
-        copyobj = self.__class__(deepcopy(self.subj),
-                                 deepcopy(self.vp),
-                                 features=self.features,
-                                 parent=self.parent)
-        copyobj.id = self.id
-        copyobj.front_modifiers = deepcopy(self.front_modifiers)
-        copyobj.pre_modifiers = deepcopy(self.pre_modifiers)
-        copyobj.complements = deepcopy(self.complements)
-        copyobj.post_modifiers = deepcopy(self.post_modifiers)
-        return copyobj
+    def __copy__(self):
+        rv = self.__class__(features=self.features, parent=self.parent, key=self.key)
+        rv.front_modifiers = self.front_modifiers[:]
+        rv.subject = self.subject
+        rv.premodifiers = self.premodifiers[:]
+        rv.predicate = self.predicate
+        rv.complements = self.complements[:]
+        rv.postmodifiers = self.postmodifiers[:]
+        return rv
 
-    def set_subj(self, subj):
-        """ Set the subject of the clause. """
-        # convert str to String if necessary
-        self.subj = String(subj) if isinstance(subj, str) else (
-            subj or Element())
-        self.subj.parent = self
+    def __deepcopy__(self, memo):
+        rv = self.__class__(key=self.key)
+        memo[id(self)] = rv
+        rv.parent = memo.get(id(self.parent), None)
+        rv.features = deepcopy(self.features, memo=memo)
+        rv.front_modifiers = deepcopy(self.front_modifiers, memo=memo)
+        rv.subject = deepcopy(self.subject, memo=memo)
+        rv.premodifiers = deepcopy(self.premodifiers, memo=memo)
+        rv.predicate = deepcopy(self.predicate, memo=memo)
+        rv.complements = deepcopy(self.complements, memo=memo)
+        rv.postmodifiers = deepcopy(self.postmodifiers, memo=memo)
+        return rv
 
-    def set_vp(self, vp):
-        """ Set the vp of the clause. """
-        self.vp = String(vp) if isinstance(vp, str) else vp
-        self.vp.parent = self
+    @property
+    def subject(self):
+        return self._subject
 
-    # TODO: test
-    def set_object(self, obj):
-        object = String(obj) if isinstance(obj, str) else obj
-        object.set_feature('discourseFunction', 'OBJECT')
-        object.parent = self
-        self.add_complement(object)
-
-    def setfeatures(self, features):
-        """ Set features on the VerbPhrase. """
-        if self.vp:
-            self.vp.setfeatures(features)
+    @subject.setter
+    def subject(self, value):
+        if self._subject:
+            self._subject.parent = None
+        if value is not None:
+            new_value = raise_to_np(value)
+            new_value.parent = self
+            self._subject = new_value
         else:
-            self.features = features
+            self._subject = Element()
+
+    @property
+    def subj(self):
+        return self.subject
+
+    @subj.setter
+    def subj(self, value):
+        self.subject = value
+
+    @property
+    def predicate(self):
+        return self._predicate
+
+    @predicate.setter
+    def predicate(self, value):
+        if self._predicate:
+            self._predicate.parent = None
+        if value is not None:
+            new_value = raise_to_vp(value)
+            new_value.parent = self
+            self._predicate = new_value
+        else:
+            self._predicate = Element()
+
+    @property
+    def head(self):
+        return self.predicate
+
+    @head.setter
+    def head(self, value):
+        self.predicate = value
+
+    @property
+    def vp(self):
+        return self.predicate
+
+    @vp.setter
+    def vp(self, value):
+        self.predicate = value
+
+    @property
+    def object(self):
+        return self.predicate.object if self.predicate else None
+
+    @object.setter
+    def object(self, value):
+        if self.predicate:
+            self.predicate.object = value
+        else:
+            raise KeyError("Clause doesn't have a verb to set its object.")
+
+    @property
+    def indirect_object(self):
+        return self.predicate.indirect_object if self.predicate else None
+
+    @indirect_object.setter
+    def indirect_object(self, value):
+        if self.predicate:
+            self.predicate.indirect_object = value
+        else:
+            raise KeyError("Clause doesn't have a verb to set its indirect object.")
 
     def constituents(self):
-        """ Return a generator to iterate through constituents. """
+        """Return a generator to iterate through constituents. """
         yield self
-        yield from self.yield_pre_modifiers()
-        yield from self.subj.constituents()
-        yield from self.vp.constituents()
+        yield from self.yield_front_modifiers()
+        yield from self.subject.constituents()
+        yield from self.yield_premodifiers()
+        yield from self.predicate.constituents()
         yield from self.yield_complements()
-        yield from self.yield_post_modifiers()
+        yield from self.yield_postmodifiers()
 
     def replace(self, one, another):
-        """ Replace first occurance of one with another.
+        """Replace first occurance of one with another.
         Return True if successful.
 
         """
-        if self.subj == one:
-            self.subj = raise_to_np(another)
-            self.subj.parent = self
+        if self.subect == one:
+            self.subject.parent = None
+            self.subject = raise_to_np(another)
+            self.subject.parent = self
             return True
-        elif self.subj is not None:
-            if self.subj.replace(one, another):
-                return True
+        if self.subject.replace(one, another):
+            return True
 
-        if self.vp == one:
-            self.vp = raise_to_vp(another)
-            self.vp.parent = self
+        if self.predicate == one:
+            self.predicate.parent = None
+            self.predicate = raise_to_vp(another)
+            self.predicate.parent = self
             return True
-        elif self.vp is not None:
-            if self.vp.replace(one, another):
-                return True
+        if self.predicate.replace(one, another):
+            return True
 
         return super().replace(one, another)
 
-    def set_front_modifiers(self, *mods):
-        """ Set front-modifiers to the passed parameters. """
-        self.front_modifiers = list(str_to_elt(*mods))
-
-    def add_front_modifier(self, *mods, pos=0):
-        """ Add one or more front-modifiers. """
-        self._add_to_list(self.front_modifiers, *str_to_elt(*mods), pos=pos)
-
-    def del_front_modifier(self, *mods):
-        """ Remove one or more front-modifiers if present. """
-        self._del_from_list(self.front_modifiers, *mods)
-
     def yield_front_modifiers(self):
-        """ Iterate through pre-modifiers. """
+        """Iterate through front-modifiers. """
         for o in self.front_modifiers:
-            for x in o.constituents():
-                yield from x.constituents()
-
-    def set_pre_modifiers(self, *mods):
-        """ Set pre-modifiers to the passed parameters. """
-        self.pre_modifiers = list(str_to_elt(*mods))
-
-    def add_pre_modifier(self, *mods, pos=0):
-        """ Add one or more pre-modifiers. """
-        self._add_to_list(self.pre_modifiers, *str_to_elt(*mods), pos=pos)
-
-    def del_pre_modifier(self, *mods):
-        """ Delete one or more pre-modifiers if present. """
-        self._del_from_list(self.pre_modifiers, *mods)
-
-    def yield_pre_modifiers(self):
-        """ Iterate through pre-modifiers. """
-        for o in self.pre_modifiers:
-            for x in o.constituents():
-                yield from x.constituents()
-
-    def set_complements(self, *mods):
-        """ Set complemets to the given ones. """
-        self.complements = list(str_to_elt(*mods))
-
-    def add_complement(self, *mods, pos=None):
-        """ Add one or more complements. """
-        self._add_to_list(self.complements, *str_to_elt(*mods), pos=pos)
-
-    def del_complement(self, *mods):
-        """ Delete one or more complements if present. """
-        self._del_from_list(self.complements, *mods)
-
-    def yield_complements(self):
-        """ Iterate through complements. """
-        for o in self.complements:
-            for x in o.constituents():
-                yield from x.constituents()
-
-    def set_post_modifiers(self, *mods):
-        """ Set post-modifiers to the given parameters. """
-        self.post_modifiers = list(str_to_elt(*mods))
-
-    def add_post_modifier(self, *mods, pos=None):
-        """ Add one or more post-modifiers. """
-        self._add_to_list(self.post_modifiers, *str_to_elt(*mods), pos=pos)
-
-    def del_post_modifier(self, *mods):
-        """ Delete one or more post-modifiers if present. """
-        self._del_from_list(self.post_modifiers, *mods)
-
-    def yield_post_modifiers(self):
-        """ Iterate through pre-modifiers. """
-        for o in self.post_modifiers:
             for x in o.constituents():
                 yield from x.constituents()
 
@@ -1215,9 +1185,10 @@ class Clause(Element):
 def raise_to_np(phrase):
     """Take the current phrase and raise it to an NP.
     If `phrase` is a Noun it will be promoted to NP and used as a head;
-    If `phrase` is a CC its coordinants will be raised to NPs
+    If `phrase` is a CC its coordinates will be raised to NPs
 
     """
+    phrase = raise_to_element(phrase)
     if isinstance(phrase, Coordination):
         phrase.coords = [raise_to_np(c) for c in phrase.coords]
         return phrase
@@ -1225,8 +1196,6 @@ def raise_to_np(phrase):
         return NounPhrase(head=phrase)
     if isinstance(phrase, Word):
         return NounPhrase(head=phrase)
-    # if isinstance(phrase, Var):
-    #     return NounPhrase(head=phrase)
     return phrase
 
 
@@ -1236,6 +1205,7 @@ def raise_to_vp(phrase):
     If `phrase` is a CC its coordinants will be raised to VPs
 
     """
+    phrase = raise_to_element(phrase)
     if isinstance(phrase, Coordination):
         phrase.coords = [raise_to_vp(c) for c in phrase.coords]
         return phrase
@@ -1243,8 +1213,6 @@ def raise_to_vp(phrase):
         return VerbPhrase(head=phrase)
     if isinstance(phrase, Word):
         return VerbPhrase(head=phrase)
-    # if isinstance(phrase, Var):
-    #     return VerbPhrase(head=phrase)
     return phrase
 
 
@@ -1257,7 +1225,7 @@ def raise_to_element(element):
 
 class ElementEncoder(json.JSONEncoder):
     def default(self, python_object):
-        if isinstance(python_object, Element):
+        if isinstance(python_object, (Element, ElementList)):
             return {'__class__': str(type(python_object)),
                     '__value__': python_object.__dict__}
         return super(ElementEncoder, self).default(python_object)
@@ -1273,6 +1241,8 @@ class ElementDecoder(json.JSONDecoder):
         if '__class__' in json_object:
             if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Element'>":
                 return Element.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.ElementList'>":
+                return ElementList.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.microplanning.String'>":
                 return String.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Word'>":
@@ -1287,14 +1257,14 @@ class ElementDecoder(json.JSONDecoder):
                 return NounPhrase.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.microplanning.VerbPhrase'>":
                 return VerbPhrase.from_dict(json_object['__value__'])
-            if json_object[
-                '__class__'] == "<class 'nlglib.structures.microplanning.PrepositionalPhrase'>":
-                return PrepositionalPhrase.from_dict(json_object['__value__'])
-            if json_object[
-                '__class__'] == "<class 'nlglib.structures.microplanning.AdjectivePhrase'>":
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.PrepositionPhrase'>":
+                return PrepositionPhrase.from_dict(json_object['__value__'])
+            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.AdjectivePhrase'>":
                 return AdjectivePhrase.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.microplanning.AdverbPhrase'>":
                 return AdverbPhrase.from_dict(json_object['__value__'])
             if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Coordination'>":
-                return Coordination.from_dict(json_object['__value__'])
+                rv = Coordination.from_dict(json_object['__value__'])
+                rv.set_parent()
+                return rv
         return json_object

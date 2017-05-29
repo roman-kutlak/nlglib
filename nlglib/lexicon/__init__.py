@@ -393,10 +393,10 @@ def NP(spec, *mods_and_head, features=None, postmods=[]):
         words = list(mods_and_head)
     if spec is None:
         return NounPhrase(Noun(words[-1]), features=features,
-                          pre_modifiers=[Adjective(x) for x in words[:-1]])
+                          premodifiers=[Adjective(x) for x in words[:-1]])
     else:
         return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
-                          pre_modifiers=[Adjective(x) for x in words[:-1]])
+                          premodifiers=[Adjective(x) for x in words[:-1]])
 
 
 def VP(head, *complements, features=None):
@@ -404,7 +404,7 @@ def VP(head, *complements, features=None):
 
 
 def PP(head, *complements, features=None):
-    return PrepositionalPhrase(Preposition(head),
+    return PrepositionPhrase(Preposition(head),
                                *complements, features=features)
 
 
@@ -667,7 +667,7 @@ class Lexicon:
         features = {}
         if tag.endswith('$'):
             features['POSSESSIVE'] = 'true'
-            if not tag.startswith('PrepositionalPhrase'):
+            if not tag.startswith('PrepositionPhrase'):
                 features['CASE'] = 'GENITIVE'
         if tag.endswith('*'): features['NEGATED'] = 'true'
         if tag.startswith('NP'): features['PROPER'] = 'true'

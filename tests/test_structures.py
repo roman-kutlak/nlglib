@@ -449,7 +449,7 @@ class TestPhrase(unittest.TestCase):
     #        expected = 'yesterday went'
     #        self.assertEqual(expected, str(p))
     #
-    #        p.pre_modifiers.append('Peter')
+    #        p.premodifiers.append('Peter')
     #        expected = 'yesterday Peter went'
     #        self.assertEqual(expected, str(p))
     #
@@ -457,7 +457,7 @@ class TestPhrase(unittest.TestCase):
     #        expected = 'yesterday Peter went to'
     #        self.assertEqual(expected, str(p))
     #
-    #        p.post_modifiers.append('Russia')
+    #        p.postmodifiers.append('Russia')
     #        expected = 'yesterday Peter went to Russia'
     #        self.assertEqual(expected, str(p))
     #
@@ -479,7 +479,7 @@ class TestPhrase(unittest.TestCase):
     #     expected = '(Phrase None None: "yesterday went" {})'
     #     self.assertEqual(expected, repr(p))
     #
-    #     p.pre_modifiers.append('Peter')
+    #     p.premodifiers.append('Peter')
     #     expected = '(Phrase None None: "yesterday Peter went" {})'
     #     self.assertEqual(expected, repr(p))
     #
@@ -487,7 +487,7 @@ class TestPhrase(unittest.TestCase):
     #     expected = '(Phrase None None: "yesterday Peter went to" {})'
     #     self.assertEqual(expected, repr(p))
     #
-    #     p.post_modifiers.append('Russia')
+    #     p.postmodifiers.append('Russia')
     #     expected = '(Phrase None None: "yesterday Peter went to Russia" {})'
     #     self.assertEqual(expected, repr(p))
     #
@@ -514,10 +514,10 @@ class TestPhrase(unittest.TestCase):
         p2.front_modifiers.append('yesterday')
         self.assertEqual(p1, p2)
 
-        p1.pre_modifiers.append('Peter')
+        p1.premodifiers.append('Peter')
         self.assertNotEqual(p1, p2)
 
-        p2.pre_modifiers.append('Peter')
+        p2.premodifiers.append('Peter')
         self.assertEqual(p1, p2)
 
         p1.complements.append('to')
@@ -526,10 +526,10 @@ class TestPhrase(unittest.TestCase):
         p2.complements.append('to')
         self.assertEqual(p1, p2)
 
-        p1.post_modifiers.append('Russia')
+        p1.postmodifiers.append('Russia')
         self.assertNotEqual(p1, p2)
 
-        p2.post_modifiers.append('Russia')
+        p2.postmodifiers.append('Russia')
         self.assertEqual(p1, p2)
 
         p1.set_feature('tense', 'past')
@@ -570,7 +570,7 @@ class TestPhrase(unittest.TestCase):
         ph2 = Var('arg_place')
         p2 = Phrase()
         p2.head = ph2
-        p.post_modifiers.append(p2)
+        p.postmodifiers.append(p2)
         args = list(p.arguments())
         self.assertEqual(ph, args[0])
         self.assertEqual(ph2, args[1])
@@ -590,7 +590,7 @@ class TestPhrase(unittest.TestCase):
         ph2 = Var('arg_place')
         p2 = Phrase()
         p2.head = ph2
-        p.post_modifiers.append(p2)
+        p.postmodifiers.append(p2)
 
         p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
         self.assertEqual(False,
@@ -634,7 +634,7 @@ class TestClause(unittest.TestCase):
         self.assertEqual(False, p.replace(hi, hello))
         ph = Var('arg_name')
         p.subj = hi
-        p.post_modifiers.append(ph)
+        p.postmodifiers.append(ph)
         self.assertEqual(True, p.replace(hi, hello))
         self.assertEqual(hello, p.subj)
 
@@ -686,7 +686,7 @@ class TestVP(unittest.TestCase):
     def test_arguments(self):
         """ Test replacing arguments. """
         p = VerbPhrase('give', Var('arg_obj'),
-                       PrepositionalPhrase('to', Var('arg_rec')))
+                       PrepositionPhrase('to', Var('arg_rec')))
         expected = [Var('arg_obj'), Var('arg_rec')]
         self.assertEqual(expected, list(p.arguments()))
 
