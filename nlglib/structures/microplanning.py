@@ -332,21 +332,14 @@ class Element(object, metaclass=FeatureModulesLoader):
         """Return any arguments (vars) from the element as a list. """
         return [x for x in self.constituents() if x.category == VAR]
 
-    def replace(self, one, another):
-        """Replace the first occurrence of `one` by 
-        a deep copy of `another`.
+    def replace(self, one, another, key=lambda x: x):
+        """Replace the first occurrence of `one` by `another`.
 
-        Return True if successful, False if not found.
-
-        """
-        return False  # basic implementation does nothing
-
-    def replace_by_key(self, key, another):
-        """Replace the first occurrence of an element 
-        with the key `key` by a deep copy of `another`.
-
-        Return True if successful, False if not found.
-
+        :param one: a constituent to replace; will be raised to element
+        :param another: a replacement element; will be raised to element
+        :param key: a key function for comparison; default=lambda x: x (identity)
+        :returns: True if replacement occurred; False otherwise
+        
         """
         return False  # basic implementation does nothing
 
@@ -517,6 +510,7 @@ class Word(Element):
     def __init__(self, word, pos='ANY', features=None, parent=None, key=0):
         super().__init__(WORD, features, parent, key)
         self.word = str(word)
+        self.pos = pos
         self.features['cat'] = pos
         self.do_inflection = False
 
@@ -629,17 +623,22 @@ class Coordination(Element):
             if hasattr(c, 'constituents'):
                 yield from c.constituents()
 
-    def replace(self, one, another):
+    def replace(self, one, another, key=None):
         """Replace first occurrence of `one` with `another`.
         
         Return True if successful, False if `one` not found. 
         Note that the call is recursive on elements within.
 
         """
+        if key is None:
+            key = lambda x: x
+        else:
+            key = key
+        
         one = raise_to_element(one)
-        another = deepcopy(raise_to_element(another))
+        another = raise_to_element(another)
         for i, o in enumerate(self.coords[:]):
-            if o == one:
+            if key(o) == key(one):
                 o.parent = None
                 if another:
                     another.parent = self
@@ -649,29 +648,6 @@ class Coordination(Element):
                 return True
             else:
                 if o.replace(one, another):
-                    return True
-        return False
-
-    def replace_by_key(self, key, another):
-        """Replace first occurrence of an element with key `key`
-        with a deep copy of `another`.
-        
-        Return True if successful, False if no such element found.
-        Note that the call is recursive on elements within.
-
-        """
-        another = deepcopy(raise_to_element(another))
-        for i, o in enumerate(self.coords[:]):
-            if o.key == key:
-                o.parent = None
-                if another:
-                    another.parent = self
-                    self.coords[i] = another
-                else:
-                    del self.coords[i]
-                return True
-            else:
-                if o.replace_by_key(key, another):
                     return True
         return False
 
@@ -727,8 +703,8 @@ class Phrase(Element):
     def __iadd__(self, other):
         if is_adj_mod_t(other) or is_adv_mod_t(other):
             self.premodifiers.append(other)
-        if other.category == PREPOSITION_PHRASE:
-            self.add_complement(other)
+        else:
+            self.complements.append(other)
         return self
 
     @property
@@ -778,9 +754,9 @@ class Phrase(Element):
         yield from self.yield_complements()
         yield from self.yield_postmodifiers()
 
-    def _replace_in_list(self, lst, one, another):
+    def _replace_in_list(self, lst, one, another, key):
         for i, o in enumerate(lst):
-            if o == one:
+            if key(o) == key(one):
                 if another is None:
                     lst[i].parent = None
                     del lst[i]
@@ -789,20 +765,24 @@ class Phrase(Element):
                     lst[i] = another
                 return True
             else:
-                if o.replace(one, another):
+                if o.replace(one, another, key):
                     return True
         return False
 
-    def replace(self, one, another):
+    def replace(self, one, another, key=lambda x: x):
         """Replace first occurrence of one with another.
         
         Return True if successful.
 
         """
-        if self._replace_in_list(self.premodifiers, one, another):
+        
+        one = raise_to_element(one)
+        another = raise_to_element(another)
+        
+        if self._replace_in_list(self.premodifiers, one, another, key):
             return True
         # TODO: unify when replacement is a phrase of the same kind?
-        if self.head == one:
+        if key(self.head) == key(one):
             self.head.parent = None
             for k in self.head.features.keys():
                 if k in self.features:
@@ -810,25 +790,13 @@ class Phrase(Element):
             self.head = another
             self.features.update(another.features)
             return True
-        elif self.head is not None:
-            if self.head.replace(one, another):
-                return True
-        if self._replace_in_list(self.complements, one, another):
+        if self.head.replace(one, another, key):
             return True
-        if self._replace_in_list(self.postmodifiers, one, another):
+        if self._replace_in_list(self.complements, one, another, key):
+            return True
+        if self._replace_in_list(self.postmodifiers, one, another, key):
             return True
         return False
-
-    def unify(self, another, clear_features=True):
-        if self.category != another.category:
-            return False
-        if clear_features:
-            self.features.clear()
-        self.premodifiers += another.premodifiers
-        self.head = self.head + another.head
-        self.complements += another.complements
-        self.postmodifiers += another.postmodifiers
-        return True
 
 
 class NounPhrase(Phrase):
@@ -892,25 +860,22 @@ class NounPhrase(Phrase):
         yield from self.yield_complements()
         yield from self.yield_postmodifiers()
 
-    def replace(self, one, another):
-        """Replace first occurance of one with another.
+    def replace(self, one, another, key=lambda x: x):
+        """Replace first occurrence of one with another.
         Return True if successful.
 
         """
-        if self.spec == one:
+        one = raise_to_element(one)
+        another = raise_to_element(another)
+
+        if key(self.spec) == key(one):
             self.spec.parent = None
             another.parent = self
             self.spec = another
             return True
-        if self.spec.replace(one, another):
+        if self.spec.replace(one, another, key):
             return True
-        return super().replace(one, another)
-
-    def unify(self, another, clear_features=True):
-        if another.category != NOUN_PHRASE:
-            return False
-        self.spec = self.spec + another.spec
-        return super().unify(another, clear_features)
+        return super().replace(one, another, key)
 
 
 class VerbPhrase(Phrase):
@@ -928,6 +893,12 @@ class VerbPhrase(Phrase):
         super().__init__(VERB_PHRASE, features, parent, **kwargs)
         self.head = head
         self.complements += compl
+        if 'object' in kwargs:
+            self.object = kwargs.pop('object')
+        if 'direct_object' in kwargs:
+            self.object = kwargs.pop('direct_object')
+        if 'indirect_object' in kwargs:
+            self.indirect_object = kwargs.pop('indirect_object')
 
     @property
     def object(self):
@@ -952,6 +923,10 @@ class VerbPhrase(Phrase):
     def direct_object(self):
         return self.object
 
+    @direct_object.setter
+    def direct_object(self, value):
+        self.object = value
+
     @property
     def indirect_object(self):
         for c in self.complements:
@@ -972,6 +947,7 @@ class VerbPhrase(Phrase):
         self.complements.insert(0, new_value)
 
 
+# TODO: replace definition of __init__ by specifying the category=XXX_PHRASE as a class var
 class PrepositionPhrase(Phrase):
     def __init__(self, head=None, *compl, features=None, **kwargs):
         super().__init__(PREPOSITION_PHRASE, features, **kwargs)
@@ -1152,28 +1128,31 @@ class Clause(Phrase):
         yield from self.yield_complements()
         yield from self.yield_postmodifiers()
 
-    def replace(self, one, another):
+    def replace(self, one, another, key=lambda x: x):
         """Replace first occurance of one with another.
         Return True if successful.
 
         """
-        if self.subect == one:
+        one = raise_to_element(one)
+        another = raise_to_element(another)
+
+        if key(self.subect) == key(one):
             self.subject.parent = None
             self.subject = raise_to_np(another)
             self.subject.parent = self
             return True
-        if self.subject.replace(one, another):
+        if self.subject.replace(one, another, key):
             return True
 
-        if self.predicate == one:
+        if key(self.predicate) == key(one):
             self.predicate.parent = None
             self.predicate = raise_to_vp(another)
             self.predicate.parent = self
             return True
-        if self.predicate.replace(one, another):
+        if self.predicate.replace(one, another, key):
             return True
 
-        return super().replace(one, another)
+        return super().replace(one, another, key)
 
     def yield_front_modifiers(self):
         """Iterate through front-modifiers. """

@@ -3,11 +3,14 @@ import unittest
 
 from copy import copy, deepcopy
 
-from nlglib.structures.microplanning import Element, ElementList, Var, String, Word, Coordination
+from nlglib.structures import microplanning
+from nlglib.structures.microplanning import (
+    Element, ElementList, Var, String, Word, Coordination,
+    Phrase, NounPhrase, VerbPhrase, AdjectivePhrase, AdverbPhrase
+)
 
 
 class TestElement(unittest.TestCase):
-
     def setUp(self):
         self.e = Element(features={'foo': 'bar'})
 
@@ -48,7 +51,6 @@ class TestElement(unittest.TestCase):
 
 
 class TestElementList(unittest.TestCase):
-
     def setUp(self):
         self.e = ElementList(['happy', 'birthday'])
 
@@ -90,7 +92,6 @@ class TestElementList(unittest.TestCase):
 
 
 class TestVar(unittest.TestCase):
-
     def setUp(self):
         self.e = Var('x', features={'foo': 'bar'})
 
@@ -119,7 +120,6 @@ class TestVar(unittest.TestCase):
 
 
 class TestString(unittest.TestCase):
-
     def setUp(self):
         self.e = String('happiness', features={'foo': 'bar'})
 
@@ -148,7 +148,6 @@ class TestString(unittest.TestCase):
 
 
 class TestWord(unittest.TestCase):
-
     def setUp(self):
         self.e = Word('happiness', 'NOUN', features={'foo': 'bar'})
 
@@ -178,7 +177,6 @@ class TestWord(unittest.TestCase):
 
 
 class TestCoordination(unittest.TestCase):
-
     def setUp(self):
         self.e = Coordination('big', 'fat')
 
@@ -225,6 +223,154 @@ class TestCoordination(unittest.TestCase):
         self.assertEqual(['big', 'fluffy'], [x.string for x in self.e.coords])
 
 
+class TestPhrase(unittest.TestCase):
+    def setUp(self):
+        self.phrase = Phrase(features={'foo': 'bar'},
+                             head='say',
+                             premodifiers=['please'],
+                             complements=['hello', 'world'],
+                             postmodifiers=['dude'])
+
+    def test_init(self):
+        p = self.phrase
+        self.assertEqual(String('say'), p.head)
+        self.assertIn(String('please'), p.premodifiers)
+        self.assertIn(String('hello'), p.complements)
+        self.assertIn(String('world'), p.complements)
+        self.assertIn(String('dude'), p.postmodifiers)
+
+    def test_copy(self):
+        p2 = copy(self.phrase)
+        self.assertEqual(self.phrase, p2)
+
+    def test_deepcopy(self):
+        p = self.phrase
+        p2 = deepcopy(p)
+        self.assertEqual(self.phrase, p2)
+        self.assertNotEqual(id(p.head), id(p2.head))
+        self.assertEqual(p, p.head.parent)
+        self.assertEqual(p2, p2.head.parent)
+
+    def test_deepcopy_2(self):
+        """Test deepcopy on nested phrases."""
+        p = Phrase(head=self.phrase, complements=['that', 'stands', 'tall'])
+        p2 = deepcopy(p)
+        self.assertEqual(self.phrase, p.head)
+        self.assertEqual(self.phrase, p2.head)
+        self.assertNotEqual(id(self.phrase), id(p2.head))
+        self.assertEqual(p2.head.parent, p2)
+        self.assertEqual(p2.head.head.parent, p2.head)
+
+    def test_modifier_addition(self):
+        """Test that adjective is added as a premodifier."""
+        mod = Word('happy', pos=microplanning.ADJECTIVE)
+        self.phrase += mod
+        self.assertIn(mod, self.phrase.premodifiers)
+
+    def test_modifier_addition2(self):
+        """Test that adverb is added as a premodifier."""
+        mod = Word('happily', pos=microplanning.ADVERB)
+        self.phrase += mod
+        self.assertIn(mod, self.phrase.premodifiers)
+
+    def test_modifier_addition3(self):
+        """Test that preposition is added as a complement."""
+        mod = Word('over', pos=microplanning.PREPOSITION)
+        self.phrase += mod
+        self.assertIn(mod, self.phrase.complements)
+
+    def test_set_head(self):
+        head = Word('shout', pos=microplanning.VERB)
+        self.phrase.head = head
+        self.assertEqual(head, self.phrase.head)
+
+    def test_set_empty_head(self):
+        self.phrase.head = None
+        self.assertEqual(Element(), self.phrase.head)
+
+    def test_constituents(self):
+        p = self.phrase
+        for c in p.constituents():
+            self.assertTrue(isinstance(c, (Phrase, String)))
+        self.assertEqual(p, list(p.constituents())[0])
+
+    def test_replace(self):
+        p = self.phrase
+        self.assertFalse(p.replace('worlds', 'universe'))
+        self.assertTrue(p.replace('world', 'universe'))
+        self.assertNotIn(String('world'), p.complements)
+        self.assertIn(String('universe'), p.complements)
+
+    def test_replace_using_key(self):
+        p = Phrase(features={'foo': 'bar'},
+                   head='say',
+                   premodifiers=['please'],
+                   complements=['hello', String('world', key=1)],
+                   postmodifiers=['dude'])
+        self.assertFalse(p.replace(String('worlds', key=2), 'universe', key=lambda x: x.key))
+        self.assertTrue(p.replace(String('worlds', key=1), 'universe', key=lambda x: x.key))
+        self.assertNotIn(String('world'), p.complements)
+        self.assertIn(String('universe'), p.complements)
+
+
+class TestNounPhrase(unittest.TestCase):
+
+    def setUp(self):
+        self.phrase = NounPhrase(head='man', spec='the',
+                                 premodifiers=['small', 'happy'])
+
+    def test_init(self):
+        self.assertEqual(String('the'), self.phrase.spec)
+
+    def test_copy(self):
+        p = self.phrase
+        p2 = copy(p)
+        self.assertEqual(p, p2)
+
+    def test_deepcopy(self):
+        p = self.phrase
+        p2 = deepcopy(p)
+        self.assertEqual(p, p2)
+        self.assertNotEqual(id(p), id(p2))
+        self.assertNotEqual(id(p.spec), id(p2.spec))
+
+    def test_replace(self):
+        """Test replacing specifier."""
+        self.phrase.replace('the', 'a')
+        self.assertEqual(String('a'), self.phrase.spec)
+
+    def test_replace2(self):
+        """Test replacing an element."""
+        self.phrase.replace('small', 'big')
+        self.assertNotIn(String('small'), self.phrase.premodifiers)
+        self.assertIn(String('big'), self.phrase.premodifiers)
+
+
+class TestVerbPhrase(unittest.TestCase):
+
+    def setUp(self):
+        self.phrase = VerbPhrase('give', 'me', 'it')
+
+    def test_init(self):
+        self.assertIn(String('me'), self.phrase.complements)
+
+    def test_object_property(self):
+        phrase = VerbPhrase('give', indirect_object='me', object='it')
+        obj = String('it')
+        obj['discourseFunction'] = 'OBJECT'
+        self.assertEqual(obj, phrase.object)
+
+    def test_direct_object_property(self):
+        phrase = VerbPhrase('give', indirect_object='me', direct_object='it')
+        obj = String('it')
+        obj['discourseFunction'] = 'OBJECT'
+        self.assertEqual(obj, phrase.direct_object)
+
+    def test_indirect_object_property(self):
+        phrase = VerbPhrase('give', indirect_object='me', object='it')
+        obj = String('me')
+        obj['discourseFunction'] = 'INDIRECT_OBJECT'
+        self.assertEqual(obj, phrase.indirect_object)
 
 
 if __name__ == '__main__':
