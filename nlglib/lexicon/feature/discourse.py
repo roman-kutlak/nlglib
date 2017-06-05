@@ -91,4 +91,23 @@ SUBJECT = "subject"
 # phrase. Verb phrases can be formed of a single verb or from a verb with a
 # public static final String particle = "particle"; such as <em>kiss</em>,
 # <em>talk</em>, <em>bark</em>, <em>fall down</em>, <em>pick up</em>.
-VERB_PHRASE = "verb_phrase"
+PREDICATE = "verb_phrase"
+
+
+DISCOURSE_FEATURES = [
+    AUXILIARY,
+    COMPLEMENT,
+    CONJUNCTION,
+    CUE_PHRASE,
+    FRONT_MODIFIER,
+    HEAD,
+    INDIRECT_OBJECT,
+    OBJECT,
+    PRE_MODIFIER,
+    POST_MODIFIER,
+    SPECIFIER,
+    SUBJECT,
+    PREDICATE
+]
+
+FEATURE_GROUP = 'discourseFunction'

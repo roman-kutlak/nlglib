@@ -6,8 +6,12 @@ from copy import copy, deepcopy
 from nlglib.structures import microplanning
 from nlglib.structures.microplanning import (
     Element, ElementList, Var, String, Word, Coordination,
-    Phrase, NounPhrase, VerbPhrase, AdjectivePhrase, AdverbPhrase
+    Phrase, NounPhrase, VerbPhrase,
+    AdjectivePhrase, AdverbPhrase, PrepositionPhrase,
+    Clause
 )
+
+from nlglib.lexicon.feature import discourse
 
 
 class TestElement(unittest.TestCase):
@@ -61,13 +65,15 @@ class TestElementList(unittest.TestCase):
     def test_concat(self):
         e2 = self.e + ['dude']
         for e in e2:
-            self.assertTrue(isinstance(e, String))
+            with self.subTest(actual=e):
+                self.assertTrue(isinstance(e, String))
 
     def test_add(self):
         el = ElementList()
         el += ['foo', 'bar']
         for e in el:
-            self.assertTrue(isinstance(e, String))
+            with self.subTest(actual=e):
+                self.assertTrue(isinstance(e, String))
 
     def test_copy(self):
         e2 = copy(self.e)
@@ -196,7 +202,8 @@ class TestCoordination(unittest.TestCase):
         cs2 = list(e2.constituents())
         self.assertEqual(cs, cs2)
         for c1, c2 in zip(cs, cs2):
-            self.assertNotEqual(id(c1), id(c2))
+            with self.subTest(actual=(c1, c2)):
+                self.assertNotEqual(id(c1), id(c2))
 
     def test_to_json(self):
         s = self.e.to_json()
@@ -291,7 +298,8 @@ class TestPhrase(unittest.TestCase):
     def test_constituents(self):
         p = self.phrase
         for c in p.constituents():
-            self.assertTrue(isinstance(c, (Phrase, String)))
+            with self.subTest(actual=c):
+                self.assertTrue(isinstance(c, (Phrase, String)))
         self.assertEqual(p, list(p.constituents())[0])
 
     def test_replace(self):
@@ -307,8 +315,10 @@ class TestPhrase(unittest.TestCase):
                    premodifiers=['please'],
                    complements=['hello', String('world', key=1)],
                    postmodifiers=['dude'])
-        self.assertFalse(p.replace(String('worlds', key=2), 'universe', key=lambda x: x.key))
-        self.assertTrue(p.replace(String('worlds', key=1), 'universe', key=lambda x: x.key))
+        self.assertFalse(p.replace(String('worlds', key=2), 'universe',
+                                   key=lambda x: x.key))
+        self.assertTrue(p.replace(String('worlds', key=1), 'universe',
+                                  key=lambda x: x.key))
         self.assertNotIn(String('world'), p.complements)
         self.assertIn(String('universe'), p.complements)
 
@@ -321,6 +331,8 @@ class TestNounPhrase(unittest.TestCase):
 
     def test_init(self):
         self.assertEqual(String('the'), self.phrase.spec)
+        self.assertEqual(microplanning.NOUN_PHRASE, self.phrase.category)
+        self.assertEqual(microplanning.NOUN_PHRASE, self.phrase.cat)
 
     def test_copy(self):
         p = self.phrase
@@ -357,21 +369,79 @@ class TestVerbPhrase(unittest.TestCase):
     def test_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', object='it')
         obj = String('it')
-        obj['discourseFunction'] = 'OBJECT'
+        obj['discourseFunction'] = discourse.OBJECT
         self.assertEqual(obj, phrase.object)
 
     def test_direct_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', direct_object='it')
         obj = String('it')
-        obj['discourseFunction'] = 'OBJECT'
+        obj['discourseFunction'] = discourse.OBJECT
         self.assertEqual(obj, phrase.direct_object)
 
     def test_indirect_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', object='it')
         obj = String('me')
-        obj['discourseFunction'] = 'INDIRECT_OBJECT'
+        obj['discourseFunction'] = discourse.INDIRECT_OBJECT
         self.assertEqual(obj, phrase.indirect_object)
 
+
+class TestClause(unittest.TestCase):
+
+    def setUp(self):
+        self.clause = Clause('I', 'write', 'programs')
+
+    def test_init(self):
+        self.assertEqual(microplanning.CLAUSE, self.clause.category)
+        self.assertEqual('I', self.clause.subject.string)
+        self.assertEqual('I', self.clause.subject.head.string)
+        self.assertEqual('write', self.clause.predicate.string)
+        self.assertEqual('write', self.clause.predicate.head.string)
+        self.assertEqual('write', self.clause.verb.string)
+        self.assertEqual('programs', self.clause.object.string)
+
+    def test_front_modifiers(self):
+        self.clause.front_modifiers.insert(0, 'luckily')
+        self.assertIn(String('luckily'), self.clause.front_modifiers)
+
+    def test_constituents(self):
+        self.clause.front_modifiers.append('luckily')
+        expected = ['luckily', 'I', 'write', 'programs']
+        cs = list(self.clause.constituents())
+        for c in cs:
+            with self.subTest(actual=c):
+                if isinstance(c, String):
+                    self.assertIn(c.string, expected)
+
+    def test_object_raises(self):
+        """Test that setting an object on a clause without VP 
+        raises a KeyError.
+        
+        """
+        clause = Clause('I')
+
+        def fn():
+            clause.object = 'you'
+        self.assertRaises(KeyError, fn)
+
+    def test_indirect_object_raises(self):
+        """Test that setting an indirect object on a clause 
+        without VP raises a KeyError.
+        
+        """
+        clause = Clause('I')
+
+        def fn():
+            clause.indirect_object = 'you'
+        self.assertRaises(KeyError, fn)
+
+    def test_replace_subject(self):
+        self.assertTrue(self.clause.replace('I', 'you'))
+        self.assertEqual('you', self.clause.subject.string)
+        self.assertEqual(microplanning.NOUN_PHRASE, self.clause.subject.cat)
+
+    def test_replace_object(self):
+        self.assertTrue(self.clause.replace('programs', 'software'))
+        self.assertEqual(String('software'), self.clause.object)
 
 if __name__ == '__main__':
     unittest.main()

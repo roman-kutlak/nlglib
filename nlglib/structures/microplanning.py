@@ -4,9 +4,11 @@
 # TODO: check serialisation of phrases/clause
 # TODO: check deepcopy
 # TODO: raise_to_xxx should use category
-# TODO: set discourse features of elements (matrix clause, object, subject, head, spec, ...)
+# TODO: set discourse features of elements \
+# (matrix clause, object, subject, head, spec, ...)
 # TODO: create module `element_algebra` and pud add/iadd into it
-# TODO: move current microplanning visitors into mod microplanning.visitors or struct.visitors
+# TODO: move current microplanning visitors into \
+# mod microplanning.visitors or struct.visitors
 # TODO: remove 'subj' and 'vp' from clause?
 
 
@@ -21,9 +23,12 @@ from copy import deepcopy
 from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
+from lexicon.feature import discourse
+
 logger = logging.getLogger(__name__)
 
 # types of clauses:
+ELEMENT_LIST = 'ELEMENT_LIST'
 ELEMENT = 'ELEMENT'  # abstract
 VAR = 'VAR'
 STRING = 'STRING'
@@ -64,6 +69,12 @@ CATEGORIES = [
     CLAUSE
 ]
 
+# features that are excluded from equality comparison
+NON_COMPARABLE_FEATURES = [discourse.FEATURE_GROUP]
+
+# features that should be transferred on replacement
+TRANSFERABLE_FEATURES = [discourse.FEATURE_GROUP]
+
 
 def is_element_t(o):
     """Return True if `o` is an instance of `Element`."""
@@ -74,7 +85,8 @@ def is_phrase_t(o):
     """Return True if `o` is a phrase. """
     return (is_element_t(o) and
             (o.category in {PHRASE, NOUN_PHRASE, VERB_PHRASE,
-                            ADJECTIVE_PHRASE, ADVERB_PHRASE, PREPOSITION_PHRASE}))
+                            ADJECTIVE_PHRASE, ADVERB_PHRASE,
+                            PREPOSITION_PHRASE}))
 
 
 def is_clause_t(o):
@@ -151,8 +163,9 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     """
 
-    def __init__(self, category=ELEMENT, features=None, parent=None, key=0):
-        self.category = category
+    category = ELEMENT
+
+    def __init__(self, features=None, parent=None, key=0):
         self.features = features or {}
         self.parent = parent
         self.key = key
@@ -161,15 +174,13 @@ class Element(object, metaclass=FeatureModulesLoader):
             self.features['cat'] = 'ANY'
 
     def __copy__(self):
-        rv = self.__class__(category=self.category,
-                            features=self.features,
+        rv = self.__class__(features=self.features,
                             parent=self.parent,
                             key=self.key)
         return rv
 
     def __deepcopy__(self, memo):
-        rv = self.__class__(category=self.category,
-                            features=None,
+        rv = self.__class__(features=None,
                             parent=None,
                             key=self.key)
         memo[id(self)] = rv
@@ -185,7 +196,8 @@ class Element(object, metaclass=FeatureModulesLoader):
         return (isinstance(other, Element) and
                 self.key == other.key and
                 self.category == other.category and
-                self.features == other.features)
+                comparable_features(self.features) ==
+                comparable_features(other.features))
 
     def __hash__(self):
         if self.hash == -1:
@@ -279,8 +291,10 @@ class Element(object, metaclass=FeatureModulesLoader):
         raise AttributeError(name)
 
     def __add__(self, other):
-        """Add two elements resulting in a coordination if both elements are not "False" else 
-        return the "True" element."""
+        """Add two elements resulting in a coordination 
+        if both elements are not "False" else return the "True" element.
+        
+        """
         if not self:
             return other
         if not other:
@@ -306,8 +320,8 @@ class Element(object, metaclass=FeatureModulesLoader):
         m = getattr(visitor, visitor_name)
         # ensure that the method is callable
         if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call undefined method: %s on visitor'
-                             % visitor_name)
+            msg = 'Error: cannot call undefined method: %s on visitor'
+            raise ValueError(msg % visitor_name)
         sig = inspect.signature(m)
         # and finally call the callback
         if len(sig.parameters) == 1:
@@ -325,7 +339,10 @@ class Element(object, metaclass=FeatureModulesLoader):
         return ''
 
     def constituents(self):
-        """Return a list or a generator representing constituents of an element. """
+        """Return a list or a generator representing 
+        the constituents of an element. 
+        
+        """
         return []
 
     def arguments(self):
@@ -337,21 +354,27 @@ class Element(object, metaclass=FeatureModulesLoader):
 
         :param one: a constituent to replace; will be raised to element
         :param another: a replacement element; will be raised to element
-        :param key: a key function for comparison; default=lambda x: x (identity)
+        :param key: a key function for comparison; default is identity
         :returns: True if replacement occurred; False otherwise
         
         """
         return False  # basic implementation does nothing
 
     def replace_argument(self, key, replacement):
-        """Replace an argument with given `key` by `replacement` if such argument exists."""
+        """Replace an argument with given `key` by `replacement` 
+        if such argument exists.
+        
+        """
         for a in self.arguments():
             if a.key == key:
                 return self.replace(a, replacement)
         return False
 
     def replace_arguments(self, **kwargs):
-        """Replace arguments with ids in the kwargs by the corresponding values. """
+        """Replace arguments with ids in the kwargs 
+        by the corresponding values. 
+        
+        """
         for k, v in kwargs.items():
             self.replace_argument(k, v)
 
@@ -371,13 +394,18 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     @staticmethod
     def _del_from_list(lst, *mods):
-        """Delete elements from the list `lst`. Convert any strings to String. """
+        """Delete elements from the list `lst`. 
+        Convert any strings to String. 
+        
+        """
         for p in str_to_elt(*mods):
             if p in lst:
                 lst.remove(p)
 
 
 class ElementList(collections.UserList):
+    category = ELEMENT_LIST
+
     def __init__(self, lst=None, parent=None):
         super().__init__()
         self.parent = parent
@@ -388,6 +416,11 @@ class ElementList(collections.UserList):
         item = raise_to_element(item)
         item.parent = self.parent
         super().append(item)
+
+    def insert(self, i, item):
+        item = raise_to_element(item)
+        item.parent = self.parent
+        super().insert(i, item)
 
     def __iadd__(self, other):
         for x in other:
@@ -434,8 +467,10 @@ class Var(Element):
 
     """
 
+    category = VAR
+
     def __init__(self, key=None, obj=None, features=None, parent=None):
-        super().__init__(VAR, features, parent, key)
+        super().__init__(features, parent, key)
         self.value = None
         self.set_value(obj)
         self.features['cat'] = 'ANY'
@@ -473,8 +508,10 @@ class Var(Element):
 class String(Element):
     """String is a basic element representing canned text. """
 
+    category = STRING
+
     def __init__(self, value='', features=None, parent=None, key=0):
-        super().__init__(STRING, features, parent, key)
+        super().__init__(features, parent, key)
         self.value = str(value)
         self.features['cat'] = 'ANY'
 
@@ -507,8 +544,10 @@ class String(Element):
 class Word(Element):
     """Word represents word and its corresponding POS (Part-of-Speech) tag. """
 
+    category = WORD
+
     def __init__(self, word, pos='ANY', features=None, parent=None, key=0):
-        super().__init__(WORD, features, parent, key)
+        super().__init__(features, parent, key)
         self.word = str(word)
         self.pos = pos
         self.features['cat'] = pos
@@ -551,8 +590,10 @@ class Coordination(Element):
     
     """
 
+    category = COORDINATION
+
     def __init__(self, *coords, conj='and', features=None, parent=None, key=0):
-        super().__init__(COORDINATION, features, parent, key)
+        super().__init__(features, parent, key)
         self.coordinate_category = None
         self.coords = ElementList(parent=self)
         self.add_coordinates(*coords)
@@ -577,6 +618,10 @@ class Coordination(Element):
         rv.coords = deepcopy(self.coords, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
         return rv
+
+    @property
+    def string(self):
+        return self.coords[0].string if self.coords else ''
 
     @staticmethod
     def _reset_parent(coordination):
@@ -623,18 +668,13 @@ class Coordination(Element):
             if hasattr(c, 'constituents'):
                 yield from c.constituents()
 
-    def replace(self, one, another, key=None):
+    def replace(self, one, another, key=lambda x: x):
         """Replace first occurrence of `one` with `another`.
         
         Return True if successful, False if `one` not found. 
         Note that the call is recursive on elements within.
 
         """
-        if key is None:
-            key = lambda x: x
-        else:
-            key = key
-        
         one = raise_to_element(one)
         another = raise_to_element(another)
         for i, o in enumerate(self.coords[:]):
@@ -642,6 +682,7 @@ class Coordination(Element):
                 o.parent = None
                 if another:
                     another.parent = self
+                    transfer_features(o, another)
                     self.coords[i] = another
                 else:
                     del self.coords[i]
@@ -660,14 +701,18 @@ class Phrase(Element):
     """
 
     _head = None
+    category = PHRASE
 
-    def __init__(self, category=PHRASE, features=None, parent=None, key=0, **kwargs):
-        super().__init__(category, features, parent, key)
-        self['cat'] = category
-        self.premodifiers = ElementList(parent=self) + kwargs.get('premodifiers', [])
-        self.head = kwargs.get('head')
-        self.complements = ElementList(parent=self) + kwargs.get('complements', [])
-        self.postmodifiers = ElementList(parent=self) + kwargs.get('postmodifiers', [])
+    def __init__(self, features=None, parent=None, key=0, **kwargs):
+        super().__init__(features, parent, key)
+        self['cat'] = self.category
+        self.premodifiers = (ElementList(parent=self) +
+                             kwargs.pop('premodifiers', []))
+        self.head = kwargs.pop('head', None)
+        self.complements = (ElementList(parent=self) +
+                            kwargs.pop('complements', []))
+        self.postmodifiers = (ElementList(parent=self) +
+                              kwargs.pop('postmodifiers', []))
 
     def __bool__(self):
         """Return True """
@@ -681,8 +726,8 @@ class Phrase(Element):
                 self.postmodifiers == other.postmodifiers)
 
     def __copy__(self):
-        rv = self.__class__(self.category, features=self.features,
-                            parent=self.parent, key=self.key)
+        rv = self.__class__(features=self.features, parent=self.parent,
+                            key=self.key)
         rv.head = self.head
         rv.premodifiers = self.premodifiers[:]
         rv.complements = self.complements[:]
@@ -690,7 +735,7 @@ class Phrase(Element):
         return rv
 
     def __deepcopy__(self, memo):
-        rv = self.__class__(self.category, key=self.key)
+        rv = self.__class__(key=self.key)
         memo[id(self)] = rv
         rv.parent = memo.get(id(self.parent), None)
         rv.features = deepcopy(self.features, memo=memo)
@@ -708,6 +753,10 @@ class Phrase(Element):
         return self
 
     @property
+    def string(self):
+        return self.head.string
+
+    @property
     def head(self):
         return self._head
 
@@ -721,6 +770,7 @@ class Phrase(Element):
             self._head = new_value
         else:
             self._head = Element()
+        self._head[discourse.FEATURE_GROUP] = discourse.HEAD
 
     def yield_premodifiers(self):
         """Iterate through pre-modifiers. """
@@ -762,6 +812,7 @@ class Phrase(Element):
                     del lst[i]
                 else:
                     another.parent = self
+                    transfer_features(lst[i], another)
                     lst[i] = another
                 return True
             else:
@@ -770,15 +821,15 @@ class Phrase(Element):
         return False
 
     def replace(self, one, another, key=lambda x: x):
-        """Replace first occurrence of one with another.
+        """Replace first occurrence of `one` with `another`.
         
         Return True if successful.
 
         """
-        
+
         one = raise_to_element(one)
         another = raise_to_element(another)
-        
+
         if self._replace_in_list(self.premodifiers, one, another, key):
             return True
         # TODO: unify when replacement is a phrase of the same kind?
@@ -787,8 +838,10 @@ class Phrase(Element):
             for k in self.head.features.keys():
                 if k in self.features:
                     del self.features[k]
+            transfer_features(self.head, another)
             self.head = another
             self.features.update(another.features)
+            self.features['cat'] = self.category
             return True
         if self.head.replace(one, another, key):
             return True
@@ -811,9 +864,11 @@ class NounPhrase(Phrase):
      """
 
     _spec = None
+    category = NOUN_PHRASE
 
-    def __init__(self, head=None, spec=None, features=None, parent=None, key=0, **kwargs):
-        super().__init__(NOUN_PHRASE, features, parent, key, **kwargs)
+    def __init__(self, head=None, spec=None, features=None,
+                 parent=None, key=0, **kwargs):
+        super().__init__(features, parent, key, **kwargs)
         self.spec = spec
         self.head = head
 
@@ -849,6 +904,7 @@ class NounPhrase(Phrase):
             self._spec = new_value
         else:
             self._spec = Element()
+        self._spec[discourse.FEATURE_GROUP] = discourse.SPECIFIER
 
     def constituents(self):
         """Return a generator to iterate through constituents. """
@@ -871,6 +927,7 @@ class NounPhrase(Phrase):
         if key(self.spec) == key(one):
             self.spec.parent = None
             another.parent = self
+            transfer_features(self.spec, another)
             self.spec = another
             return True
         if self.spec.replace(one, another, key):
@@ -889,8 +946,10 @@ class VerbPhrase(Phrase):
      * </UL>
      """
 
+    category = VERB_PHRASE
+
     def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
-        super().__init__(VERB_PHRASE, features, parent, **kwargs)
+        super().__init__(features, parent, **kwargs)
         self.head = head
         self.complements += compl
         if 'object' in kwargs:
@@ -903,20 +962,21 @@ class VerbPhrase(Phrase):
     @property
     def object(self):
         for c in self.complements:
-            if c['discourseFunction'] == 'OBJECT':
+            if c[discourse.FEATURE_GROUP] == discourse.OBJECT:
                 return c
         return None
 
     @object.setter
     def object(self, value):
-        to_remove = [c for c in self.complements if c['discourseFunction'] == 'OBJECT']
+        to_remove = [c for c in self.complements
+                     if c[discourse.FEATURE_GROUP] == discourse.OBJECT]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value['discourseFunction'] = 'OBJECT'
+        new_value[discourse.FEATURE_GROUP] = discourse.OBJECT
         self.complements.append(new_value)
 
     @property
@@ -930,43 +990,34 @@ class VerbPhrase(Phrase):
     @property
     def indirect_object(self):
         for c in self.complements:
-            if c['discourseFunction'] == 'INDIRECT_OBJECT':
+            if c[discourse.FEATURE_GROUP] == discourse.INDIRECT_OBJECT:
                 return c
         return None
 
     @indirect_object.setter
     def indirect_object(self, value):
-        to_remove = [c for c in self.complements if c['discourseFunction'] == 'INDIRECT_OBJECT']
+        to_remove = [c for c in self.complements
+                     if c[discourse.FEATURE_GROUP] == discourse.INDIRECT_OBJECT]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value['discourseFunction'] = 'INDIRECT_OBJECT'
+        new_value[discourse.FEATURE_GROUP] = discourse.INDIRECT_OBJECT
         self.complements.insert(0, new_value)
 
 
-# TODO: replace definition of __init__ by specifying the category=XXX_PHRASE as a class var
 class PrepositionPhrase(Phrase):
-    def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(PREPOSITION_PHRASE, features, **kwargs)
-        self.head = head
-        self.complements += compl
+    category = PREPOSITION_PHRASE
 
 
 class AdverbPhrase(Phrase):
-    def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(ADVERB_PHRASE, features, **kwargs)
-        self.head = head
-        self.complements += compl
+    category = ADVERB_PHRASE
 
 
 class AdjectivePhrase(Phrase):
-    def __init__(self, head=None, *compl, features=None, **kwargs):
-        super().__init__(ADJECTIVE_PHRASE, features, **kwargs)
-        self.head = head
-        self.complements += compl
+    category = ADJECTIVE_PHRASE
 
 
 class Clause(Phrase):
@@ -988,21 +1039,25 @@ class Clause(Phrase):
 
     _subject = None
     _predicate = None
+    category = CLAUSE
 
-    def __init__(self, subject=None, predicate=None, object=None, features=None, parent=None, **kwargs):
-        super().__init__(CLAUSE, features, parent=parent, **kwargs)
-        self.front_modifiers = ElementList(parent=self) + kwargs.get('front_modifiers', [])
+    def __init__(self, subject=None, predicate=None, object=None,
+                 features=None, parent=None, **kwargs):
+        super().__init__(features, parent=parent, **kwargs)
+        fm = kwargs.pop('front_modifiers', [])
+        self.front_modifiers = ElementList(parent=self) + fm
         self.subject = subject
         self.predicate = predicate
-        self.object = object
+        if object:
+            self.object = object
 
     def __eq__(self, other):
-        return (self.premodifiers == other.premodifiers and
-                self.subj == other.subj and
-                self.vp == other.vp and
+        return (super().__eq__(other) and
+                self.premodifiers == other.premodifiers and
+                self.subject == other.subject and
+                self.predicate == other.predicate and
                 self.complements == other.complements and
-                self.postmodifiers == other.postmodifiers and
-                super().__eq__(other))
+                self.postmodifiers == other.postmodifiers)
 
     def __add__(self, other):
         other_ = deepcopy(other)
@@ -1016,11 +1071,12 @@ class Clause(Phrase):
             self_.vp += other_
             return self_
         else:
-            raise ValueError(
-                'Cannot add these up: "{}" + "{}"'.format(self, other))
+            msg = 'Cannot add these up: "{}" + "{}"'
+            raise ValueError(msg.format(self, other))
 
     def __copy__(self):
-        rv = self.__class__(features=self.features, parent=self.parent, key=self.key)
+        rv = self.__class__(features=self.features, parent=self.parent,
+                            key=self.key)
         rv.front_modifiers = self.front_modifiers[:]
         rv.subject = self.subject
         rv.premodifiers = self.premodifiers[:]
@@ -1056,6 +1112,7 @@ class Clause(Phrase):
             self._subject = new_value
         else:
             self._subject = Element()
+        self._subject[discourse.FEATURE_GROUP] = discourse.SUBJECT
 
     @property
     def subj(self):
@@ -1079,6 +1136,7 @@ class Clause(Phrase):
             self._predicate = new_value
         else:
             self._predicate = Element()
+        self._predicate[discourse.FEATURE_GROUP] = discourse.PREDICATE
 
     @property
     def head(self):
@@ -1097,6 +1155,17 @@ class Clause(Phrase):
         self.predicate = value
 
     @property
+    def verb(self):
+        return self.predicate.head if self.predicate else None
+
+    @verb.setter
+    def verb(self, value):
+        if self.predicate:
+            self.predicate.head = raise_to_element(value)
+        else:
+            self.predicate = value
+
+    @property
     def object(self):
         return self.predicate.object if self.predicate else None
 
@@ -1105,7 +1174,8 @@ class Clause(Phrase):
         if self.predicate:
             self.predicate.object = value
         else:
-            raise KeyError("Clause doesn't have a verb to set its object.")
+            msg = "Clause doesn't have a verb to set its object."
+            raise KeyError(msg)
 
     @property
     def indirect_object(self):
@@ -1116,7 +1186,8 @@ class Clause(Phrase):
         if self.predicate:
             self.predicate.indirect_object = value
         else:
-            raise KeyError("Clause doesn't have a verb to set its indirect object.")
+            msg = "Clause doesn't have a verb to set its indirect object."
+            raise KeyError(msg)
 
     def constituents(self):
         """Return a generator to iterate through constituents. """
@@ -1136,18 +1207,16 @@ class Clause(Phrase):
         one = raise_to_element(one)
         another = raise_to_element(another)
 
-        if key(self.subect) == key(one):
-            self.subject.parent = None
-            self.subject = raise_to_np(another)
-            self.subject.parent = self
+        if key(self.subject) == key(one):
+            transfer_features(self.subject, another)
+            self.subject = another
             return True
         if self.subject.replace(one, another, key):
             return True
 
         if key(self.predicate) == key(one):
-            self.predicate.parent = None
-            self.predicate = raise_to_vp(another)
-            self.predicate.parent = self
+            transfer_features(self.predicate, another)
+            self.predicate = another
             return True
         if self.predicate.replace(one, another, key):
             return True
@@ -1171,9 +1240,9 @@ def raise_to_np(phrase):
     if isinstance(phrase, Coordination):
         phrase.coords = [raise_to_np(c) for c in phrase.coords]
         return phrase
-    if isinstance(phrase, String):
+    if isinstance(phrase, (String, Word)):
         return NounPhrase(head=phrase)
-    if isinstance(phrase, Word):
+    if isinstance(phrase, Element) and phrase.category == ELEMENT:
         return NounPhrase(head=phrase)
     return phrase
 
@@ -1197,9 +1266,33 @@ def raise_to_vp(phrase):
 
 def raise_to_element(element):
     """Raise the given thing to an element (e.g., String). """
+    if element is None:
+        return Element()
     if not isinstance(element, Element):
         return String(str(element))  # use str() in case of numbers
     return element
+
+
+def comparable_features(features):
+    """Return a dict of features limited to ones that can be used 
+    for equality comparison.
+    
+    """
+    rv = features.copy()
+    # disregard discourse features
+    ignored = NON_COMPARABLE_FEATURES
+    for f in ignored:
+        rv.pop(f, None)
+    return rv
+
+
+def transfer_features(source, target):
+    """Copy transferable features from `source` to `target`."""
+    if target is None:
+        return
+    for f in TRANSFERABLE_FEATURES:
+        if f in source:
+            target[f] = source[f]
 
 
 class ElementEncoder(json.JSONEncoder):
@@ -1217,32 +1310,33 @@ class ElementDecoder(json.JSONDecoder):
 
     @staticmethod
     def from_json(json_object):
+        prefix = "<class 'nlglib.structures.microplanning."
         if '__class__' in json_object:
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Element'>":
+            if json_object['__class__'] == ("%sElement'>" % prefix):
                 return Element.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.ElementList'>":
+            if json_object['__class__'] == ("%sElementList'>" % prefix):
                 return ElementList.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.String'>":
+            if json_object['__class__'] == ("%sString'>" % prefix):
                 return String.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Word'>":
+            if json_object['__class__'] == ("%sWord'>" % prefix):
                 return Word.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Var'>":
+            if json_object['__class__'] == ("%sVar'>" % prefix):
                 return Var.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Phrase'>":
+            if json_object['__class__'] == ("%sPhrase'>" % prefix):
                 return Phrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Clause'>":
+            if json_object['__class__'] == ("%sClause'>" % prefix):
                 return Clause.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.NounPhrase'>":
+            if json_object['__class__'] == ("%sNounPhrase'>" % prefix):
                 return NounPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.VerbPhrase'>":
+            if json_object['__class__'] == ("%sVerbPhrase'>" % prefix):
                 return VerbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.PrepositionPhrase'>":
+            if json_object['__class__'] == ("%sPrepositionPhrase'>" % prefix):
                 return PrepositionPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.AdjectivePhrase'>":
+            if json_object['__class__'] == ("%sAdjectivePhrase'>" % prefix):
                 return AdjectivePhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.AdverbPhrase'>":
+            if json_object['__class__'] == ("%sAdverbPhrase'>" % prefix):
                 return AdverbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == "<class 'nlglib.structures.microplanning.Coordination'>":
+            if json_object['__class__'] == ("%sCoordination'>" % prefix):
                 rv = Coordination.from_dict(json_object['__value__'])
                 rv.set_parent()
                 return rv
