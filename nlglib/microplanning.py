@@ -120,11 +120,14 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml = xml
         self.ancestors.append('child')
 
+    def visit_element(self):
+        pass
+
     def visit_string(self, node):
         neg = 'not ' if node.negated == 'true' else ''
         features = node.features_to_xml_attributes()
         text = ('{outer}<{tag} xsi:type="WordElement" '
-                'cat="ANY" canned="true" {f}>{sep}'
+                'canned="true" {f}>{sep}'
                 '{inner}<base>{neg}{word}</base>{sep}'
                 '{outer}</{tag}>{sep}').format(word=quote_plus(node.value),
                                                neg=neg,
@@ -414,9 +417,9 @@ class StrVisitor(PrintVisitor):
     def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if node.value == Element():
-            self.data += 'Var({0})'.format(repr(node.id))
+            self.data += 'Var({0})'.format(repr(node.key))
         else:
-            self.data += 'Var({0}, {1})'.format(repr(node.id), repr(node.value))
+            self.data += 'Var({0}, {1})'.format(repr(node.key), repr(node.value))
 
     def visit_noun_phrase(self, node):
         if self.do_indent: self.data += self.indent
@@ -511,25 +514,25 @@ class SimpleStrVisitor(PrintVisitor):
 
     def visit_msg_spec(self, node):
         if self.do_indent: self.data += self.indent
-        self.data += '{0}'.format(node)
+        self.data = ' '.join((self.data, node))
 
     def visit_element(self, _):
-        self.data += ''
+        pass
 
     def visit_string(self, node):
         if self.do_indent: self.data += self.indent
-        self.data += str(node.value)
+        self.data = ' '.join((self.data, str(node.value)))
 
     def visit_word(self, node):
         if self.do_indent: self.data += self.indent
-        self.data += str(node.word)
+        self.data = ' '.join((self.data, str(node.word)))
 
     def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if node.value == Element():
-            self.data += str(node.id)
+            self.data = ' '.join((self.data, str(node.id)))
         else:
-            self.data += str(node.value)
+            self.data = ' '.join((self.data, str(node.value)))
 
     def visit_noun_phrase(self, node):
         if node.spec != Element():

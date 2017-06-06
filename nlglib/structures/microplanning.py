@@ -23,9 +23,11 @@ from copy import deepcopy
 from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
-from lexicon.feature import discourse
+from nlglib.lexicon.feature import discourse
 
 logger = logging.getLogger(__name__)
+
+_sentinel = object()
 
 # types of clauses:
 ELEMENT_LIST = 'ELEMENT_LIST'
@@ -307,11 +309,14 @@ class Element(object, metaclass=FeatureModulesLoader):
         self.accept(visitor)
         return str(visitor)
 
-    def to_xml(self, depth=0):
+    def to_xml(self, depth=0, headers=True):
         from nlglib.microplanning import XmlVisitor
         visitor = XmlVisitor(depth=depth)
         self.accept(visitor)
-        return str(visitor.xml)
+        if headers:
+            return str(visitor)
+        else:
+            return str(visitor.xml)
 
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
@@ -331,7 +336,9 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     def features_to_xml_attributes(self):
         features = ""
-        for (k, v) in self.features.items():
+        keys = sorted(self.features.keys())
+        for k in keys:
+            v = self.features[k]
             features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         features = features.strip()
         if features != '':
@@ -383,24 +390,10 @@ class Element(object, metaclass=FeatureModulesLoader):
         """Return the string inside the value. """
         return ''
 
-    def _add_to_list(self, lst, *mods, position=None):
-        """Add modifiers to the list `lst`. Convert any strings to String. """
-        for mod in str_to_elt(*mods):
-            mod.parent = self
-            if position is None:
-                lst.append(mod)
-            else:
-                lst.insert(position, mod)
-
-    @staticmethod
-    def _del_from_list(lst, *mods):
-        """Delete elements from the list `lst`. 
-        Convert any strings to String. 
-        
-        """
-        for p in str_to_elt(*mods):
-            if p in lst:
-                lst.remove(p)
+    def update_parents(self, parent=_sentinel):
+        """Re-set the `parent` attribute of nested elements."""
+        if parent is not _sentinel:
+            self.parent = parent
 
 
 class ElementList(collections.UserList):
@@ -454,6 +447,12 @@ class ElementList(collections.UserList):
 
     def constituents(self):
         return iter(self)
+
+    def update_parents(self, parent=_sentinel):
+        if parent is not _sentinel:
+            self.parent = parent
+        for x in self:
+            x.update_parents(parent=parent)
 
 
 class Var(Element):
@@ -636,12 +635,11 @@ class Coordination(Element):
             if x.category == COORDINATION:
                 Coordination._reset_parent(x)
 
-    def set_parent(self):
-        self.coords.parent = self
-        for x in self.coords:
-            x.parent = self
-            if x.category == COORDINATION:
-                x.set_parent()
+    def update_parents(self, parent=_sentinel):
+        if parent is not _sentinel:
+            self.parent = parent
+        new_parent = None if parent is None else self
+        self.coords.update_parents(new_parent)
 
     def to_json(self):
         cp = deepcopy(self)
@@ -700,7 +698,7 @@ class Phrase(Element):
 
     """
 
-    _head = None
+    _head = Element()
     category = PHRASE
 
     def __init__(self, features=None, parent=None, key=0, **kwargs):
@@ -851,6 +849,19 @@ class Phrase(Element):
             return True
         return False
 
+    def update_parents(self, parent=_sentinel):
+        if parent is not _sentinel:
+            self.parent = parent
+        to_update = [
+            self.premodifiers,
+            self.head,
+            self.complements,
+            self.postmodifiers,
+        ]
+        new_parent = None if parent is None else self
+        for o in to_update:
+            o.update_parents(parent=new_parent)
+
 
 class NounPhrase(Phrase):
     """
@@ -863,7 +874,7 @@ class NounPhrase(Phrase):
      * </UL>
      """
 
-    _spec = None
+    _spec = Element()
     category = NOUN_PHRASE
 
     def __init__(self, head=None, spec=None, features=None,
@@ -892,11 +903,19 @@ class NounPhrase(Phrase):
 
     @property
     def spec(self):
-        return self._spec
+        return self.specifier
 
     @spec.setter
     def spec(self, value):
-        if self.spec:
+        self.specifier = value
+
+    @property
+    def specifier(self):
+        return self._spec
+
+    @specifier.setter
+    def specifier(self, value):
+        if self.specifier:
             self._spec.parent = None
         if value:
             new_value = raise_to_element(value)
@@ -933,6 +952,13 @@ class NounPhrase(Phrase):
         if self.spec.replace(one, another, key):
             return True
         return super().replace(one, another, key)
+
+    def update_parents(self, parent=_sentinel):
+        if parent is not _sentinel:
+            self.parent = parent
+        new_parent = None if parent is None else self
+        self.specifier.update_parents(new_parent)
+        super().update_parents(parent)
 
 
 class VerbPhrase(Phrase):
@@ -1229,6 +1255,15 @@ class Clause(Phrase):
             for x in o.constituents():
                 yield from x.constituents()
 
+    def update_parents(self, parent=_sentinel):
+        if parent is not _sentinel:
+            self.parent = parent
+        new_parent = None if parent is None else self
+        to_update = [self.front_modifiers, self.subject, self.predicate]
+        for x in to_update:
+            x.update_parents(new_parent)
+        super().update_parents(parent)
+
 
 def raise_to_np(phrase):
     """Take the current phrase and raise it to an NP.
@@ -1297,9 +1332,12 @@ def transfer_features(source, target):
 
 class ElementEncoder(json.JSONEncoder):
     def default(self, python_object):
+        dct = python_object.__dict__
+        if 'parent' in dct:
+            dct['parent'] = None
         if isinstance(python_object, (Element, ElementList)):
             return {'__class__': str(type(python_object)),
-                    '__value__': python_object.__dict__}
+                    '__value__': dct}
         return super(ElementEncoder, self).default(python_object)
 
 
@@ -1312,32 +1350,35 @@ class ElementDecoder(json.JSONDecoder):
     def from_json(json_object):
         prefix = "<class 'nlglib.structures.microplanning."
         if '__class__' in json_object:
-            if json_object['__class__'] == ("%sElement'>" % prefix):
-                return Element.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sElementList'>" % prefix):
-                return ElementList.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sString'>" % prefix):
-                return String.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sWord'>" % prefix):
-                return Word.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sVar'>" % prefix):
-                return Var.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sPhrase'>" % prefix):
-                return Phrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sClause'>" % prefix):
-                return Clause.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sNounPhrase'>" % prefix):
-                return NounPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sVerbPhrase'>" % prefix):
-                return VerbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sPrepositionPhrase'>" % prefix):
-                return PrepositionPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sAdjectivePhrase'>" % prefix):
-                return AdjectivePhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sAdverbPhrase'>" % prefix):
-                return AdverbPhrase.from_dict(json_object['__value__'])
-            if json_object['__class__'] == ("%sCoordination'>" % prefix):
+            cls = json_object['__class__']
+            if cls == ("%sElement'>" % prefix):
+                rv = Element.from_dict(json_object['__value__'])
+            elif cls == ("%sElementList'>" % prefix):
+                rv = ElementList.from_dict(json_object['__value__'])
+            elif cls == ("%sString'>" % prefix):
+                rv = String.from_dict(json_object['__value__'])
+            elif cls == ("%sWord'>" % prefix):
+                rv = Word.from_dict(json_object['__value__'])
+            elif cls == ("%sVar'>" % prefix):
+                rv = Var.from_dict(json_object['__value__'])
+            elif cls == ("%sPhrase'>" % prefix):
+                rv = Phrase.from_dict(json_object['__value__'])
+            elif cls == ("%sNounPhrase'>" % prefix):
+                rv = NounPhrase.from_dict(json_object['__value__'])
+            elif cls == ("%sVerbPhrase'>" % prefix):
+                rv = VerbPhrase.from_dict(json_object['__value__'])
+            elif cls == ("%sPrepositionPhrase'>" % prefix):
+                rv = PrepositionPhrase.from_dict(json_object['__value__'])
+            elif cls == ("%sAdjectivePhrase'>" % prefix):
+                rv = AdjectivePhrase.from_dict(json_object['__value__'])
+            elif cls == ("%sAdverbPhrase'>" % prefix):
+                rv = AdverbPhrase.from_dict(json_object['__value__'])
+            elif cls == ("%sCoordination'>" % prefix):
                 rv = Coordination.from_dict(json_object['__value__'])
-                rv.set_parent()
-                return rv
+            elif cls == ("%sClause'>" % prefix):
+                rv = Clause.from_dict(json_object['__value__'])
+            else:
+                raise TypeError('Unknown class "{}"'.format(cls))
+            rv.update_parents()
+            return rv
         return json_object

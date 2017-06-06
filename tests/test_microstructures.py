@@ -2,6 +2,7 @@ import json
 import unittest
 
 from copy import copy, deepcopy
+import xml.etree.ElementTree as ET
 
 from nlglib.structures import microplanning
 from nlglib.structures.microplanning import (
@@ -322,6 +323,19 @@ class TestPhrase(unittest.TestCase):
         self.assertNotIn(String('world'), p.complements)
         self.assertIn(String('universe'), p.complements)
 
+    def test_to_json(self):
+        s = self.phrase.to_json()
+        self.assertIn('<class \'nlglib.structures.microplanning.Phrase\'>', s)
+        self.assertIn('please', s)
+        self.assertIn('say', s)
+        self.assertIn('hello', s)
+
+    def test_from_json(self):
+        s = self.phrase.to_json()
+        p2 = json.loads(s, cls=microplanning.ElementDecoder)
+        self.assertEqual(self.phrase, p2)
+        self.assertEqual(p2, p2.head.parent)
+
 
 class TestNounPhrase(unittest.TestCase):
 
@@ -356,6 +370,20 @@ class TestNounPhrase(unittest.TestCase):
         self.phrase.replace('small', 'big')
         self.assertNotIn(String('small'), self.phrase.premodifiers)
         self.assertIn(String('big'), self.phrase.premodifiers)
+
+    def test_to_json(self):
+        s = self.phrase.to_json()
+        self.assertIn('<class \'nlglib.structures.microplanning.NounPhrase\'>', s)
+        self.assertIn('the', s)
+        self.assertIn('small', s)
+        self.assertIn('man', s)
+
+    def test_from_json(self):
+        s = self.phrase.to_json()
+        p2 = json.loads(s, cls=microplanning.ElementDecoder)
+        self.assertEqual(self.phrase, p2)
+        self.assertEqual(p2, p2.head.parent)
+        self.assertEqual(p2, p2.spec.parent)
 
 
 class TestVerbPhrase(unittest.TestCase):
@@ -399,6 +427,16 @@ class TestClause(unittest.TestCase):
         self.assertEqual('write', self.clause.verb.string)
         self.assertEqual('programs', self.clause.object.string)
 
+    def test_copy(self):
+        c2 = copy(self.clause)
+        self.assertEqual(self.clause, c2)
+        self.assertEqual(id(self.clause.subject), id(c2.subject))
+
+    def test_deepcopy(self):
+        c2 = deepcopy(self.clause)
+        self.assertEqual(self.clause, c2)
+        self.assertNotEqual(id(self.clause.subject), id(c2.subject))
+
     def test_front_modifiers(self):
         self.clause.front_modifiers.insert(0, 'luckily')
         self.assertIn(String('luckily'), self.clause.front_modifiers)
@@ -439,9 +477,91 @@ class TestClause(unittest.TestCase):
         self.assertEqual('you', self.clause.subject.string)
         self.assertEqual(microplanning.NOUN_PHRASE, self.clause.subject.cat)
 
+    def test_replace_subject2(self):
+        self.assertTrue(self.clause.replace(NounPhrase(head='I'), 'you'))
+        self.assertEqual('you', self.clause.subject.string)
+        self.assertEqual(microplanning.NOUN_PHRASE, self.clause.subject.cat)
+
+    def test_replace_predicate(self):
+        self.assertTrue(self.clause.replace('write', 'compose'))
+        self.assertEqual(String('compose'), self.clause.verb)
+
+    def test_replace_predicate2(self):
+        vp = VerbPhrase(head='write', object='programs')
+        vp2 = VerbPhrase(head='compose', object='programs')
+        self.assertTrue(self.clause.replace(vp, vp2))
+        self.assertEqual(String('compose'), self.clause.verb)
+
     def test_replace_object(self):
         self.assertTrue(self.clause.replace('programs', 'software'))
         self.assertEqual(String('software'), self.clause.object)
+
+    def test_set_indirect_object(self):
+        self.assertIsNone(self.clause.indirect_object)
+        self.clause.indirect_object = 'for fun'
+        self.assertIn(String('for fun'), self.clause.predicate.complements)
+        self.assertEqual(String('for fun'),
+                         self.clause.predicate.indirect_object)
+
+    def test_to_json(self):
+        s = self.clause.to_json()
+        self.assertIn('<class \'nlglib.structures.microplanning.Clause\'>', s)
+        self.assertIn('I', s)
+        self.assertIn('write', s)
+        self.assertIn('programs', s)
+
+    def test_from_json(self):
+        s = self.clause.to_json()
+        c2 = json.loads(s, cls=microplanning.ElementDecoder)
+        self.assertEqual(self.clause, c2)
+        self.assertEqual(c2, c2.subject.parent)
+        self.assertEqual(c2, c2.predicate.parent)
+        self.assertEqual(c2.subject, c2.subject.head.parent)
+        self.assertEqual(c2.predicate, c2.predicate.head.parent)
+
+    def test_repr(self):
+        s = repr(self.clause)
+        self.assertIn('Clause(', s)
+        self.assertIn('NounPhrase(String(\'I\',', s)
+        self.assertIn('VerbPhrase(String(\'write\',', s)
+
+    def test_xml(self):
+        s = self.clause.to_xml()
+        expected = '''\
+<?xml version="1.0" encoding="utf-8"?>
+<nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:nlg="http://simplenlg.googlecode.com/svn/trunk/res/xml"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
+<nlg:Request>
+
+<Document cat="PARAGRAPH">
+<child xsi:type="SPhraseSpec" cat="CLAUSE">
+  <subj xsi:type="NPPhraseSpec" cat="NOUN_PHRASE" discourseFunction="subject">
+    <head xsi:type="WordElement" canned="true"  cat="ANY" discourseFunction="head">
+      <base>I</base>
+    </head>
+  </subj>
+  <vp xsi:type="VPPhraseSpec" cat="VERB_PHRASE" discourseFunction="verb_phrase">
+    <head xsi:type="WordElement" canned="true"  cat="ANY" discourseFunction="head">
+      <base>write</base>
+    </head>
+    <compl xsi:type="WordElement" canned="true"  cat="ANY" discourseFunction="object">
+      <base>programs</base>
+    </compl>
+  </vp>
+</child>
+
+</Document>
+</nlg:Request>
+</nlg:NLGSpec>\
+'''
+        self.assertEqual(expected, s)
+
+    def test_to_str(self):
+        s = self.clause.to_str()
+        self.assertEqual('I write programs', s)
+
 
 if __name__ == '__main__':
     unittest.main()
