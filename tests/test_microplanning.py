@@ -1,6 +1,7 @@
 import unittest
 
-from nlglib.microplanning import *
+from nlglib.structures.microplanning import *
+from nlglib.microplanning import XmlVisitor, ReprVisitor, ElementVisitor
 from nlglib.lexicon import *
 
 

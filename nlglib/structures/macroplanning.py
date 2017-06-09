@@ -1,8 +1,7 @@
 import inspect
 import logging
 
-from .microplanning import String
-from nlglib.utils import flatten
+from .microplanning import String, Element
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +18,15 @@ class Document:
 
     category = 'DOCUMENT'
 
-    def __init__(self, *sections, title=None):
+    def __init__(self, title, *sections):
         """Create a new `Document` with `title` and zero or more `sections`.
 
-        :param sections: document sections (`Document` or `Element` type)
         :param title: the tile of the document (`Document` or `Element` type)
+        :param sections: document sections (`Document` or `Element` type)
 
         """
         self.title = promote_to_string(title)
         self._sections = [promote_to_string(s) for s in sections]
-
-    def __repr__(self):
-        title = self.title if self.title is not None else 'No title'
-        return '<Document: ({})>'.format(title)
-
-    def __str__(self):
-        return (str(self.title) + '\n' +
-                '\n\n'.join([str(s) for s in self.sections]))
 
     def __eq__(self, other):
         return (isinstance(other, Document) and
@@ -44,6 +35,14 @@ class Document:
 
     def __hash__(self):
         return hash(str(self))
+
+    def __repr__(self):
+        title = self.title if self.title is not None else 'No title'
+        return '<Document: ({})>'.format(title)
+
+    def __str__(self):
+        return (str(self.title) + '\n\n' +
+                '\n\n'.join([str(s) for s in self.sections]))
 
     @property
     def sections(self):
@@ -60,19 +59,21 @@ class Document:
         for s in self.sections:
             yield s
 
-    def to_xml(self, offset='', indent='  '):
+    # TODO: use visitor and match with simplenlg?
+    def to_xml(self, depth=0, indent='  '):
         """Return an XML representation of the document"
 
-        :param offset: the initial indentation offset
+        :param depth: the initial indentation offset (depth * indent)
         :param indent: the indent for nested elements.
         """
+        offset = indent * depth
         result = offset + '<document>\n'
         result += offset + indent + '<title>\n'
-        result += self.title.to_xml(offset + 2 * indent)
+        result += self.title.to_xml(depth=depth + 1)
         result += offset + indent + '</title>\n'
         result += offset + indent + '<sections>\n'
         for s in self.sections:
-            result += s.to_xml(offset=(offset + indent))
+            result += s.to_xml(depth=depth + 1)
         result += offset + indent + '</sections>\n'
         result += offset + '</document>\n'
         return result
@@ -92,7 +93,6 @@ class RhetRel:
     """
 
     category = "RST"
-    order = ['nuclei', 'satellite']
     phrases = ['']
 
     def __init__(self, relation, *nuclei, satellite=None, features=None,
@@ -106,14 +106,20 @@ class RhetRel:
         self.last_element_marker = last_element_marker or self.marker
         self.features = features or {}
         self.is_multinuclear = len(self.nuclei) > 1
+        if self.is_multinuclear:
+            self.order = self.nuclei
+        else:
+            self.order = [self.nucleus, self.satellite]
 
     def __repr__(self):
         return '<RhetRel {}>'.format(self.relation)
 
     def __str__(self):
-        first = getattr(self, self.order[0])
-        second = getattr(self, self.order[1])
-        return '{}({} {} {})'.format(self.relation, first, self.marker, second)
+        if self.is_multinuclear:
+            return '{}({})'.format(self.relation, self.order)
+        else:
+            return '{}({} {} {})'.format(self.relation, self.nucleus,
+                                         self.marker, self.satellite)
 
     def __eq__(self, other):
         return (isinstance(other, RhetRel) and
@@ -130,17 +136,8 @@ class RhetRel:
         return self.nuclei[0]
 
     def constituents(self):
-        if self.is_multinuclear:
-            for n in self.nuclei:
-                yield n
-        elif self.order[0] == 'nuclei':
-            yield self.nucleus
-            if self.satellite:
-                yield self.satellite
-        else:
-            if self.satellite:
-                yield self.satellite
-            yield self.nucleus
+        for x in self.order:
+            yield x
 
     def to_xml(self, lvl=0, indent='  '):
         spaces = indent * lvl
@@ -166,12 +163,10 @@ class RhetRel:
                     rv = ' '.join([rv, self.marker, s])
                 else:
                     rv = ' '.join([rv, self.last_element_marker, s])
-        elif self.order[0] == 'nuclei':
-            satellite = self.satellite.to_str() if self.satellite else ''
-            rv = ' '.join([self.nucleus.to_str(), self.marker, satellite])
         else:
-            satellite = self.satellite.to_str() if self.satellite else ''
-            rv = ' '.join([satellite, self.marker, self.nucleus.to_str()])
+            rv = ' '.join([self.order[0].to_str(),
+                           self.marker,
+                           self.order[1].to_str()])
         rv = rv.replace(' , ', ', ').replace('  ', ' ')
         return rv
 
@@ -221,6 +216,7 @@ class MsgSpec:
             raise ValueError('Error: cannot call the method "%s"' % data_member)
         return m()
 
+    # TODO: extract to `Visitable` mixin class
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
         if self._visitor_name is None:
@@ -285,4 +281,4 @@ class OperatorContext:
 
 
 def promote_to_string(s):
-    return String(s) if isinstance(s, str) else s
+    return String(s) if not isinstance(s, (Document, Element)) else s

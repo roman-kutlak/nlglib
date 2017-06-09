@@ -562,6 +562,15 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         s = self.clause.to_str()
         self.assertEqual('I write programs', s)
 
+    def test_replace_vars(self):
+        c = Clause(Var(key='subj'), Var(key='predicate'))
+        c.replace_arguments(subj=Word('I', pos='PRONOUN'),
+                            predicate=VerbPhrase('am', 'happy'))
+        self.assertEqual([], c.arguments())
+        self.assertEqual(c.subject.string, 'I')
+        self.assertEqual(c.predicate.string, 'am')
+        self.assertEqual(c.predicate.complements[0].string, 'happy')
+
 
 if __name__ == '__main__':
     unittest.main()

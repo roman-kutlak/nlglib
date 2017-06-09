@@ -1,14 +1,12 @@
 import unittest
 
-from nlglib.structures import MsgSpec, Message, Paragraph, Section, Document
+from nlglib.structures import MsgSpec, Message, Document
 from nlglib.structures import String, Var, Clause, NounPhrase, VerbPhrase
 from nlglib.macroplanning import StringMsgSpec
 
 from nlglib.lexicalisation import templates
 from nlglib.lexicalisation import lexicalise_message_spec
 from nlglib.lexicalisation import lexicalise_message
-from nlglib.lexicalisation import lexicalise_paragraph
-from nlglib.lexicalisation import lexicalise_section
 from nlglib.lexicalisation import lexicalise_document
 
 from nlglib.realisation.backends.simplenlg import realise as real
@@ -22,8 +20,7 @@ class DummyMsg(MsgSpec):
         return NounPhrase('Boris')
 
 # add a template for the message spec.
-templates.templates['dummy'] = Clause(
-            Var('arg_subject'), VerbPhrase('is', 'fast'))
+templates.templates['dummy'] = Clause(Var('arg_subject'), 'is', 'fast')
 
 
 class TestLexicalisation(unittest.TestCase):
@@ -53,46 +50,13 @@ class TestLexicalisation(unittest.TestCase):
         expected = tmp + tmp + tmp
         self.assertEqual(expected, list(lex.constituents()))
 
-    def test_lexicalise_paragraph(self):
-        """ Test lexicalisation of Paragraph. """
-        m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
-        p = Paragraph(m)
-        tmp = lexicalise_paragraph(p)
-        expected = '\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, real(tmp))
-
-    def test_lexicalise_paragraph2(self):
-        """ Test lexicalisation of Paragraph. """
-        m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
-        p = Paragraph(m)
-        tmp = lexicalise_paragraph(p)
-        expected = '\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, real(tmp))
-
-    def test_lexicalise_section(self):
-        """ Test lexicalisation of Section. """
-        m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
-        p = Paragraph(m)
-        s = Section('Section 1', p)
-        tmp = lexicalise_section(s)
-        expected = 'Section 1\n\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, real(tmp))
-
-        s = Section('Section 1', p, p, p)
-        tmp = lexicalise_section(s)
-        expected = 'Section 1' + \
-            '\n\tBoris is fast Boris is fast Boris is fast' + \
-            '\n\tBoris is fast Boris is fast Boris is fast' + \
-            '\n\tBoris is fast Boris is fast Boris is fast'
-        self.assertEqual(expected, real(tmp))
-
     def test_lexicalise_document(self):
         """ Test lexicalisation of Document. """
         m1 = Message('Leaf', DummyMsg())
         m2 = Message('Elaboration', DummyMsg(), DummyMsg())
-        p = Paragraph(m1, m2)
-        s = Section('Section One', Paragraph(m1))
-        d = Document('Doc Title', s, Section('Section Two', Paragraph(m2)))
+        p = Document(m1, m2)
+        s = Document('Section One', Document(m1))
+        d = Document('Doc Title', s, Document('Section Two', Document(m2)))
         tmp = lexicalise_document(d)
         expected = 'Doc Title\n' + \
             'Section One' + \

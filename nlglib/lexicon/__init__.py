@@ -378,10 +378,10 @@ def female(name, features=None):
 # phrases
 
 
-def NP(spec, *mods_and_head, features=None, postmods=[]):
+def NP(spec, *mods_and_head, features=None):
     """ Create a complex noun phrase where the first arg is determiner, then
     modifiers and head is last. Determiner can be None.
-    The determiner can be ommited if the NP consists of the head noun only.
+    The determiner can be omitted if the NP consists of the head noun only.
     NP('the', 'brown', 'wooden', 'table')
 
     """

@@ -274,9 +274,9 @@ class ReprVisitor(PrintVisitor):
     def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if not node.value:
-            self.data += 'Var({0}'.format(repr(node.id))
+            self.data += 'Var({0}'.format(repr(node.key))
         else:
-            self.data += 'Var({0}, {1}'.format(repr(node.id), repr(node.value))
+            self.data += 'Var({0}, {1}'.format(repr(node.key), repr(node.value))
         if node.features != dict():
             self.data += ', ' + repr(node.features)
         self.data += ')'

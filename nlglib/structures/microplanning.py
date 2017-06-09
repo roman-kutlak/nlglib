@@ -78,59 +78,6 @@ NON_COMPARABLE_FEATURES = [discourse.FEATURE_GROUP]
 TRANSFERABLE_FEATURES = [discourse.FEATURE_GROUP]
 
 
-def is_element_t(o):
-    """Return True if `o` is an instance of `Element`."""
-    return isinstance(o, Element)
-
-
-def is_phrase_t(o):
-    """Return True if `o` is a phrase. """
-    return (is_element_t(o) and
-            (o.category in {PHRASE, NOUN_PHRASE, VERB_PHRASE,
-                            ADJECTIVE_PHRASE, ADVERB_PHRASE,
-                            PREPOSITION_PHRASE}))
-
-
-def is_clause_t(o):
-    """An object is a clause type if it is a clause, subordination or
-    a coordination of clauses.
-
-    """
-    return is_element_t(o) and o.category == CLAUSE
-
-
-def is_adj_mod_t(o):
-    """Return True if `o` is adjective modifier (adj or AdjP)"""
-    from nlglib import lexicon
-    return (isinstance(o, AdjectivePhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_ADJECTIVE or
-            isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
-
-
-def is_adv_mod_t(o):
-    """Return True if `o` is adverb modifier (adv or AdvP)"""
-    from nlglib import lexicon
-    return (isinstance(o, AdverbPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_ADVERB or
-            isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
-
-
-def is_noun_t(o):
-    """Return True if `o` is adverb modifier (adv or AdvP)"""
-    from nlglib import lexicon
-    return (isinstance(o, NounPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_NOUN or
-            isinstance(o, Coordination) and is_noun_t(o.coords[0]))
-
-
-def str_to_elt(*params):
-    """Check that all params are Elements and convert
-    and any strings to String.
-
-    """
-    return [raise_to_element(param) for param in params if params is not None]
-
-
 class FeatureModulesLoader(type):
     """Metaclass injecting the feature module property onto a class."""
 
@@ -226,8 +173,8 @@ class Element(object, metaclass=FeatureModulesLoader):
         return str(v)
 
     def __str__(self):
-        from nlglib.microplanning import StrVisitor
-        v = StrVisitor()
+        from nlglib.microplanning import StrVisitor, SimpleStrVisitor
+        v = SimpleStrVisitor()
         self.accept(v)
         return str(v)
 
@@ -309,7 +256,7 @@ class Element(object, metaclass=FeatureModulesLoader):
         self.accept(visitor)
         return str(visitor)
 
-    def to_xml(self, depth=0, headers=True):
+    def to_xml(self, depth=0, headers=False):
         from nlglib.microplanning import XmlVisitor
         visitor = XmlVisitor(depth=depth)
         self.accept(visitor)
@@ -648,9 +595,7 @@ class Coordination(Element):
 
     def add_coordinates(self, *elts):
         """Add one or more elements as a co-ordinate in the clause. """
-        for e in str_to_elt(*elts):
-            if e is None:
-                continue
+        for e in [raise_to_element(elt) for elt in elts if elt is not None]:
             self.coords.append(e)
             cat = self.coords[0].cat
             if not all(x.cat == cat for x in self.coords):
@@ -1265,6 +1210,15 @@ class Clause(Phrase):
         super().update_parents(parent)
 
 
+def raise_to_element(element):
+    """Raise the given thing to an element (e.g., String). """
+    if element is None:
+        return Element()
+    if not isinstance(element, Element):
+        return String(str(element))  # use str() in case of numbers
+    return element
+
+
 def raise_to_np(phrase):
     """Take the current phrase and raise it to an NP.
     If `phrase` is a Noun it will be promoted to NP and used as a head;
@@ -1299,13 +1253,49 @@ def raise_to_vp(phrase):
     return phrase
 
 
-def raise_to_element(element):
-    """Raise the given thing to an element (e.g., String). """
-    if element is None:
-        return Element()
-    if not isinstance(element, Element):
-        return String(str(element))  # use str() in case of numbers
-    return element
+def is_element_t(o):
+    """Return True if `o` is an instance of `Element`."""
+    return isinstance(o, Element)
+
+
+def is_phrase_t(o):
+    """Return True if `o` is a phrase. """
+    return (is_element_t(o) and
+            (o.category in (PHRASE, NOUN_PHRASE, VERB_PHRASE,
+                            ADJECTIVE_PHRASE, ADVERB_PHRASE,
+                            PREPOSITION_PHRASE)))
+
+
+def is_clause_t(o):
+    """An object is a clause type if it is a clause, subordination or
+    a coordination of clauses.
+
+    """
+    return is_element_t(o) and o.category == CLAUSE
+
+
+def is_adj_mod_t(o):
+    """Return True if `o` is adjective modifier (adj or AdjP)"""
+    from nlglib import lexicon
+    return (isinstance(o, AdjectivePhrase) or
+            isinstance(o, Word) and o.pos == lexicon.POS_ADJECTIVE or
+            isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
+
+
+def is_adv_mod_t(o):
+    """Return True if `o` is adverb modifier (adv or AdvP)"""
+    from nlglib import lexicon
+    return (isinstance(o, AdverbPhrase) or
+            isinstance(o, Word) and o.pos == lexicon.POS_ADVERB or
+            isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
+
+
+def is_noun_t(o):
+    """Return True if `o` is adverb modifier (adv or AdvP)"""
+    from nlglib import lexicon
+    return (isinstance(o, NounPhrase) or
+            isinstance(o, Word) and o.pos == lexicon.POS_NOUN or
+            isinstance(o, Coordination) and is_noun_t(o.coords[0]))
 
 
 def comparable_features(features):
