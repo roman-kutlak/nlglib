@@ -346,20 +346,23 @@ class Element(object, metaclass=FeatureModulesLoader):
 class ElementList(collections.UserList):
     category = ELEMENT_LIST
 
-    def __init__(self, lst=None, parent=None):
+    def __init__(self, lst=None, parent=None, features=None):
         super().__init__()
         self.parent = parent
+        self.features = features or None
         for o in lst or []:
             self.append(o)
 
     def append(self, item):
         item = raise_to_element(item)
         item.parent = self.parent
+        item.features.update(self.features)
         super().append(item)
 
     def insert(self, i, item):
         item = raise_to_element(item)
         item.parent = self.parent
+        item.features.update(self.features)
         super().insert(i, item)
 
     def __iadd__(self, other):
@@ -369,12 +372,16 @@ class ElementList(collections.UserList):
 
     def __setitem__(self, i, value):
         value = raise_to_element(value)
+        # FIXME: is this a bug? missing parent and features
+        # value.parent = self.parent
+        # value.features.update(self.features)
         super().__setitem__(i, value)
 
     def __deepcopy__(self, memo):
         rv = self.__class__()
         memo[id(self)] = rv
         rv.parent = memo.get(id(self.parent), None)
+        rv.features = deepcopy(self.features, memo)
         for o in self.data:
             rv.data.append(deepcopy(o, memo))
         return rv

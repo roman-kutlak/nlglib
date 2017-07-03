@@ -6,6 +6,11 @@ from .microplanning import String, Element
 logger = logging.getLogger(__name__)
 
 
+class SignatureError(Exception):
+    """Exception for PredicateMsgSpec."""
+    pass
+
+
 class Document:
     """Document represents a container holding information about a document.
 
@@ -25,7 +30,7 @@ class Document:
         :param sections: document sections (`Document` or `Element` type)
 
         """
-        self.title = promote_to_string(title)
+        self._title = promote_to_string(title)
         self._sections = [promote_to_string(s) for s in sections]
 
     def __eq__(self, other):
@@ -43,6 +48,14 @@ class Document:
     def __str__(self):
         return (str(self.title) + '\n\n' +
                 '\n\n'.join([str(s) for s in self.sections]))
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = promote_to_string(value)
 
     @property
     def sections(self):
@@ -92,8 +105,11 @@ class RhetRel:
 
     """
 
-    category = "RST"
+    category = "RHET_REL"
     phrases = ['']
+    element_order = ['nucleus', 'satellite']
+    is_abstract = True  # subclasses should override this
+    # TODO: define RST_RELATIONS (abstract + concrete)?
 
     def __init__(self, relation, *nuclei, satellite=None, features=None,
                  marker=None, last_element_marker=None):
@@ -109,7 +125,8 @@ class RhetRel:
         if self.is_multinuclear:
             self.order = self.nuclei
         else:
-            self.order = [self.nucleus, self.satellite]
+            # e.g., [self.nucleus, self.satellite]
+            self.order = [getattr(self, attr) for attr in self.element_order]
 
     def __repr__(self):
         return '<RhetRel {}>'.format(self.relation)
@@ -190,12 +207,11 @@ class MsgSpec:
 
     """
 
-    category = "MSG"
+    category = "MSG_SPEC"
 
     def __init__(self, name, features=None):
         self.name = name
         self.features = features or {}
-        self._visitor_name = 'visit_msg_spec'
 
     def __repr__(self):
         return 'MsgSpec({0}, {1})'.format(self.name, self.features)
@@ -207,26 +223,29 @@ class MsgSpec:
         return (isinstance(other, type(self)) and
                 self.name == other.name)
 
-    def value_for(self, data_member):
+    @property
+    def key(self):
+        return self.name
+
+    def value_for(self, attr):
         """ Return a value for an argument using introspection. """
-        if not hasattr(self, data_member):
-            raise ValueError('Error: cannot find value for key: %s' % data_member)
-        m = getattr(self, data_member)
+        if not hasattr(self, attr):
+            raise ValueError('Error: cannot find value for key: %s' % attr)
+        m = getattr(self, attr)
         if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call the method "%s"' % data_member)
+            raise ValueError('Error: cannot call the method "%s"' % attr)
         return m()
 
     # TODO: extract to `Visitable` mixin class
     def accept(self, visitor, element='Element'):
         """Implementation of the Visitor pattern."""
-        if self._visitor_name is None:
-            raise ValueError('Error: visit method of uninitialized visitor called!')
+        visitor_name = 'visit_' + self.category.lower()
         # get the appropriate method of the visitor instance
-        m = getattr(visitor, self._visitor_name)
+        m = getattr(visitor, visitor_name)
         # ensure that the method is callable
         if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call undefined method: %s on '
-                             'visitor' % self._visitor_name)
+            msg = 'Error: cannot call undefined method: %s on visitor'
+            raise ValueError(msg % visitor_name)
         sig = inspect.signature(m)
         # and finally call the callback
         if len(sig.parameters) == 1:
@@ -242,11 +261,11 @@ class StringMsgSpec(MsgSpec):
     """ Use this as a simple message that contains canned text. """
 
     def __init__(self, text):
-        super().__init__('string_message')
-        self.text = text
+        super().__init__('string_message_spec')
+        self.text = str(text)
 
     def __str__(self):
-        return str(self.text)
+        return self.text
 
     def value_for(self, _):
         return String(self.text)
@@ -260,6 +279,57 @@ class StringMsgSpec(MsgSpec):
         result += offset + indent + '<text>{}</text>\n'.format(self.text)
         result += offset + '</msgspec>\n'
         return result
+
+
+class PredicateMsg(MsgSpec):
+    """ This class is used for instantiating Predicate as message spec. """
+
+    def __init__(self, pred, *arguments, features=None):
+        """Representation of a predicate.
+        
+        :param pred: `nlglib.logic.fol.Expr` instance
+        
+        """
+        super().__init__(str(pred.op))
+        self.predicate = pred
+        self.args = list(arguments)
+        self.features = features or {}
+
+    def __str__(self):
+        """ Return a suitable string representation. """
+        p = self.predicate
+        if len(p.args) == 0:
+            return p.op
+        else:
+            return p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
+
+    def __repr__(self):
+        """ Return a suitable string representation. """
+        p = self.predicate
+        if len(p.args) == 0:
+            return p.op
+        else:
+            neg = ''
+            if 'NEGATED' in self.features and self.features['NEGATED'] == 'true':
+                neg = 'not '
+            return neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
+
+    def value_for(self, key):
+        """Return a replacement for a var with argument number or key.
+        
+        `value_for(0)` will return predicate argument 0
+        `value_for('foo')` will return self.foo
+
+        """
+        try:
+            idx = int(key)
+        except ValueError:
+            return super().value_for(key)
+        if idx >= len(self.args):
+            msg = ('Requested index ({}) is larger than '
+                   'the number of variables in the predicate "{}"')
+            raise SignatureError(msg.format(idx, self.predicate))
+        return self.args[idx]
 
 
 class DiscourseContext:
@@ -281,4 +351,7 @@ class OperatorContext:
 
 
 def promote_to_string(s):
-    return String(s) if not isinstance(s, (Document, Element)) else s
+    """Convert non-nlglib classes (e.g., str) to String and return."""
+    if isinstance(s, (Document, Element, RhetRel, MsgSpec)):
+        return s
+    return String(s)

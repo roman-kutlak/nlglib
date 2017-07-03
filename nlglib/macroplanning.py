@@ -8,7 +8,7 @@ from nlglib.logic.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
 from nlglib.logic.fol import expr
 from nlglib.logic.fol import is_predicate, is_variable, is_function
 from nlglib.logic.simplifications import simplification_ops
-from nlglib.structures import Message, MsgSpec, Word, String, Var
+from nlglib.structures import RhetRel, PredicateMsg, Word, Var
 from nlglib.structures import NounPhrase, Document
 
 
@@ -67,107 +67,55 @@ def structure_content(items, **_):
     return rv
 
 
-class SignatureError(Exception):
-    pass
-
-
-class PredicateMsg(MsgSpec):
-    """ This class is used for instantiating Predicate as message spec. """
-
-    def __init__(self, pred, *arguments, features=None):
-        """ Representation of a predicate.
-        """
-        super().__init__(str(pred.op))
-        self.predicate = pred
-        self.args = list(arguments)
-        self.features = features or {}
-
-    def __str__(self):
-        """ Return a suitable string representation. """
-        p = self.predicate
-        if len(p.args) == 0:
-            return p.op
-        else:
-            return p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
-
-    def __repr__(self):
-        """ Return a suitable string representation. """
-        p = self.predicate
-        if len(p.args) == 0:
-            return p.op
-        else:
-            neg = ''
-            if 'NEGATED' in self.features and self.features['NEGATED'] == 'true':
-                neg = 'not '
-            return neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
-
-    def value_for(self, idx):
-        """ Return a replacement for a var with id param.
-        The function returns the type for type_N and the name of the variable
-        for N at position N or throws SignatureError.
-
-        """
-        if idx >= len(self.args):
-            msg = ('Requested index ({}) is larger than '
-                   'the number of variables in the predicate "{}"')
-            raise SignatureError(msg.format(idx, self.predicate))
-        return self.args[idx]
-
-
-class StringMsgSpec(MsgSpec):
-    """ Use this as a simple message that contains canned text. """
-
-    def __init__(self, text):
-        super().__init__('simple_message')
-        self.text = text
-
-    def value_for(self, _):
-        return String(self.text)
-
-
 def formula_to_rst(f):
     """ Convert a FOL formula to an RST tree. """
     logger.debug(str(f))
     if f.op == OP_AND:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Conjunction', None, *msgs)
+        m = RhetRel('Conjunction', *msgs)
         m.marker = 'and'
         return m
     if f.op == OP_OR:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Disjunction', None, *msgs)
+        m = RhetRel('Disjunction', *msgs)
         m.marker = 'or'
         return m
     if f.op == OP_IMPLIES:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Imply', msgs[0], msgs[1])
+        m = RhetRel('Imply', msgs[0], satellite=msgs[1])
         return m
     if f.op == OP_IMPLIED_BY:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Imply', msgs[1], msgs[0])
+        m = RhetRel('ImpliedBy', msgs[0], satellite=msgs[1])
         return m
     if f.op == OP_EQUIVALENT:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Equivalent', msgs[0], msgs[1])
+        m = RhetRel('Equivalent', msgs[0], satellite=msgs[1])
         return m
     if f.op == OP_EQUALS:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Equality', msgs[0], *msgs[1:])
+        m = RhetRel('Equality', *msgs[:-1], satellite=msgs[-1])
         return m
     if f.op == OP_NOTEQUALS:
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Inequality', msgs[0], *msgs[1:])
+        m = RhetRel('Inequality', *msgs[:-1], satellite=msgs[-1])
         return m
     if f.op == OP_FORALL:
         vars = [formula_to_rst(x) for x in f.vars]
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Quantifier', vars, *msgs)
+        if len(msgs) > 1:
+            raise ValueError('Too many arguments for quantifier.')
+        nucleus = RhetRel('List', *vars)
+        m = RhetRel('Quantifier', nucleus, satellite=msgs[0])
         m.marker = 'for all'
         return m
     if f.op == OP_EXISTS:
         vars = [formula_to_rst(x) for x in f.vars]
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Quantifier', vars, *msgs)
+        if len(msgs) > 1:
+            raise ValueError('Too many arguments for quantifier.')
+        nucleus = RhetRel('List', *vars)
+        m = RhetRel('Quantifier', nucleus, satellite=msgs[0])
         if len(f.vars) == 1:
             m.marker = 'there exists'
         else:
@@ -187,7 +135,10 @@ def formula_to_rst(f):
     if f.op == OP_NOT:
         logger.debug('negated formula: ' + str(f))
         msgs = [formula_to_rst(x) for x in f.args]
-        m = Message('Negation', msgs[0], *msgs[1:])
+        if len(msgs) > 1:
+            m = RhetRel('Negation', msgs[:-1], satellite=msgs[-1])
+        else:
+            m = RhetRel('Negation', msgs[0])
         m.marker = 'it is not the case that'
         return m
     if is_predicate(f):

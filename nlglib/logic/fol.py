@@ -116,7 +116,7 @@ class Expr:
     """
 
     def __init__(self, op, *args):
-        "Op is a string or number; args are Exprs (or are coerced to Exprs)."
+        """Op is a string or number; args are Exprs (or are coerced to Exprs)."""
         assert (isinstance(op, str) or
                 (isinstance(op, numbers.Number) and not args)), \
             '{0}({1})'.format(op, args)
@@ -124,7 +124,7 @@ class Expr:
         self.args = list(map(to_expr, args))  # Coerce args to Exprs
 
     def __str__(self):
-        "Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"
+        """Show something like 'P' or 'P(x, y)', or '~P' or '(P | Q | R)'"""
         if not self.args:  # Constant or proposition with arity 0
             return str(self.op)
         elif is_symbol(self.op):  # Functional or propositional operator
@@ -135,7 +135,7 @@ class Expr:
             return '(%s)' % (' ' + self.op + ' ').join(map(str, self.args))
 
     def __repr__(self):
-        "Show something like 'P' or '(P x, y)', or '(~ P)' or '(| P Q R)'"
+        """Show something like 'P' or '(P x, y)', or '(~ P)' or '(| P Q R)'"""
         if not self.args:  # Constant or proposition with arity 0
             return str(self.op)
         else:
@@ -150,7 +150,7 @@ class Expr:
         return not self.__eq__(other)
 
     def __hash__(self):
-        "Need a hash method so Exprs can live in dicts."
+        """Need a hash method so Exprs can live in dicts."""
         return hash(self.op) ^ hash(tuple(self.args))
 
     def numops(self):
