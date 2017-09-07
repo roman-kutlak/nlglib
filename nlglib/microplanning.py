@@ -588,7 +588,7 @@ class SimpleStrVisitor(PrintVisitor):
             if i > 0:
                 self.data += ', '
             else:
-                self.data += str(node.conj)
+                self.data += ' ' + str(node.conj)
             c.accept(self)
 
     def clear(self):

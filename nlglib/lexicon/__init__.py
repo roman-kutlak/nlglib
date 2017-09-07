@@ -755,7 +755,7 @@ class Lexicon:
         """
         assert (word.base is not None and word.base != '')
         assert (word.pos is not None and word.pos != '')
-        assert (word.id is not None and word.id != '')
+        # assert (word.id is not None and word.id != '')
         map = self._get_wordmap_for_tag(word.pos)
         if map is None:
             raise Exception('Unknown POS tag "{0}" for word "{1}"'
@@ -836,6 +836,8 @@ def lexicon_from_nih_xml(path):
         tag = lex_record.find('cat')
         if tag is not None:
             w.pos = nih_tag_map[tag.text]
+        if w.pos in (None, ''):
+            w.pos = POS_ANY
         lexicon.insert_word(w)
         for variant in lex_record.iter('inflVars'):
             lexicon.insert_variant(w, variant.text)

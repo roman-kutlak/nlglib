@@ -587,8 +587,7 @@ class Coordination(Element):
         self.add_coordinates(*coords)
         self.features['conj'] = conj
 
-    def __bool__(self):
-        """Return True """
+    def __len__(self):
         return len(self.coords)
 
     def __eq__(self, other):
@@ -1130,6 +1129,10 @@ class Clause(Phrase):
         rv.complements = deepcopy(self.complements, memo=memo)
         rv.postmodifiers = deepcopy(self.postmodifiers, memo=memo)
         return rv
+
+    @property
+    def string(self):
+        return self.subj.string if self.subj else self.predicate.string
 
     @property
     def subject(self):
