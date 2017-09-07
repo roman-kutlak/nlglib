@@ -40,20 +40,23 @@ def select_content(formulas, **_):
 
 def aggregate_content(items, **_):
     if isinstance(items, (list, tuple)):
-        # order predicates for aggregation (e.g., clause, mod, mod)
-        subj_groups = defaultdict(list)
-        for item in items:
-            if hasattr(item, 'args') and list(item.args):
-                first = str(list(item.args)[0])
-                subj_groups[first].append(item)
-            else:
-                subj_groups[None].append(item)
-        # put the longest list of predicates first
-        by_length = sorted(subj_groups.values(), key=lambda x: len(x), reverse=True)
-        for group in by_length:
-            group.sort(key=lambda x: len(x.args if hasattr(x, 'args') else []), reverse=True)
-        new_items = list(itertools.chain(*by_length))
-        rv = Message('Sequence', None, *new_items)
+        if len(items) > 1:
+            # order predicates for aggregation (e.g., clause, mod, mod)
+            subj_groups = defaultdict(list)
+            for item in items:
+                if hasattr(item, 'args') and list(item.args):
+                    first = str(list(item.args)[0])
+                    subj_groups[first].append(item)
+                else:
+                    subj_groups[None].append(item)
+            # put the longest list of predicates first
+            by_length = sorted(subj_groups.values(), key=lambda x: len(x), reverse=True)
+            for group in by_length:
+                group.sort(key=lambda x: len(x.args if hasattr(x, 'args') else []), reverse=True)
+            new_items = list(itertools.chain(*by_length))
+            rv = RhetRel('Sequence', *new_items)
+        else:
+            rv = items[0]
     else:
         rv = items
     return rv
@@ -61,9 +64,9 @@ def aggregate_content(items, **_):
 
 def structure_content(items, **_):
     if isinstance(items, (list, tuple)):
-        rv = Document(*items)
+        rv = Document(None, *items)
     else:
-        rv = Document(items)
+        rv = Document(None, items)
     return rv
 
 

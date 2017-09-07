@@ -28,10 +28,10 @@ def to_text(element, **kwargs):
         return to_text_list(element)
     elif isinstance(element, Message):
         return to_text_message(element)
-    elif isinstance(element, Paragraph):
-        return to_text_paragraph(element)
-    elif isinstance(element, Section):
-        return to_text_section(element)
+    # elif isinstance(element, Paragraph):
+    #     return to_text_paragraph(element)
+    # elif isinstance(element, Section):
+    #     return to_text_section(element)
     elif isinstance(element, Document):
         return to_text_document(element)
     else:

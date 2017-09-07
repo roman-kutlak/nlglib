@@ -49,10 +49,9 @@ def generate_re_element(element, **kwargs):
 def generate_re_message(msg, **kwargs):
     get_log().debug('Generating RE for message.')
     if msg is None: return None
-    nucleus = generate_re(msg.nucleus, **kwargs)
-    satellites = [generate_re(x, **kwargs)
-                  for x in msg.satellites if x is not None]
-    return Message(msg.rst, nucleus, *satellites)
+    nuclei = [generate_re(x, **kwargs) for x in msg.nuclei if x is not None]
+    satellite = generate_re(msg.satellite, **kwargs)
+    return Message(msg.relation, *nuclei, satellite=satellite)
 
 
 def generate_re_document(doc, **kwargs):
@@ -198,13 +197,13 @@ def optimise_ref_exp(phrase, **kwargs):
         get_log().debug('gender of NP: {}'.format(gender))
         number = lexicon.guess_phrase_number(np)
         get_log().debug('number of NP: {}'.format(number))
-        if not np.has_feature('PERSON'):
+        if 'PERSON' not in np:
             if context.is_last_speaker(np):
                 person = Person.first
             else:
                 person = Person.third
         else:
-            person = ('PERSON', np.get_feature('PERSON'))
+            person = ('PERSON', np['PERSON'])
         phrases = [x for x in (context.np_stack + uttered)
                    if lexicon.guess_phrase_gender(x) == gender]
         #        get_log().debug('distractors of NP:\n\t{}'.format(distractors))

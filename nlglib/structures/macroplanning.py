@@ -352,6 +352,8 @@ class OperatorContext:
 
 def promote_to_string(s):
     """Convert non-nlglib classes (e.g., str) to String and return."""
+    if not s:
+        return String('')
     if isinstance(s, (Document, Element, RhetRel, MsgSpec)):
         return s
     return String(s)

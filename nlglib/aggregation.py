@@ -201,10 +201,10 @@ def aggregate(msg, **kwargs):
         return msg
     elif isinstance(msg, Message):
         return aggregate_message(msg, **kwargs)
-    elif isinstance(msg, Paragraph):
-        return aggregate_paragraph(msg, **kwargs)
-    elif isinstance(msg, Section):
-        return aggregate_section(msg, **kwargs)
+    # elif isinstance(msg, Paragraph):
+    #     return aggregate_paragraph(msg, **kwargs)
+    # elif isinstance(msg, Section):
+    #     return aggregate_section(msg, **kwargs)
     elif isinstance(msg, Document):
         return aggregate_document(msg, **kwargs)
     else:
@@ -229,11 +229,11 @@ def aggregate_clause(clause, **kwargs):
     subj = aggregate(clause.subj, **kwargs)
     obj = aggregate(clause.complements, **kwargs)
     vp = aggregate(clause.vp, **kwargs)
-    vp.addfeatures(clause.vp.features)
+    vp.features.update(clause.vp.features)
     c = deepcopy(clause)
-    c.set_subj(subj)
-    c.set_vp(vp)
-    c.set_complements(*obj)
+    c.subject = subj
+    c.predicate = vp
+    c.complements += obj
     get_log().debug('...result:\n' + repr(c))
     return c
 
@@ -243,7 +243,7 @@ def aggregate_coordination(cc, **kwargs):
     coords = aggregate_list(cc.coords, **kwargs)
     if len(coords) == 1:
         result = coords[0]
-        result.addfeatures(cc.features)
+        result.features.update(cc.features)
         return result
     else:
         return Coordination(*coords, conj=cc.conj, features=cc.features)
@@ -256,43 +256,43 @@ def aggregate_message(msg, **kwargs):
 
     """
     get_log().debug('Aggregating message.')
-    if not (msg.rst == 'Sequence' or
-                    msg.rst == 'Alternative' or
-                    msg.rst == 'List'): return msg
+    relation = msg.relation.lower()
+    if relation not in ('sequence', 'alternative', 'list'):
+        return msg
     # TODO: Sequence and list are probably multi-nuclei and not multi-satellite
     get_log().debug('Aggregating list or sequence.')
     elements = []
-    if len(msg.satellites) > 1:
+    if msg.is_multinuclear:
         # FIXME: where does the marker go?
         if msg.marker is None or msg.marker == '':
             marker = 'and'
         else:
             marker = msg.marker
-        elements = synt_aggregation([aggregate(s, **kwargs) for s in msg.satellites],
+        elements = synt_aggregation([aggregate(s, **kwargs) for s in msg.nuclei],
                                     **kwargs)
-    elif len(msg.satellites) == 1:
-        elements.append(msg.satellites[0])
-    if msg.nucleus is not None:
-        elements.insert(0, msg.nucleus)
+    else:
+        elements.append(msg.nucleus)
+    if msg.satellite is not None:
+        elements.append(msg.satellite)
         # TODO: put elements in nuclei or come up with a different struct.
-    return Message(msg.rst, None, *elements)
+    return Message(relation, *elements)
 
 
-def aggregate_paragraph(para, **kwargs):
-    """ Perform syntactic aggregation on the constituents. """
-    get_log().debug('Aggregating paragraph.')
-    if para is None: return None
-    messages = [aggregate(x, **kwargs) for x in para.messages if x is not None]
-    return Paragraph(*messages)
-
-
-def aggregate_section(sec, **kwargs):
-    """ Perform syntactic aggregation on the constituents. """
-    get_log().debug('Aggregating section.')
-    if sec is None: return None
-    title = aggregate(sec.title, **kwargs)
-    paragraphs = [aggregate(x, **kwargs) for x in sec.content if x is not None]
-    return Section(title, *paragraphs)
+# def aggregate_paragraph(para, **kwargs):
+#     """ Perform syntactic aggregation on the constituents. """
+#     get_log().debug('Aggregating paragraph.')
+#     if para is None: return None
+#     messages = [aggregate(x, **kwargs) for x in para.messages if x is not None]
+#     return Paragraph(*messages)
+#
+#
+# def aggregate_section(sec, **kwargs):
+#     """ Perform syntactic aggregation on the constituents. """
+#     get_log().debug('Aggregating section.')
+#     if sec is None: return None
+#     title = aggregate(sec.title, **kwargs)
+#     paragraphs = [aggregate(x, **kwargs) for x in sec.content if x is not None]
+#     return Section(title, *paragraphs)
 
 
 def aggregate_document(doc, **kwargs):

@@ -342,6 +342,26 @@ class Element(object, metaclass=FeatureModulesLoader):
         if parent is not _sentinel:
             self.parent = parent
 
+    def has_feature(self, feature, value=None):
+        import warnings
+        warnings.warn('This method is deprecated')
+        if not value:
+            return feature in self
+        else:
+            return self[feature] == value
+
+    def get_feature(self, feature, value=None):
+        import warnings
+        warnings.warn('This method is deprecated')
+        if feature not in self:
+            return value
+        else:
+            return self[feature]
+
+    def set_feature(self, feature, value=None):
+        import warnings
+        warnings.warn('This method is deprecated')
+        self[feature] = value
 
 class ElementList(collections.UserList):
     category = ELEMENT_LIST
@@ -349,7 +369,7 @@ class ElementList(collections.UserList):
     def __init__(self, lst=None, parent=None, features=None):
         super().__init__()
         self.parent = parent
-        self.features = features or None
+        self.features = features or {}
         for o in lst or []:
             self.append(o)
 
@@ -435,6 +455,11 @@ class Var(Element):
     def __eq__(self, other):
         return super().__eq__(other) and self.value == other.value
 
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
+
     def __copy__(self):
         return self.__class__(self.key, self.value, self.features, self.parent)
 
@@ -475,6 +500,11 @@ class String(Element):
     def __eq__(self, other):
         return super().__eq__(other) and self.value == other.value
 
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
+
     def __copy__(self):
         return self.__class__(self.value, self.features, self.parent, self.key)
 
@@ -512,6 +542,11 @@ class Word(Element):
 
     def __eq__(self, other):
         return super().__eq__(other) and self.word == other.word
+
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
 
     def __copy__(self):
         # pos is in features
@@ -558,6 +593,11 @@ class Coordination(Element):
 
     def __eq__(self, other):
         return super().__eq__(other) and self.coords == other.coords
+
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
 
     def __copy__(self):
         return self.__class__(*self.coords, features=self.features,
@@ -674,6 +714,11 @@ class Phrase(Element):
                 self.head == other.head and
                 self.complements == other.complements and
                 self.postmodifiers == other.postmodifiers)
+
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
 
     def __copy__(self):
         rv = self.__class__(features=self.features, parent=self.parent,
@@ -839,6 +884,11 @@ class NounPhrase(Phrase):
         return (super().__eq__(other) and
                 self.spec == other.spec and
                 self.head == other.head)
+
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
 
     def __copy__(self):
         rv = self.__class__(self.head, self.spec, features=self.features,
@@ -1036,6 +1086,11 @@ class Clause(Phrase):
                 self.predicate == other.predicate and
                 self.complements == other.complements and
                 self.postmodifiers == other.postmodifiers)
+
+    def __hash__(self):
+        if self.hash == -1:
+            self.hash = hash(str(self))
+        return self.hash
 
     def __add__(self, other):
         other_ = deepcopy(other)

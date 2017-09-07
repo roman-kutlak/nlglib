@@ -68,7 +68,7 @@ class Pipeline(PackageBoundObject):
         'CONTENT_SELECTION': macroplanning.select_content,
         'CONTENT_AGGREGATION': macroplanning.aggregate_content,
         'CONTENT_STRUCTURING': macroplanning.structure_content,
-        'LEXICALISATION': lexicalisation.lexicalise,
+        'LEXICALISATION': ('lexicalisation', 'Lexicaliser'),
         'AGGREGATION': aggregation.aggregate,
         'PRONOMINALISATION': None,
         'REFERRING': reg.generate_re,

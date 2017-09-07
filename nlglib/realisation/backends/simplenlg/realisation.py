@@ -35,10 +35,10 @@ def realise(msg, **kwargs):
         return realise_list(msg, **kwargs)
     elif isinstance(msg, Message):
         return realise_message(msg, **kwargs)
-    elif isinstance(msg, Paragraph):
-        return realise_paragraph(msg, **kwargs)
-    elif isinstance(msg, Section):
-        return realise_section(msg, **kwargs)
+    # elif isinstance(msg, Paragraph):
+    #     return realise_paragraph(msg, **kwargs)
+    # elif isinstance(msg, Section):
+    #     return realise_section(msg, **kwargs)
     elif isinstance(msg, Document):
         return realise_document(msg, **kwargs)
     else:
@@ -50,6 +50,8 @@ def realise_element(elt, **kwargs):
     """ Use the simpleNLG server to create a surface realisation of an Element.
 
     """
+    if not elt.string:
+        return ''
     v = XmlVisitor()
     elt.accept(v)
     get_log().debug('XML for realisation:\n{0}'.format(v.to_xml()))
@@ -73,11 +75,11 @@ def realise_message(msg, **kwargs):
     """ Return a copy of Message with strings. """
     get_log().debug('Realising message:\n{0}'.format(repr(msg)))
     if msg is None: return None
-    nucl = realise(msg.nucleus, **kwargs)
-    sats = [realise(x, **kwargs) for x in msg.satellites if x is not None]
+    sats = realise(msg.satellite, **kwargs)
+    nucl = [realise(x, **kwargs) for x in msg.nuclei if x is not None]
     #    if len(sats) > 0:
     #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
-    sentences = _flatten([nucl] + sats)
+    sentences = _flatten(nucl + [sats])
     get_log().debug('flattened sentences: %s' % sentences)
     # TODO: this si wrong because the recursive call can apply capitalisation
     # and punctuation multiple times...
@@ -87,24 +89,24 @@ def realise_message(msg, **kwargs):
     return sentences
 
 
-def realise_paragraph(msg, **kwargs):
-    """ Return a copy of Paragraph with strings. """
-    get_log().debug('Realising paragraph.')
-    if msg is None:
-        return None
-    messages = [realise(x, **kwargs) for x in msg.messages]
-    messages = _flatten(messages)
-    return Paragraph(*messages)
-
-
-def realise_section(msg, **kwargs):
-    """ Return a copy of a Section with strings. """
-    get_log().debug('Realising section.')
-    if msg is None:
-        return None
-    title = realise(msg.title, **kwargs)
-    paragraphs = [Paragraph(realise(x, **kwargs)) for x in msg.content]
-    return Section(title, *paragraphs)
+# def realise_paragraph(msg, **kwargs):
+#     """ Return a copy of Paragraph with strings. """
+#     get_log().debug('Realising paragraph.')
+#     if msg is None:
+#         return None
+#     messages = [realise(x, **kwargs) for x in msg.messages]
+#     messages = _flatten(messages)
+#     return Paragraph(*messages)
+#
+#
+# def realise_section(msg, **kwargs):
+#     """ Return a copy of a Section with strings. """
+#     get_log().debug('Realising section.')
+#     if msg is None:
+#         return None
+#     title = realise(msg.title, **kwargs)
+#     paragraphs = [Paragraph(realise(x, **kwargs)) for x in msg.content]
+#     return Section(title, *paragraphs)
 
 
 def realise_document(msg, **kwargs):

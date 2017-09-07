@@ -7,7 +7,9 @@ from pickle import load
 
 # name genders; first names as keys are in caps
 from .name_genders import name_genders
-from nlglib.structures import *
+# from nlglib.structures import (Element, String, Word, Coordination,
+#     NounPhrase, VerbPhrase, AdjectivePhrase, AdverbPhrase, PrepositionPhrase
+# )
 
 
 def get_log():
@@ -256,6 +258,7 @@ class PronounUse(Feature):
 # decorator
 def str_or_element(fn):
     def helper(word, features=None):
+        from nlglib.structures import Element
         if isinstance(word, str):
             return fn(word, features=features)
         elif isinstance(word, Element):
@@ -270,56 +273,67 @@ def str_or_element(fn):
 
 @str_or_element
 def Noun(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_NOUN, features)
 
 
 @str_or_element
 def Verb(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_VERB, features)
 
 
 @str_or_element
 def Adjective(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_ADJECTIVE, features)
 
 
 @str_or_element
 def Adverb(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_ADVERB, features)
 
 
 @str_or_element
 def Pronoun(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_PRONOUN, features)
 
 
 @str_or_element
 def Numeral(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_NUMERAL, features)
 
 
 @str_or_element
 def Preposition(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_PREPOSITION, features)
 
 
 @str_or_element
 def Conjunction(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_CONJUNCTION, features)
 
 
 @str_or_element
 def Determiner(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_DETERMINER, features)
 
 
 @str_or_element
 def Exclamation(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_EXCLAMATION, features)
 
 
 @str_or_element
 def Symbol(word, features=None):
+    from nlglib.structures import Word
     return Word(word, POS_SYMBOL, features)
 
 
@@ -385,6 +399,7 @@ def NP(spec, *mods_and_head, features=None):
     NP('the', 'brown', 'wooden', 'table')
 
     """
+    from nlglib.structures import NounPhrase
 
     if len(mods_and_head) == 0:
         words = [spec]
@@ -400,19 +415,23 @@ def NP(spec, *mods_and_head, features=None):
 
 
 def VP(head, *complements, features=None):
+    from nlglib.structures import VerbPhrase
     return VerbPhrase(Verb(head), *complements, features=features)
 
 
 def PP(head, *complements, features=None):
+    from nlglib.structures import PrepositionPhrase
     return PrepositionPhrase(Preposition(head),
                                *complements, features=features)
 
 
 def AdjP(head, *complements, features=None):
+    from nlglib.structures import AdjectivePhrase
     return AdjectivePhrase(Adjective(head), *complements, features=features)
 
 
 def AdvP(head, *complements, features=None):
+    from nlglib.structures import AdverbPhrase
     return AdverbPhrase(Adverb(head), *complements, features=features)
 
 
@@ -432,12 +451,13 @@ def guess_noun_gender(word):
 
 
 def guess_phrase_gender(phrase):
+    from nlglib.structures import Coordination
     if isinstance(phrase, Coordination):
         return Gender.epicene
-    if phrase.has_feature(str(Gender)):
-        gender_val = phrase.get_feature(str(Gender))
-    elif phrase.head.has_feature(str(Gender)):
-        gender_val = phrase.head.get_feature(str(Gender))
+    if str(Gender) in phrase:
+        gender_val = phrase[str(Gender)]
+    elif str(Gender) in phrase.head:
+        gender_val = phrase.head[str(Gender)]
     else:
         gender_val = guess_noun_gender(str(phrase.head))[1]
     return str(Gender), gender_val  # FIXME: terrible syntax!
@@ -445,10 +465,11 @@ def guess_phrase_gender(phrase):
 
 def guess_phrase_number(phrase):
     """Guess the gender of the given phrase. """
-    if phrase.has_feature('NUMBER'):
-        return 'NUMBER', phrase.get_feature('NUMBER')
-    if isinstance(phrase, Phrase) and phrase.head.has_feature('NUMBER'):
-        return 'NUMBER', phrase.head.get_feature('NUMBER')
+    from nlglib.structures import Phrase, Coordination
+    if 'NUMBER' in phrase:
+        return 'NUMBER', phrase['NUMBER']
+    if isinstance(phrase, Phrase) and 'NUMBER' in phrase.head:
+        return 'NUMBER', phrase.head['NUMBER']
     if isinstance(phrase, Coordination):
         return Number.plural
     return Number.singular
@@ -514,6 +535,7 @@ class Lexicon:
         Word('foo', X) # X determined by tagger
 
         """
+        from nlglib.structures import Word
         if POS_ANY == pos:
             ids = list(self._variants[string])
             if len(ids) == 0:
@@ -782,6 +804,7 @@ class Lexicon:
 
 def lexicon_from_nih_xml(path):
     """ Create a new instance of a Lexicon from the NIH lexicon in XML. """
+    from nlglib.structures import Word
     nih_tag_map = {
         '': POS_ANY,  # not in NIH
         'adj': POS_ADJECTIVE,

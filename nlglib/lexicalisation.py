@@ -160,86 +160,79 @@ class Lexicaliser(object):
         nucleus = nuclei[0]
         satellite = self(rel.satellite, **kwargs)
         # stick each message into a clause
-        if rel.rst == 'Conjunction' or rel.rst == 'Disjunction':
+        relation = rel.relation.lower()
+        if relation in ('conjunction', 'disjunction'):
             result = Coordination(*nuclei, conj=rel.marker,
                                   features=features)
-        elif rel.rst == 'Imply':
+        elif relation == 'imply':
             self.logger.debug('RST Implication: ' + repr(rel))
-            subj = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
+            subj = self.promote_to_phrase(nucleus)
+            compl = self.promote_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'then'
             result = Clause(subj)
             result.complements.append(compl)
             result.front_modifiers.append('if')
-        elif rel.rst == 'Equivalent':
-            result = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
-            compl.set_feature('COMPLEMENTISER', 'if and only if')
-            result.add_complement(compl)
-        elif rel.rst == 'ImpliedBy':
-            result = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
-            compl.set_feature('COMPLEMENTISER', 'if')
-            result.add_complement(compl)
-        elif rel.rst == 'Unless':
-            result = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
-            compl.set_feature('COMPLEMENTISER', 'unless')
-            result.add_complement(compl)
-        elif rel.rst == 'Equality':
+        elif relation == 'equivalent':
+            result = self.promote_to_phrase(nucleus)
+            compl = self.promote_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'if and only if'
+            result.complements.append(compl)
+        elif relation == 'impliedBy':
+            result = self.promote_to_phrase(nucleus)
+            compl = self.promote_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'if'
+            result.complements.append(compl)
+        elif relation == 'unless':
+            result = self.promote_to_phrase(nucleus)
+            compl = self.promote_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'unless'
+            result.complements.append(compl)
+        elif relation == 'equality':
             result = Clause()
             result.subject = nucleus
             tmp_vp = VerbPhrase('is', object=satellite, features=features)
             result.predicate = tmp_vp
-        elif rel.rst == 'Inequality':
+        elif relation == 'inequality':
             result = Clause()
             result.set_subj(nucleus)
             object = satellite
             features['NEGATED'] = 'true'
             result.set_vp(VP('is', object, features=features))
-        elif rel.rst == 'Quantifier':
+        elif relation == 'quantifier':
             # quantifiers have multiple nuclei (variables)
             quant = rel.marker
-            cc = Coordination(*nucleus, conj='and')
+            cc = Coordination(*nuclei, conj='and')
             np = NounPhrase(cc, String(quant))
 
             if quant.startswith('there exist'):
-                np.add_post_modifier(String('such that'))
+                np['COMPLEMENTISER'] = String('such that')
             else:
-                np.add_post_modifier(String(','))
+                np['COMPLEMENTISER'] = String(',')
 
-            result = promote_to_phrase(satellite)
+            result = self.promote_to_phrase(satellite)
 
-            front_mod = realisation.simple_realisation(np)
-            # remove period
-            if front_mod.endswith('.'): front_mod = front_mod[:-1]
-            # lower case the first letter
-            front_mod = front_mod[0].lower() + front_mod[1:]
+            front_mod = np
             # front_mod should go in front of existing front_mods
             # In case of CC, modify the first coordinate
-            if result.type == COORDINATION:
+            if result.category == COORDINATION:
                 result.coords[0].add_front_modifier(String(front_mod), pos=0)
             else:
-                result.add_front_modifier(String(front_mod), pos=0)
+                result.premodifiers.insert(0, String(front_mod))
             self.logger.debug('Result:\n' + repr(result))
-        elif rel.rst == 'Negation':
+        elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
                                               features={'NEGATED': 'true'}))
-            cl = promote_to_phrase(nucleus)
-            cl.set_feature('COMPLEMENTISER', 'that')
-            if parenthesis:
-                cl.add_front_modifier('(')
-                cl.add_post_modifier(')')
+            cl = self.promote_to_phrase(nucleus)
+            cl['COMPLEMENTISER'] = 'that'
             result.vp.add_complement(cl)
         else:
-            result = rel.__class__(rel.relation,
+            result = rel.__class__(relation,
                                    *nuclei,
                                    satellite=satellite,
                                    features=rel.features,
                                    marker=rel.marker,
                                    last_element_marker=rel.last_element_marker)
         # handle concrete subordinate clauses
-
         result.features.update(features)
         return result
 
@@ -275,6 +268,7 @@ class Lexicaliser(object):
             self.logger.warning('No template for "%s"' % key)
             rv = String(item)
         elif hasattr(template, '__call__'):  # callable passed -- invoke
+            # noinspection PyCallingNonCallable
             template = template(item, **kwargs)
             if template is None:
                 msg = 'Function for template "%s" returned None'
