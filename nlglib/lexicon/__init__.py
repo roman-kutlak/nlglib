@@ -505,6 +505,7 @@ class Lexicon:
         self._det = dict()
         self._num = dict()
         self._sym = dict()
+        self._other = dict()
         # mapping from lexems (including base) to corresponding ids
         self._variants = defaultdict(set)
         # setup tagger if supported:
@@ -667,7 +668,7 @@ class Lexicon:
         it is tagged as a POS_SYMBOL.
 
         """
-        if self.tagger is not None:
+        if self.tagger is not None and hasattr(self.tagger, 'tag'):
             w, tag = self.tagger.tag([word])
             # map corpus tags to our tags
             fs = self.brown_tag_tofeatures(tag)
@@ -792,7 +793,7 @@ class Lexicon:
         elif POS_SYMBOL == pos:
             return self._sym
         else:
-            return None
+            return self._other
 
     def template_for_noun(self, word):
         """ Assuming word is an instance of Word() that can be used as a noun,
@@ -820,6 +821,16 @@ def lexicon_from_nih_xml(path):
         'pron': POS_PRONOUN,
         'sym': POS_SYMBOL,  # not in NIH
         'verb': POS_VERB,
+        'adjective': POS_ADJECTIVE,
+        'adverb': POS_ADVERB,
+        'auxiliary': POS_AUXILIARY,
+        'complement': POS_COMPLEMENTISER,
+        'conjunction': POS_CONJUNCTION,
+        'determiner': POS_DETERMINER,
+        'numeral': POS_NUMERAL,
+        'preposition': POS_PREPOSITION,
+        'pronoun': POS_PRONOUN,
+        'symbol': POS_SYMBOL,  # not in NIH
     }
     lexicon = Lexicon()
     tree = ET.parse(path)
@@ -830,14 +841,16 @@ def lexicon_from_nih_xml(path):
         if tag is not None:
             w.word = tag.text
             w.base = tag.text
-        tag = lex_record.find('eui')
-        if tag is not None:
-            w.id = tag.text
-        tag = lex_record.find('cat')
+        tag = lex_record.find('category')
         if tag is not None:
             w.pos = nih_tag_map[tag.text]
         if w.pos in (None, ''):
             w.pos = POS_ANY
+        tag = lex_record.find('id')
+        if tag is not None:
+            w.id = tag.text
+        else:
+            w.id = hash(w.word + w.pos)
         lexicon.insert_word(w)
         for variant in lex_record.iter('inflVars'):
             lexicon.insert_variant(w, variant.text)

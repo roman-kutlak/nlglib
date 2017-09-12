@@ -237,7 +237,8 @@ class Element(object, metaclass=FeatureModulesLoader):
         elif n in self._feature_constants:
             new_name = self._feature_constants[n]
             return self.features.get(new_name)
-        raise AttributeError(name)
+        cls_name = self.__class__.__name__
+        raise AttributeError('{} does not have attribute {}'.format(cls_name, name))
 
     def __add__(self, other):
         """Add two elements resulting in a coordination 
