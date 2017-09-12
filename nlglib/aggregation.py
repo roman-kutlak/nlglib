@@ -227,13 +227,13 @@ def aggregate_clause(clause, **kwargs):
     """Check if clause contains a coordinated element and if so, aggregate. """
     get_log().debug('Aggregating a clause:\n' + repr(clause))
     subj = aggregate(clause.subj, **kwargs)
-    obj = aggregate(clause.complements, **kwargs)
+    complements = aggregate(clause.complements, **kwargs)
     vp = aggregate(clause.vp, **kwargs)
     vp.features.update(clause.vp.features)
     c = deepcopy(clause)
     c.subject = subj
     c.predicate = vp
-    c.complements += obj
+    c.complements = complements
     get_log().debug('...result:\n' + repr(c))
     return c
 

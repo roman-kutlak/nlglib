@@ -169,7 +169,7 @@ class Lexicaliser(object):
             subj = self.promote_to_phrase(nucleus)
             compl = self.promote_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'then'
-            result = Clause(subj)
+            result = self.promote_to_clause(subj)
             result.complements.append(compl)
             result.front_modifiers.append('if')
         elif relation == 'equivalent':
