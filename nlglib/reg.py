@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy, copy
 
 from nlglib.structures import *
-from nlglib.microplanning import replace_element, replace_element_with_id
+from nlglib.microplanning import replace_element, replace_element
 from nlglib import lexicon
 from nlglib.lexicon import Person, Case, Number, Gender, Features, PronounUse
 from nlglib.lexicon import Pronoun, POS_NOUN
@@ -176,7 +176,7 @@ def _count_type_instances(entity_type, object_map):
 
 def optimise_ref_exp(phrase, **kwargs):
     """Replace anaphoric noun phrases with pronouns when possible. """
-    # TODO: include Number in the dicision process (it vs they)
+    # TODO: include Number in the decision process (it vs they)
     # FIXME: Coordinated elements need some special attention
     result = deepcopy(phrase)
     context = current_linguistic_context
@@ -211,10 +211,10 @@ def optimise_ref_exp(phrase, **kwargs):
             get_log().debug('current NP: {} was already processed'.format(np))
             continue
         # if ((np in context.np_stack or np in uttered) and np == phrases[-1]):
-        if (np in phrases[-1:]):
+        if np in phrases[-1:]:
             # this np is the most salient so pronominalise it
             if isinstance(phrase, Clause):
-                if id(np) == id(phrase.subj):
+                if np == phrase.subj:
                     pronoun = pronominalise(np, gender, PronounUse.subjective, person)
                 elif (np in phrase.subj.constituents() and
                               np in phrase.vp.constituents()):
@@ -223,14 +223,14 @@ def optimise_ref_exp(phrase, **kwargs):
                 #                elif any(id(np) in [id(x) for x in pp.constituents()]
                 #                            for pp in pps):
                 #                    pronoun = pronominalise(np, gender, PronounUse.possessive)
-                elif (np in phrase.vp.constituents()):
+                elif np in phrase.vp.constituents():
                     pronoun = pronominalise(np, gender, PronounUse.objective, person)
                 else:
                     pronoun = pronominalise(np, gender, PronounUse.subjective, person)
             else:
                 pronoun = pronominalise(np, gender, PronounUse.subjective, person)
-            get_log().debug('replacing {}:{} with {}'.format(id(np), np, pronoun))
-            replace_element_with_id(result, id(np), pronoun)
+            get_log().debug('replacing {} (id: {}) with {}'.format(np, id(np), pronoun))
+            replace_element(result, np, pronoun)
             replaced = True
         # if you replace an element, remove all the subphrases from the list
         processed = [y for y in np.constituents()]
@@ -248,12 +248,11 @@ def optimise_ref_exp(phrase, **kwargs):
 def optimise_determiner(phrase, np_phrases, **kwargs):
     """Select the approrpiate determiner. """
     get_log().debug('Fixing determiners: {}'.format(phrase))
-    if (not isinstance(phrase, NounPhrase)):
+    if not isinstance(phrase, NounPhrase):
         get_log().debug('...not an NP')
         return phrase
 
-    get_log().debug('NPs: {}'
-                    .format(' '.join([str(x) for x in np_phrases])))
+    get_log().debug('NPs: {}'.format(' '.join([str(x) for x in np_phrases])))
 
     # FIXME: this whould look at all modifiers
     distractors = [x for x in np_phrases
@@ -262,8 +261,11 @@ def optimise_determiner(phrase, np_phrases, **kwargs):
     get_log().debug('distractors: {}'
                     .format(' '.join([str(x) for x in distractors])))
 
-    if (phrase.has_feature('PROPER', 'true') or
-            phrase.has_feature('cat', 'PRONOUN')):
+    if phrase.has_feature('PROPER', 'true') or phrase.has_feature('cat', 'PRONOUN'):
+        get_log().debug('...proper or pronoun')
+        if not phrase.spec:
+            phrase.spec = Element()
+    elif phrase.head.has_feature('PROPER', 'true') or phrase.head.has_feature('cat', 'PRONOUN'):
         get_log().debug('...proper or pronoun')
         if not phrase.spec:
             phrase.spec = Element()
