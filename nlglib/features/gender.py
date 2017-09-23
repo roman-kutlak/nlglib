@@ -7,3 +7,4 @@ from __future__ import unicode_literals
 FEMININE = 'feminine'
 MASCULINE = 'masculine'
 NEUTER = 'neuter'
+EPICENE = 'epicene'

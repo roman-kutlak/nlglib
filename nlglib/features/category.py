@@ -4,7 +4,6 @@
 
 from __future__ import unicode_literals
 
-
 #  A default value, indicating an unspecified category.
 ANY = "ANY"
 
@@ -26,6 +25,9 @@ VERB = "VERB"
 #  A determiner element often referred to as a specifier.
 DETERMINER = "DETERMINER"
 
+# A numeral denotes a number (eg one, but also first)
+NUMERAL = 'NUMERAL'
+
 #  A pronoun element.
 PRONOUN = "PRONOUN"
 
@@ -34,6 +36,14 @@ CONJUNCTION = "CONJUNCTION"
 
 #  A preposition element.
 PREPOSITION = "PREPOSITION"
+
+# Eg 'to' or 'up' in 'look up'
+PARTICLE = 'PARTICLE'
+
+# A word or expression that occurs as an utterance
+# on its own and expresses a spontaneous feeling or reaction.
+# Ouch! Damn! ...
+INTERJECTION = 'INTERJECTION'
 
 #  A complementiser element.
 COMPLEMENTISER = "COMPLEMENTISER"
@@ -58,3 +68,22 @@ DOCUMENT = "DOCUMENT"
 RST = "RST"
 # Message Specification
 MSG = 'MSG'
+
+TAGS = [
+    ANY,
+    ADJECTIVE,
+    ADVERB,
+    AUXILIARY,
+    COMPLEMENTISER,
+    CONJUNCTION,
+    DETERMINER,
+    INTERJECTION,
+    MODAL,
+    NOUN,
+    NUMERAL,
+    PARTICLE,
+    PREPOSITION,
+    PRONOUN,
+    SYMBOL,
+    VERB,
+]
