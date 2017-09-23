@@ -7,10 +7,10 @@ from pynlg.lexicon.feature import category
 from pynlg.lexicon.en import EnglishLexicon
 
 from nlglib import logger
-from nlglib import lexicon as lex_cat
+from nlglib.features import category as lex_cat
 from nlglib import structures
 
-from nlglib.structures import Element, MsgSpec, Message, Paragraph, Section, Document
+from nlglib.structures import Element, MsgSpec, Message, Document
 
 
 DEFAULT_LEXICON = EnglishLexicon()
@@ -30,10 +30,6 @@ def realise(msg, **kwargs):
         return realise_list(msg, **kwargs)
     elif isinstance(msg, Message):
         return realise_message(msg, **kwargs)
-    elif isinstance(msg, Paragraph):
-        return realise_paragraph(msg, **kwargs)
-    elif isinstance(msg, Section):
-        return realise_section(msg, **kwargs)
     elif isinstance(msg, Document):
         return realise_document(msg, **kwargs)
     else:
@@ -66,11 +62,11 @@ def realise_message(msg, **kwargs):
     """ Return a copy of Message with strings. """
     logger.debug('Realising message:\n{0}'.format(repr(msg)))
     if msg is None: return None
-    nucl = realise(msg.nucleus, **kwargs)
-    sats = [realise(x, **kwargs) for x in msg.satellites if x is not None]
+    sat = realise(msg.satellite, **kwargs)
+    nuclei = [realise(x, **kwargs) for x in msg.nuclei if x is not None]
     #    if len(sats) > 0:
     #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
-    sentences = _flatten([nucl] + sats)
+    sentences = _flatten(nuclei + [sat])
     logger.debug('flattened sentences: %s' % sentences)
     # TODO: this si wrong because the recursive call can apply capitalisation
     # and punctuation multiple times...
@@ -78,26 +74,6 @@ def realise_message(msg, **kwargs):
                                    ('.' if e[-1] != '.' else ''),
                          [s for s in sentences if s != '']))
     return sentences
-
-
-def realise_paragraph(msg, **kwargs):
-    """ Return a copy of Paragraph with strings. """
-    logger.debug('Realising paragraph.')
-    if msg is None:
-        return None
-    messages = [realise(x, **kwargs) for x in msg.messages]
-    messages = _flatten(messages)
-    return Paragraph(*messages)
-
-
-def realise_section(msg, **kwargs):
-    """ Return a copy of a Section with strings. """
-    logger.debug('Realising section.')
-    if msg is None:
-        return None
-    title = realise(msg.title, **kwargs)
-    paragraphs = [Paragraph(realise(x, **kwargs)) for x in msg.content]
-    return Section(title, *paragraphs)
 
 
 def realise_document(msg, **kwargs):
@@ -128,21 +104,22 @@ def _flatten(lst):
 
 def pos_to_category(pos):
     mappings = {
-        lex_cat.POS_ANY: category.ANY,
-        lex_cat.POS_ADJECTIVE: category.ADJECTIVE,
-        lex_cat.POS_ADVERB: category.ADVERB,
-        lex_cat.POS_AUXILIARY: category.AUXILIARY,
-        lex_cat.POS_COMPLEMENTISER: category.COMPLEMENTISER,
-        lex_cat.POS_CONJUNCTION: category.CONJUNCTION,
-        lex_cat.POS_DETERMINER: category.DETERMINER,
-        lex_cat.POS_EXCLAMATION: category.CANNED_TEXT,
-        lex_cat.POS_MODAL: category.MODAL,
-        lex_cat.POS_NOUN: category.NOUN,
-        lex_cat.POS_NUMERAL: category.NOUN,
-        lex_cat.POS_PREPOSITION: category.PREPOSITION,
-        lex_cat.POS_PRONOUN: category.PRONOUN,
-        lex_cat.POS_SYMBOL: category.SYMBOL,
-        lex_cat.POS_VERB: category.VERB,
+        lex_cat.ANY: category.ANY,
+        lex_cat.ADJECTIVE: category.ADJECTIVE,
+        lex_cat.ADVERB: category.ADVERB,
+        lex_cat.AUXILIARY: category.AUXILIARY,
+        lex_cat.COMPLEMENTISER: category.COMPLEMENTISER,
+        lex_cat.CONJUNCTION: category.CONJUNCTION,
+        lex_cat.DETERMINER: category.DETERMINER,
+        lex_cat.INTERJECTION: category.CANNED_TEXT,
+        lex_cat.MODAL: category.MODAL,
+        lex_cat.NOUN: category.NOUN,
+        lex_cat.NUMERAL: category.NOUN,
+        lex_cat.PARTICLE: category.CANNED_TEXT,
+        lex_cat.PREPOSITION: category.PREPOSITION,
+        lex_cat.PRONOUN: category.PRONOUN,
+        lex_cat.SYMBOL: category.SYMBOL,
+        lex_cat.VERB: category.VERB,
     }
     return mappings.get(pos, category.ANY)
 
@@ -151,7 +128,7 @@ def type_to_category(t):
     mappings = {
         structures.NOUN_PHRASE: category.NOUN_PHRASE,
         structures.VERB_PHRASE: category.VERB_PHRASE,
-        structures.PREPOSITION_PHRASE: category.PREPOSITION_PHRASE,
+        structures.PREPOSITION_PHRASE: category.PREPOSITIONAL_PHRASE,
         structures.ADJECTIVE_PHRASE: category.ADJECTIVE_PHRASE,
         structures.ADVERB_PHRASE: category.ADVERB_PHRASE,
     }

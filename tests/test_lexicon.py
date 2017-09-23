@@ -17,22 +17,22 @@ class TestLexicon(unittest.TestCase):
 
     def test_pos(self):
         tags = self.lexicon.pos_tags_for('house')
-        self.assertEqual(True, POS_NOUN in tags)
-        self.assertEqual(True, POS_VERB in tags)
-        self.assertEqual(True, POS_ADJECTIVE in tags)
+        self.assertEqual(True, NOUN in tags)
+        self.assertEqual(True, VERB in tags)
+        self.assertEqual(True, ADJECTIVE in tags)
 
     def test_word(self):
-        word = self.lexicon.word('house', POS_NOUN)
+        word = self.lexicon.word('house', NOUN)
         self.assertIsNotNone(word)
         self.assertEqual('house', word.word)
-        self.assertEqual(POS_NOUN, word.pos)
+        self.assertEqual(NOUN, word.pos)
         self.assertNotEqual('', word.id)
 
         word = self.lexicon.word('walking')
         self.assertIsNotNone(word)
         self.assertEqual('walking', word.word)
         self.assertEqual('walk', word.base)
-        self.assertEqual(POS_VERB, word.pos)
+        self.assertEqual(VERB, word.pos)
         self.assertNotEqual('', word.id)
 
 

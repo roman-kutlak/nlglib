@@ -120,7 +120,7 @@ class Lexicaliser(object):
             for arg in args:
                 self.logger.info('Replacing argument\n{0} in \n{1}.'
                                  .format(str(arg), repr(template)))
-                val = msg.value_for(arg.key)
+                val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
                 if isinstance(val, (str, Expr)):
                     val = self.get_template(String(val), **kwargs)
@@ -262,7 +262,7 @@ class Lexicaliser(object):
         available_templates = self.templates.copy()
         available_templates.update(kwargs.get('templates', {}))
 
-        key = item if isinstance(item, str) else item.key
+        key = item if isinstance(item, str) else item.id
         template = deepcopy(available_templates.get(key))
         if template is None:
             self.logger.warning('No template for "%s"' % key)
@@ -318,8 +318,8 @@ class Lexicaliser(object):
         if e.category == STRING: return NounPhrase(e, features=e.features)
         if e.category == VAR: return NounPhrase(e, features=e.features)
         if e.category == WORD:
-            if e.pos == POS_VERB: return VerbPhrase(e, features=e.features)
-            if e.pos == POS_ADVERB: return VerbPhrase(e, features=e.features)
+            if e.pos == VERB: return VerbPhrase(e, features=e.features)
+            if e.pos == ADVERB: return VerbPhrase(e, features=e.features)
             return NounPhrase(e, features=e.features)
         if e.category == COORDINATION:
             return Coordination(*[promote_to_phrase(x) for x in e.coords],

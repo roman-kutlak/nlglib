@@ -44,6 +44,8 @@ _signals = Namespace()
 
 # Core signals.  For usage examples grep the source code or consult
 # the API documentation in docs/api.rst as well as docs/signals.rst
+lexicon_context_pushed = _signals.signal('lexicon_context-pushed')
+lexicon_context_popped = _signals.signal('lexicon_context-popped')
 pipeline_context_pushed = _signals.signal('pipeline_context-pushed')
 pipeline_context_popped = _signals.signal('pipeline_context-popped')
 pipeline_context_tearing_down = _signals.signal('pipeline_context-popped')

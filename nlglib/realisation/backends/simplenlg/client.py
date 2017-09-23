@@ -7,7 +7,7 @@ import time
 import logging
 import urllib.parse
 
-from utils import LogPipe
+from nlglib.utils import LogPipe
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 

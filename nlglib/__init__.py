@@ -12,5 +12,3 @@ import logging
 logger = logging.getLogger('nlglib')
 logger.addHandler(logging.NullHandler())
 logger.info('initialising NLG library')
-
-from .pipeline import Pipeline, PipelineContext

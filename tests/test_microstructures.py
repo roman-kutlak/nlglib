@@ -12,7 +12,7 @@ from nlglib.structures.microplanning import (
     Clause
 )
 
-from nlglib.lexicon.feature import discourse
+from nlglib.features import discourse
 
 
 class TestElement(unittest.TestCase):
@@ -314,12 +314,12 @@ class TestPhrase(unittest.TestCase):
         p = Phrase(features={'foo': 'bar'},
                    head='say',
                    premodifiers=['please'],
-                   complements=['hello', String('world', key=1)],
+                   complements=['hello', String('world', id=1)],
                    postmodifiers=['dude'])
-        self.assertFalse(p.replace(String('worlds', key=2), 'universe',
-                                   key=lambda x: x.key))
-        self.assertTrue(p.replace(String('worlds', key=1), 'universe',
-                                  key=lambda x: x.key))
+        self.assertFalse(p.replace(String('worlds', id=2), 'universe',
+                                   key=lambda x: x.id))
+        self.assertTrue(p.replace(String('worlds', id=1), 'universe',
+                                  key=lambda x: x.id))
         self.assertNotIn(String('world'), p.complements)
         self.assertIn(String('universe'), p.complements)
 
@@ -563,7 +563,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.assertEqual('I write programs', s)
 
     def test_replace_vars(self):
-        c = Clause(Var(key='subj'), Var(key='predicate'))
+        c = Clause(Var(id='subj'), Var(id='predicate'))
         c.replace_arguments(subj=Word('I', pos='PRONOUN'),
                             predicate=VerbPhrase('am', 'happy'))
         self.assertEqual([], c.arguments())

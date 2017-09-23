@@ -5,7 +5,7 @@ from nlglib.structures import Element, Clause, Phrase, Coordination
 from nlglib.structures import NounPhrase, VerbPhrase
 from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
 from nlglib.structures import NOUN_PHRASE, VERB_PHRASE, VAR, COORDINATION
-from nlglib.lexicon import POS_VERB, POS_ADVERB
+from nlglib.features.category import VERB, ADVERB
 
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,8 @@ def promote_to_phrase(e):
     if e.type == STRING: return NounPhrase(e, features=e.features)
     if e.type == VAR: return NounPhrase(e, features=e.features)
     if e.type == WORD:
-        if e.pos == POS_VERB: return VerbPhrase(e, features=e.features)
-        if e.pos == POS_ADVERB: return VerbPhrase(e, features=e.features)
+        if e.pos == VERB: return VerbPhrase(e, features=e.features)
+        if e.pos == ADVERB: return VerbPhrase(e, features=e.features)
         return NounPhrase(e, features=e.features)
     if e.type == COORDINATION:
         return Coordination(*[promote_to_phrase(x) for x in e.coords],
@@ -124,7 +124,8 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         pass
 
     def visit_string(self, node):
-        neg = 'not ' if node.negated == 'true' else ''
+        # neg = 'not ' if node.negated == 'true' else ''
+        neg = ''
         features = node.features_to_xml_attributes()
         text = ('{outer}<{tag} xsi:type="WordElement" '
                 'canned="true" {f}>{sep}'
@@ -141,9 +142,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         word = node.word
         if word == 'is': word = 'be'
         features = node.features_to_xml_attributes()
-        text = ('{outer}<{tag} xsi:type="WordElement"{f}>{sep}'
+        id = ' id="{}"'.format(node.id) if node.id else ''
+        text = ('{outer}<{tag} xsi:type="WordElement"{f}{id}>{sep}'
                 '{inner}<base>{word}</base>{sep}'
-                '{outer}</{tag}>{sep}').format(word=quote_plus(word),
+                '{outer}</{tag}>{sep}').format(word=quote_plus(word), id=id,
                                                **self._get_args(f=features))
         self.xml += text
 
@@ -274,9 +276,9 @@ class ReprVisitor(PrintVisitor):
     def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if not node.value:
-            self.data += 'Var({0}'.format(repr(node.key))
+            self.data += 'Var({0}'.format(repr(node.id))
         else:
-            self.data += 'Var({0}, {1}'.format(repr(node.key), repr(node.value))
+            self.data += 'Var({0}, {1}'.format(repr(node.id), repr(node.value))
         if node.features != dict():
             self.data += ', ' + repr(node.features)
         self.data += ')'
@@ -417,9 +419,9 @@ class StrVisitor(PrintVisitor):
     def visit_var(self, node):
         if self.do_indent: self.data += self.indent
         if node.value == Element():
-            self.data += 'Var({0})'.format(repr(node.key))
+            self.data += 'Var({0})'.format(repr(node.id))
         else:
-            self.data += 'Var({0}, {1})'.format(repr(node.key), repr(node.value))
+            self.data += 'Var({0}, {1})'.format(repr(node.id), repr(node.value))
 
     def visit_noun_phrase(self, node):
         if self.do_indent: self.data += self.indent

@@ -15,9 +15,10 @@ from copy import deepcopy
 from functools import update_wrapper
 
 from ._compat import BROKEN_PYPY_CTXMGR_EXIT, reraise
-from .globals import _pipeline_ctx_stack, _linguistic_ctx_stack
+from .globals import _pipeline_ctx_stack, _linguistic_ctx_stack, _lexicon_ctx_stack
 from .signals import pipeline_context_pushed, pipeline_context_popped
 from .signals import linguistic_context_pushed, linguistic_context_popped
+from .signals import lexicon_context_pushed, lexicon_context_popped
 from .structures import NounPhrase, Coordination, Element, is_noun_t
 
 
@@ -125,6 +126,64 @@ class PipelineContext(object):
 
         """
         return self.__class__(self.pipeline, self.config)
+
+    def __enter__(self):
+        self.push()
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop(exc_value)
+
+        if BROKEN_PYPY_CTXMGR_EXIT and exc_type is not None:
+            reraise(exc_type, exc_value, tb)
+
+
+class LexiconContext(object):
+    """The lexicon context binds an lexicon object implicitly
+    to the current thread or greenlet, similar to how the
+    :class:`PipelineContext` binds request information.  The lexicon
+    context is also implicitly created if a pipeline context is created
+    but the lexicon is not on top of the individual lexicon
+    context.
+    """
+
+    def __init__(self, lexicon):
+        self.lexicon = lexicon
+        # Like pipeline context, lexicon contexts can be pushed multiple times
+        # but there a basic "refcount" is enough to track them.
+        self._refcnt = 0
+
+    def push(self):
+        """Binds the lexicon context to the current context."""
+        self._refcnt += 1
+        if hasattr(sys, 'exc_clear'):
+            sys.exc_clear()
+        _lexicon_ctx_stack.push(self)
+        lexicon_context_pushed.send(self.lexicon)
+
+    def pop(self, exc=_sentinel):
+        """Pops the lexicon context."""
+        try:
+            self._refcnt -= 1
+            if self._refcnt <= 0:
+                if exc is _sentinel:
+                    exc = sys.exc_info()[1]
+                self.lexicon.do_teardown_lexicon_context(exc)
+        finally:
+            rv = _lexicon_ctx_stack.pop()
+        assert rv is self, 'Popped wrong lexicon context. ' \
+                           '(%r instead of %r)' % (rv, self)
+        lexicon_context_popped.send(self.lexicon)
+
+    def copy(self):
+        """Creates a copy of this lexicon context with the same lexicon object.
+        This can be used to move a lexicon context to a different greenlet.
+        Because the actual lexicon object is the same this cannot be used to
+        move a lexicon context to a different thread unless access to the
+        lexicon object is locked.
+
+        """
+        return self.__class__(self.lexicon)
 
     def __enter__(self):
         self.push()

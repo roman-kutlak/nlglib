@@ -23,7 +23,7 @@ from copy import deepcopy
 from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
-from nlglib.lexicon.feature import discourse
+from nlglib.features import discourse
 
 logger = logging.getLogger(__name__)
 
@@ -114,10 +114,10 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     category = ELEMENT
 
-    def __init__(self, features=None, parent=None, key=0):
+    def __init__(self, features=None, parent=None, id=None):
         self.features = features or {}
         self.parent = parent
-        self.key = key
+        self.id = id
         self.hash = -1
         if 'cat' not in self.features:
             self.features['cat'] = 'ANY'
@@ -125,13 +125,13 @@ class Element(object, metaclass=FeatureModulesLoader):
     def __copy__(self):
         rv = self.__class__(features=self.features,
                             parent=self.parent,
-                            key=self.key)
+                            id=self.id)
         return rv
 
     def __deepcopy__(self, memo):
         rv = self.__class__(features=None,
                             parent=None,
-                            key=self.key)
+                            id=self.id)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -143,7 +143,7 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     def __eq__(self, other):
         return (isinstance(other, Element) and
-                self.key == other.key and
+                self.id == other.id and
                 self.category == other.category and
                 comparable_features(self.features) ==
                 comparable_features(other.features))
@@ -286,7 +286,11 @@ class Element(object, metaclass=FeatureModulesLoader):
         features = ""
         keys = sorted(self.features.keys())
         for k in keys:
-            v = self.features[k]
+            v = str(self.features[k])
+            if v.lower() in ('true', 'false'):
+                v = v.lower()
+            else:
+                v = v.upper()
             features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         features = features.strip()
         if features != '':
@@ -315,13 +319,13 @@ class Element(object, metaclass=FeatureModulesLoader):
         """
         return False  # basic implementation does nothing
 
-    def replace_argument(self, key, replacement):
-        """Replace an argument with given `key` by `replacement` 
+    def replace_argument(self, id, replacement):
+        """Replace an argument with given `id` by `replacement`
         if such argument exists.
-        
+
         """
         for a in self.arguments():
-            if a.key == key:
+            if a.id == id:
                 return self.replace(a, replacement)
         return False
 
@@ -363,6 +367,7 @@ class Element(object, metaclass=FeatureModulesLoader):
         import warnings
         warnings.warn('This method is deprecated')
         self[feature] = value
+
 
 class ElementList(collections.UserList):
     category = ELEMENT_LIST
@@ -443,8 +448,8 @@ class Var(Element):
 
     category = VAR
 
-    def __init__(self, key=None, obj=None, features=None, parent=None):
-        super().__init__(features, parent, key)
+    def __init__(self, id=None, obj=None, features=None, parent=None):
+        super().__init__(features, parent, id)
         self.value = None
         self.set_value(obj)
         self.features['cat'] = 'ANY'
@@ -462,10 +467,10 @@ class Var(Element):
         return self.hash
 
     def __copy__(self):
-        return self.__class__(self.key, self.value, self.features, self.parent)
+        return self.__class__(self.id, self.value, self.features, self.parent)
 
     def __deepcopy__(self, memo):
-        rv = self.__class__(self.key, self.value)
+        rv = self.__class__(self.id, self.value)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -475,7 +480,7 @@ class Var(Element):
         return [self]
 
     def set_value(self, val):
-        if val is None: val = Word(str(self.key), 'NOUN')
+        if val is None: val = Word(str(self.id), 'NOUN')
         self.value = String(val) if isinstance(val, str) else val
 
     @property
@@ -489,8 +494,8 @@ class String(Element):
 
     category = STRING
 
-    def __init__(self, value='', features=None, parent=None, key=0):
-        super().__init__(features, parent, key)
+    def __init__(self, value='', features=None, parent=None, id=None):
+        super().__init__(features, parent, id)
         self.value = str(value)
         self.features['cat'] = 'ANY'
 
@@ -507,10 +512,10 @@ class String(Element):
         return self.hash
 
     def __copy__(self):
-        return self.__class__(self.value, self.features, self.parent, self.key)
+        return self.__class__(self.value, self.features, self.parent, self.id)
 
     def __deepcopy__(self, memo):
-        rv = self.__class__(self.value, None, None, self.key)
+        rv = self.__class__(self.value, None, None, self.id)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -530,8 +535,8 @@ class Word(Element):
 
     category = WORD
 
-    def __init__(self, word, pos='ANY', features=None, parent=None, key=0):
-        super().__init__(features, parent, key)
+    def __init__(self, word, pos='ANY', features=None, parent=None, id=None):
+        super().__init__(features, parent, id)
         self.word = str(word)
         self.pos = pos
         self.features['cat'] = pos
@@ -551,13 +556,13 @@ class Word(Element):
 
     def __copy__(self):
         # pos is in features
-        return self.__class__(self.word, features=self.features,
-                              parent=self.parent, key=self.key)
+        return self.__class__(self.word, pos=self.pos, features=self.features,
+                              parent=self.parent, id=self.id)
 
     def __deepcopy__(self, memo):
         # pos is in features
-        rv = self.__class__(self.word, features=None,
-                            parent=None, key=self.key)
+        rv = self.__class__(self.word, pos=self.pos, features=None,
+                            parent=None, id=self.id)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -581,8 +586,8 @@ class Coordination(Element):
 
     category = COORDINATION
 
-    def __init__(self, *coords, conj='and', features=None, parent=None, key=0):
-        super().__init__(features, parent, key)
+    def __init__(self, *coords, conj='and', features=None, parent=None, id=None):
+        super().__init__(features, parent, id)
         self.coordinate_category = None
         self.coords = ElementList(parent=self)
         self.add_coordinates(*coords)
@@ -601,11 +606,11 @@ class Coordination(Element):
 
     def __copy__(self):
         return self.__class__(*self.coords, features=self.features,
-                              parent=self.parent, key=self.key)
+                              parent=self.parent, id=self.id)
 
     def __deepcopy__(self, memo):
         # pos is in features
-        rv = self.__class__(features=None, parent=None, key=self.key)
+        rv = self.__class__(features=None, parent=None, id=self.id)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.coords = deepcopy(self.coords, memo=memo)
@@ -693,8 +698,8 @@ class Phrase(Element):
     _head = Element()
     category = PHRASE
 
-    def __init__(self, features=None, parent=None, key=0, **kwargs):
-        super().__init__(features, parent, key)
+    def __init__(self, features=None, parent=None, id=None, **kwargs):
+        super().__init__(features, parent, id)
         self['cat'] = self.category
         self.premodifiers = (ElementList(parent=self) +
                              kwargs.pop('premodifiers', []))
@@ -722,7 +727,7 @@ class Phrase(Element):
 
     def __copy__(self):
         rv = self.__class__(features=self.features, parent=self.parent,
-                            key=self.key)
+                            id=self.id)
         rv.head = self.head
         rv.premodifiers = self.premodifiers[:]
         rv.complements = self.complements[:]
@@ -730,7 +735,7 @@ class Phrase(Element):
         return rv
 
     def __deepcopy__(self, memo):
-        rv = self.__class__(key=self.key)
+        rv = self.__class__(id=self.id)
         memo[id(self)] = rv
         rv.parent = memo.get(id(self.parent), None)
         rv.features = deepcopy(self.features, memo=memo)
@@ -875,8 +880,8 @@ class NounPhrase(Phrase):
     category = NOUN_PHRASE
 
     def __init__(self, head=None, spec=None, features=None,
-                 parent=None, key=0, **kwargs):
-        super().__init__(features, parent, key, **kwargs)
+                 parent=None, id=None, **kwargs):
+        super().__init__(features, parent, id, **kwargs)
         self.spec = spec
         self.head = head
 
@@ -892,7 +897,7 @@ class NounPhrase(Phrase):
 
     def __copy__(self):
         rv = self.__class__(self.head, self.spec, features=self.features,
-                            parent=self.parent, key=self.key)
+                            parent=self.parent, id=self.id)
         rv.premodifiers = self.premodifiers[:]
         rv.complements = self.complements[:]
         rv.postmodifiers = self.postmodifiers[:]
@@ -1109,7 +1114,7 @@ class Clause(Phrase):
 
     def __copy__(self):
         rv = self.__class__(features=self.features, parent=self.parent,
-                            key=self.key)
+                            id=self.id)
         rv.front_modifiers = self.front_modifiers[:]
         rv.subject = self.subject
         rv.premodifiers = self.premodifiers[:]
@@ -1119,7 +1124,7 @@ class Clause(Phrase):
         return rv
 
     def __deepcopy__(self, memo):
-        rv = self.__class__(key=self.key)
+        rv = self.__class__(id=self.id)
         memo[id(self)] = rv
         rv.parent = memo.get(id(self.parent), None)
         rv.features = deepcopy(self.features, memo=memo)
@@ -1344,7 +1349,7 @@ def is_adj_mod_t(o):
     """Return True if `o` is adjective modifier (adj or AdjP)"""
     from nlglib import lexicon
     return (isinstance(o, AdjectivePhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_ADJECTIVE or
+            isinstance(o, Word) and o.pos == lexicon.ADJECTIVE or
             isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
 
 
@@ -1352,7 +1357,7 @@ def is_adv_mod_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     from nlglib import lexicon
     return (isinstance(o, AdverbPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_ADVERB or
+            isinstance(o, Word) and o.pos == lexicon.ADVERB or
             isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
 
 
@@ -1360,7 +1365,7 @@ def is_noun_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     from nlglib import lexicon
     return (isinstance(o, NounPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.POS_NOUN or
+            isinstance(o, Word) and o.pos == lexicon.NOUN or
             isinstance(o, Coordination) and is_noun_t(o.coords[0]))
 
 
