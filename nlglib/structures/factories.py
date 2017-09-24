@@ -199,7 +199,7 @@ def VP(head, *complements, features=None):
 def PP(head, *complements, features=None):
     from nlglib.structures import PrepositionPhrase
     return PrepositionPhrase(Preposition(head),
-                               *complements, features=features)
+                             *complements, features=features)
 
 
 def AdjP(head, *complements, features=None):
@@ -210,3 +210,8 @@ def AdjP(head, *complements, features=None):
 def AdvP(head, *complements, features=None):
     from nlglib.structures import AdverbPhrase
     return AdverbPhrase(Adverb(head), *complements, features=features)
+
+
+def CC(*coordinates, features=None):
+    from nlglib.structures import Coordination
+    return Coordination(*coordinates, features=features)

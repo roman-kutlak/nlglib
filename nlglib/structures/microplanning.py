@@ -289,7 +289,7 @@ class Element(object, metaclass=FeatureModulesLoader):
             v = str(self.features[k])
             if v.lower() in ('true', 'false'):
                 v = v.lower()
-            else:
+            elif k not in ('conj', 'COMPLEMENTISER'):
                 v = v.upper()
             features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         features = features.strip()
@@ -392,8 +392,11 @@ class ElementList(collections.UserList):
         super().insert(i, item)
 
     def __iadd__(self, other):
-        for x in other:
-            self.append(x)
+        if isinstance(other, (ElementList, list, tuple)):
+            for x in other:
+                self.append(x)
+        else:
+            self.append(other)
         return self
 
     def __setitem__(self, i, value):
@@ -588,9 +591,9 @@ class Coordination(Element):
 
     def __init__(self, *coords, conj='and', features=None, parent=None, id=None):
         super().__init__(features, parent, id)
-        self.coordinate_category = None
         self.coords = ElementList(parent=self)
         self.add_coordinates(*coords)
+        self.coordinate_category = self.coords[0].cat if self.coords else None
         self.features['conj'] = conj
 
     def __len__(self):
@@ -616,6 +619,26 @@ class Coordination(Element):
         rv.coords = deepcopy(self.coords, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
         return rv
+
+    def __add__(self, other):
+        """Add two elements resulting in a coordination
+        if both elements are not "False" else return the "True" element.
+
+        """
+        if isinstance(other, Coordination):
+            rv = Coordination(self, other, features=deepcopy(self.features))
+        else:
+            rv = deepcopy(self)
+            rv.coords.append(other)
+        return rv
+
+    def __iadd__(self, other):
+        other.features.pop('discourseFunction', None)
+        self.coords.append(other)
+        return self
+
+    def __bool__(self):
+        return bool(self.coords)
 
     @property
     def string(self):
@@ -650,7 +673,7 @@ class Coordination(Element):
         for e in [raise_to_element(elt) for elt in elts if elt is not None]:
             self.coords.append(e)
             cat = self.coords[0].cat
-            if not all(x.cat == cat for x in self.coords):
+            if not all(x.coordinate_category == cat if isinstance(x, Coordination) else x.cat == cat for x in self.coords):
                 msg = ('All elements of a coordination have to have '
                        'the same lexical category ({} but entering {}).')
                 raise TypeError(msg.format(cat, self.coords[-1].cat))
@@ -1044,13 +1067,28 @@ class VerbPhrase(Phrase):
 class PrepositionPhrase(Phrase):
     category = PREPOSITION_PHRASE
 
+    def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
+        super().__init__(features, parent, **kwargs)
+        self.head = head
+        self.complements += compl
+
 
 class AdverbPhrase(Phrase):
     category = ADVERB_PHRASE
 
+    def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
+        super().__init__(features, parent, **kwargs)
+        self.head = head
+        self.complements += compl
+
 
 class AdjectivePhrase(Phrase):
     category = ADJECTIVE_PHRASE
+
+    def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
+        super().__init__(features, parent, **kwargs)
+        self.head = head
+        self.complements += compl
 
 
 class Clause(Phrase):
@@ -1074,15 +1112,15 @@ class Clause(Phrase):
     _predicate = None
     category = CLAUSE
 
-    def __init__(self, subject=None, predicate=None, object=None,
+    def __init__(self, subject=None, predicate=None, objekt=None,
                  features=None, parent=None, **kwargs):
         super().__init__(features, parent=parent, **kwargs)
         fm = kwargs.pop('front_modifiers', [])
         self.front_modifiers = ElementList(parent=self) + fm
         self.subject = subject
         self.predicate = predicate
-        if object:
-            self.object = object
+        if objekt:
+            self.object = objekt
 
     def __eq__(self, other):
         return (super().__eq__(other) and
@@ -1349,7 +1387,7 @@ def is_adj_mod_t(o):
     """Return True if `o` is adjective modifier (adj or AdjP)"""
     from nlglib import lexicon
     return (isinstance(o, AdjectivePhrase) or
-            isinstance(o, Word) and o.pos == lexicon.ADJECTIVE or
+            isinstance(o, Word) and o.pos == ADJECTIVE or
             isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
 
 
@@ -1357,7 +1395,7 @@ def is_adv_mod_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     from nlglib import lexicon
     return (isinstance(o, AdverbPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.ADVERB or
+            isinstance(o, Word) and o.pos == ADVERB or
             isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
 
 
@@ -1365,7 +1403,7 @@ def is_noun_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     from nlglib import lexicon
     return (isinstance(o, NounPhrase) or
-            isinstance(o, Word) and o.pos == lexicon.NOUN or
+            isinstance(o, Word) and o.pos == NOUN or
             isinstance(o, Coordination) and is_noun_t(o.coords[0]))
 
 
