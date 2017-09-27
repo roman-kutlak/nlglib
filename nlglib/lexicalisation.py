@@ -2,12 +2,15 @@ import copy
 import numbers
 
 from nlglib import realisation
-from nlglib.aggregation import *
+# from nlglib.aggregation import *
 from nlglib.lexicon import *
 from nlglib.microplanning import *
-from nlglib.structures import is_clause_t
+from nlglib.structures import is_clause_t, RhetRel
 from nlglib.structures import microplanning as microstruct
-from nlglib.logic.fol import Expr
+from nlglib.structures.microplanning import *
+from nlglib.structures.macroplanning import *
+from nlglib.structures.factories import *
+# from nlglib.logic.fol import Expr
 
 def get_log():
     return logging.getLogger(__name__)
@@ -41,7 +44,8 @@ class Lexicaliser(object):
         
         """
         self.logger = kwargs.get('logger', default_logger)
-        self.templates = kwargs.get('templates', self.default_templates)
+        self.templates = self.default_templates.copy()
+        self.templates.update(kwargs.get('templates', {}))
 
     def __call__(self, msg, **kwargs):
         """ Perform lexicalisation on the message depending on the type. """
@@ -122,7 +126,7 @@ class Lexicaliser(object):
                                  .format(str(arg), repr(template)))
                 val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
-                if isinstance(val, (str, Expr)):
+                if isinstance(val, str):
                     val = self.get_template(String(val), **kwargs)
                 lex_val = self(val, **kwargs)
                 log_msg = 'Replacement value for {0}: {1}'

@@ -224,7 +224,7 @@ class MsgSpec:
                 self.name == other.name)
 
     @property
-    def key(self):
+    def id(self):
         return self.name
 
     def value_for(self, attr):
@@ -257,7 +257,7 @@ class MsgSpec:
         return [self]
 
 
-class StringMsgSpec(MsgSpec):
+class StringMsg(MsgSpec):
     """ Use this as a simple message that contains canned text. """
 
     def __init__(self, text):
@@ -287,32 +287,28 @@ class PredicateMsg(MsgSpec):
     def __init__(self, pred, *arguments, features=None):
         """Representation of a predicate.
         
-        :param pred: `nlglib.logic.fol.Expr` instance
+        :param pred: `nltk.sem.ApplicationExpression` instance
         
         """
-        super().__init__(str(pred.op))
-        self.predicate = pred
+        super().__init__(pred, features=features)
         self.args = list(arguments)
-        self.features = features or {}
 
     def __str__(self):
         """ Return a suitable string representation. """
-        p = self.predicate
-        if len(p.args) == 0:
-            return p.op
+        if len(self.args) == 0:
+            return self.name
         else:
-            return p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
+            return self.name + '(' + ', '.join([str(x) for x in self.args]) + ')'
 
     def __repr__(self):
         """ Return a suitable string representation. """
-        p = self.predicate
-        if len(p.args) == 0:
-            return p.op
+        if len(self.args) == 0:
+            return self.name
         else:
             neg = ''
-            if 'NEGATED' in self.features and self.features['NEGATED'] == 'true':
-                neg = 'not '
-            return neg + p.op + '(' + ', '.join([str(x) for x in p.args]) + ')'
+            if self.features.get('NEGATED') == 'true':
+                neg = '-'
+            return neg + self.name + '(' + ', '.join([str(x) for x in self.args]) + ')'
 
     def value_for(self, key):
         """Return a replacement for a var with argument number or key.
@@ -328,7 +324,7 @@ class PredicateMsg(MsgSpec):
         if idx >= len(self.args):
             msg = ('Requested index ({}) is larger than '
                    'the number of variables in the predicate "{}"')
-            raise SignatureError(msg.format(idx, self.predicate))
+            raise SignatureError(msg.format(idx, repr(self)))
         return self.args[idx]
 
 

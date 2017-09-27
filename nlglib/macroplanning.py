@@ -2,32 +2,26 @@ import itertools
 import logging
 from collections import defaultdict
 
-from nlglib.logic.fol import OP_EQUALS, OP_NOTEQUALS, OP_EQUIVALENT
-from nlglib.logic.fol import OP_EXISTS, OP_FORALL
-from nlglib.logic.fol import OP_NOT, OP_AND, OP_OR, OP_IMPLIES, OP_IMPLIED_BY
-from nlglib.logic.fol import expr
-from nlglib.logic.fol import is_predicate, is_variable, is_function
-from nlglib.logic.simplifications import simplification_ops
-from nlglib.structures import RhetRel, PredicateMsg, Word, Var
+import nltk
+from nltk.sem import *
+from nltk.sem.logic import *
+
+from nlglib.structures import RhetRel, PredicateMsg, StringMsg,Word, Var
 from nlglib.structures import NounPhrase, Document
 
+expr = nltk.sem.Expression.fromstring
 
 logger = logging.getLogger(__name__)
 
 
-def preprocess_content(data, **kwargs):
-    simplifications = kwargs.get('simplifications', [])
+def preprocess_content(data, **_):
     if isinstance(data, str):
         formulas = [expr(f) for f in data.split(';') if f.strip()]
     elif hasattr(data, '__iter__'):
         formulas = [expr(f) if isinstance(f, str) else f for f in data]
     else:
         formulas = data
-    rv = []
-    for f in formulas:
-        for s in filter(lambda x: x in simplification_ops, simplifications):
-            f = simplification_ops[s](f)
-        rv.append(f)
+    rv = [f.simplify() for f in formulas]
     return rv
 
 
@@ -73,83 +67,78 @@ def structure_content(items, **_):
 def formula_to_rst(f):
     """ Convert a FOL formula to an RST tree. """
     logger.debug(str(f))
-    if f.op == OP_AND:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('Conjunction', *msgs)
+    if isinstance(f, AndExpression):
+        first = formula_to_rst(f.first)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Conjunction', first, second)
         m.marker = 'and'
         return m
-    if f.op == OP_OR:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('Disjunction', *msgs)
+    if isinstance(f, OrExpression):
+        first = formula_to_rst(f.first)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Disjunction', first, second)
         m.marker = 'or'
         return m
-    if f.op == OP_IMPLIES:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('Imply', msgs[0], satellite=msgs[1])
+    if isinstance(f, ImpExpression):
+        first = formula_to_rst(f.first)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Imply', first, satellite=second)
         return m
-    if f.op == OP_IMPLIED_BY:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('ImpliedBy', msgs[0], satellite=msgs[1])
+    if isinstance(f, IffExpression):
+        first = formula_to_rst(f.first)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Equivalent', first, satellite=second)
         return m
-    if f.op == OP_EQUIVALENT:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('Equivalent', msgs[0], satellite=msgs[1])
+    if isinstance(f, EqualityExpression):
+        first = formula_to_rst(f.first)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Equality', first, second)
         return m
-    if f.op == OP_EQUALS:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('Equality', *msgs[:-1], satellite=msgs[-1])
-        return m
-    if f.op == OP_NOTEQUALS:
-        msgs = [formula_to_rst(x) for x in f.args]
-        m = RhetRel('Inequality', *msgs[:-1], satellite=msgs[-1])
-        return m
-    if f.op == OP_FORALL:
-        vars = [formula_to_rst(x) for x in f.vars]
-        msgs = [formula_to_rst(x) for x in f.args]
-        if len(msgs) > 1:
-            raise ValueError('Too many arguments for quantifier.')
-        nucleus = RhetRel('List', *vars)
-        m = RhetRel('Quantifier', nucleus, satellite=msgs[0])
+    # if isinstance(f, EqualityExpression):
+    #     first = formula_to_rst(f.first)
+    #     second = formula_to_rst(f.second)
+    #     m = RhetRel('Inequality', *msgs[:-1], satellite=msgs[-1])
+    #     return m
+    if isinstance(f, AllExpression):
+        first = formula_to_rst(f.variable)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Quantifier', first, second)
         m.marker = 'for all'
         return m
-    if f.op == OP_EXISTS:
-        vars = [formula_to_rst(x) for x in f.vars]
-        msgs = [formula_to_rst(x) for x in f.args]
-        if len(msgs) > 1:
-            raise ValueError('Too many arguments for quantifier.')
-        nucleus = RhetRel('List', *vars)
-        m = RhetRel('Quantifier', nucleus, satellite=msgs[0])
-        if len(f.vars) == 1:
-            m.marker = 'there exists'
-        else:
-            m.marker = 'there exist'
+    if isinstance(f, ExistsExpression):
+        first = formula_to_rst(f.variable)
+        second = formula_to_rst(f.second)
+        m = RhetRel('Quantifier', first, second)
+        m.marker = 'there exists'
         return m
-    if f.op == OP_NOT and is_predicate(f.args[0]):
+    if isinstance(f, NegatedExpression) and isinstance(f.term, ApplicationExpression):
         logger.debug('negated predicate: ' + str(f))
-        arg = f.args[0]
-        m = PredicateMsg(arg, *[formula_to_rst(x) for x in arg.args])
-        m.features = {'NEGATED': 'true'}
+        predicate = f.term
+        m = PredicateMsg(predicate.pred.variable.name,
+                         *[formula_to_rst(x) for x in predicate.args],
+                         features={'NEGATED': 'true'})
         return m
-    if f.op == OP_NOT and is_variable(f.args[0]):
+    if isinstance(f, NegatedExpression) and isinstance(f.term, IndividualVariableExpression):
         logger.debug('negated variable: ' + str(f))
-        arg = f.args[0]
-        m = NounPhrase(Var(arg.op), Word('not', 'DETERMINER'))
+        arg = f.term
+        m = NounPhrase(Var(arg.variable.name), Word('not', 'DETERMINER'))
         return m
-    if f.op == OP_NOT:
-        logger.debug('negated formula: ' + str(f))
-        msgs = [formula_to_rst(x) for x in f.args]
-        if len(msgs) > 1:
-            m = RhetRel('Negation', msgs[:-1], satellite=msgs[-1])
-        else:
-            m = RhetRel('Negation', msgs[0])
+    if isinstance(f, NegatedExpression) and isinstance(f.term, Expression):
+        logger.debug('negated expression: ' + str(f))
+        arg = formula_to_rst(f.term)
+        m = RhetRel('Negation', arg)
         m.marker = 'it is not the case that'
         return m
-    if is_predicate(f):
+    if isinstance(f, NegatedExpression):
+        logger.warning('negated formula: ' + str(f))
+        raise NotImplementedError()
+    if isinstance(f, ApplicationExpression):
         logger.debug('predicate: ' + str(f))
-        return PredicateMsg(f, *[formula_to_rst(x) for x in f.args])
-    if is_function(f):
-        logger.debug('function: ' + str(f))
-        return Var(f.op, PredicateMsg(f, *[formula_to_rst(x) for x in f.args]))
+        return PredicateMsg(f.pred.variable.name, *[formula_to_rst(x) for x in f.args])
+    if isinstance(f, (IndividualVariableExpression, ConstantExpression)):
+        logger.debug('variable: ' + str(f))
+        m = NounPhrase(Var(f.variable.name))
+        return m
     else:
-        logger.debug('None: ' + repr(f))
-        return PredicateMsg(f)
+        logger.warning('None: ' + repr(f))
+        return StringMsg(str(f))
