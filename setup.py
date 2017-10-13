@@ -7,7 +7,7 @@ def long_description():
 
 setup(
     name="nlglib",
-    version='0.0.1',
+    version='0.1.0',
     description='Natural Language Generation library for Python',
     long_description=long_description(),
     author=["Roman Kutlak"],
@@ -27,11 +27,11 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Text Processing :: Linguistic'
     ],
-    packages=find_packages(exclude=['test/*']),
+    packages=find_packages(exclude=['tests/*']),
     keywords=['natural language generation', 'NLG', 'text generation', 'nlglib'],
     install_requires=[
         'rdflib',
-        'werkzeug'
+        'flask'
     ],
 
     include_package_data=True,

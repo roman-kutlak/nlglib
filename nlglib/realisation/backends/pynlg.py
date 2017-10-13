@@ -1,4 +1,3 @@
-
 from pynlg.spec.phrase import (
     StringElement, WordElement,
     PhraseElement, NounPhraseElement, AdjectivePhraseElement,
@@ -11,7 +10,6 @@ from nlglib.features import category as lex_cat
 from nlglib import structures
 
 from nlglib.structures import Element, MsgSpec, Message, Document
-
 
 DEFAULT_LEXICON = EnglishLexicon()
 
@@ -167,9 +165,9 @@ def nlglib_to_pynlg(element, lexicon):
             p.add_post_modifier(nlglib_to_pynlg(m, lexicon))
         return p
     if element.type in (structures.VERB_PHRASE,
-                         structures.ADJECTIVE_PHRASE,
-                         structures.ADVERB_PHRASE,
-                         structures.PREPOSITION_PHRASE):
+                        structures.ADJECTIVE_PHRASE,
+                        structures.ADVERB_PHRASE,
+                        structures.PREPOSITION_PHRASE):
         cat = type_to_category(element.type)
         p = PhraseElement(lexicon=lexicon, category=cat)
         p.head = nlglib_to_pynlg(element.head, lexicon)

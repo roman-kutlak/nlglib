@@ -11,11 +11,7 @@ The input is a document where NLG Elements were already realised to strings.
 
 """
 
-logging.getLogger(__name__).addHandler(logging.NullHandler())
-
-
-def get_log():
-    return logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def to_text(element, **kwargs):
@@ -35,20 +31,20 @@ def to_text(element, **kwargs):
     elif isinstance(element, Document):
         return to_text_document(element)
     else:
-        get_log().warning('Unexpected type in format.to_text(): %s'
+        logger.warning('Unexpected type in format.to_text(): %s'
                           % repr(element))
         return str(element)
 
 
 def to_text_list(messages):
     """ Realise individual elements of the list. """
-    get_log().debug('Formatting list.')
+    logger.debug('Formatting list.')
     text = ' '.join([to_text(x) for x in messages])
     return text.strip()
 
 
 def to_text_message(msg):
-    get_log().debug('Formatting message(%s).' % repr(msg))
+    logger.debug('Formatting message(%s).' % repr(msg))
     # FIXME: here needs to be some logic to join a rhetorical relation into a sentence
     # for example, add the marker to the front, then nuclei, then satellites joined with 'and'
     if msg.marker in ('however', 'although'):
@@ -58,7 +54,7 @@ def to_text_message(msg):
     else:
         pattern = '{nuclei}'
     sentence = pattern.format(nucleus=to_text(msg.nucleus), marker=msg.marker)
-    if msg.satellites:
+    if msg.is_multinuclear:
         sentence += ' ' + ' and '.join(to_text(s).strip() for s in msg.satellites)
     sentence = sentence[0].upper() + sentence[1:] + ('.' if sentence[-1] not in '?!.;' else '')
     return sentence
@@ -66,14 +62,14 @@ def to_text_message(msg):
 
 def to_text_paragraph(para):
     """ Take the realised sentences and add tab at the beginning. """
-    get_log().debug('Formatting paragraph.')
+    logger.debug('Formatting paragraph.')
     text = ' '.join([to_text(x) for x in para.messages])
     return '    ' + text.strip()
 
 
 def to_text_section(sec):
     """ Convert a section to text. """
-    get_log().debug('Formatting section.')
+    logger.debug('Formatting section.')
     text = (to_text(sec.title) + '\n'
             + '\n'.join([to_text(p) for p in sec.paragraphs]))
     return text
@@ -81,7 +77,7 @@ def to_text_section(sec):
 
 def to_text_document(doc):
     """ Convert a document to text. """
-    get_log().debug('Formatting document.')
+    logger.debug('Formatting document.')
     text = (to_text(doc.title) + '\n'
             + '\n'.join([to_text(s) for s in doc.sections]))
     return text

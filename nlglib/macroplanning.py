@@ -92,7 +92,7 @@ def formula_to_rst(f):
     if isinstance(f, EqualityExpression):
         first = formula_to_rst(f.first)
         second = formula_to_rst(f.second)
-        m = RhetRel('Equality', first, second)
+        m = RhetRel('Equality', first, satellite=second)
         return m
     # if isinstance(f, EqualityExpression):
     #     first = formula_to_rst(f.first)

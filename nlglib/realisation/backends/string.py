@@ -1,13 +1,12 @@
 from nlglib import logger
 
 from nlglib.structures import (Element, MsgSpec, Message,
-                               Paragraph, Section, Document, is_clause_t)
+                               Document, is_clause_t)
 from nlglib import lexicon
 
 
 def realise(msg, **kwargs):
     """ Perform lexicalisation on the message depending on the type. """
-    simple = kwargs.get('simple', True)
     if msg is None:
         return None
     elif isinstance(msg, str):
@@ -20,10 +19,6 @@ def realise(msg, **kwargs):
         return realise_list(msg, **kwargs)
     elif isinstance(msg, Message):
         return realise_message(msg, **kwargs)
-    elif isinstance(msg, Paragraph):
-        return realise_paragraph(msg, **kwargs)
-    elif isinstance(msg, Section):
-        return realise_section(msg, **kwargs)
     elif isinstance(msg, Document):
         return realise_document(msg, **kwargs)
     else:
@@ -66,26 +61,6 @@ def realise_message(msg, **kwargs):
                                    ('.' if e[-1] != '.' else ''),
                          [s for s in sentences if s != '']))
     return sentences
-
-
-def realise_paragraph(msg, **kwargs):
-    """ Return a copy of Paragraph with strings. """
-    logger.debug('Realising paragraph.')
-    if msg is None:
-        return None
-    messages = [realise(x, **kwargs) for x in msg.messages]
-    messages = _flatten(messages)
-    return Paragraph(*messages)
-
-
-def realise_section(msg, **kwargs):
-    """ Return a copy of a Section with strings. """
-    logger.debug('Realising section.')
-    if msg is None:
-        return None
-    title = realise(msg.title, **kwargs)
-    paragraphs = [Paragraph(realise(x, **kwargs)) for x in msg.content]
-    return Section(title, *paragraphs)
 
 
 def realise_document(msg, **kwargs):

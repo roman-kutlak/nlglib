@@ -1,4 +1,4 @@
+flask
 rdflib
 nose
 coverage
-werkzeug

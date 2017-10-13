@@ -4,13 +4,6 @@ word elements of the appropriate category easily.
 
 """
 
-import six
-import random
-
-from copy import deepcopy
-from collections import defaultdict
-from xml.etree import cElementTree as ElementTree
-from os.path import join, dirname, abspath, exists
 import sys
 import logging
 import pkg_resources
@@ -26,7 +19,7 @@ from .name_genders import name_genders
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['Lexicon', 'brown_tag_to_standard_tag', 'brown_tag_tofeatures',
+__all__ = ['Lexicon', 'brown_tag_to_standard_tag', 'brown_tag_to_features',
            'guess_noun_gender', 'guess_phrase_gender', 'guess_phrase_number']
 
 _sentinel = object()
@@ -163,7 +156,7 @@ class Lexicon(object):
             func(exc)
 
 
-def brown_tag_tofeatures(tag):
+def brown_tag_to_features(tag):
     """ Return the features corresponding to the given (Brown corp) tag. """
     features = {}
     if tag.endswith('$'):
@@ -192,7 +185,7 @@ def brown_tag_to_standard_tag(tag):
     """ Map a Brown corpus tag to one of the TAGS.
     If the tag is not in the lookup table, return SYMBOL.
     The function simplifies most combinations of tags eg.
-    MD+HV = modal auxillary + verb "to have" as in "shouldda" -> MODAL.
+    MD+HV = modal auxiliary + verb "to have" as in "shouldda" -> MODAL.
 
     """
     if tag.startswith('A'): return DETERMINER

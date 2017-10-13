@@ -9,8 +9,6 @@ import urllib.parse
 
 from nlglib.utils import LogPipe
 
-logging.getLogger(__name__).addHandler(logging.NullHandler())
-
 
 def get_log(name=__name__):
     return logging.getLogger(name)

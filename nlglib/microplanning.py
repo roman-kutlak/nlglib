@@ -9,7 +9,6 @@ from nlglib.features.category import VERB, ADVERB
 
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 
 def promote_to_clause(e):
