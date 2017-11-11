@@ -3,7 +3,7 @@ import logging
 from nlglib.structures import *
 from nlglib.microplanning import XmlVisitor
 
-from ..simplenlg import simplenlg_client
+from ..simplenlg import simplenlg_client, SimplenlgClient
 
 """ This package provides functionality for surface realising NLG Elements.
 
@@ -15,6 +15,9 @@ The input is a document where NLG Elements were already realised to strings.
 """
 
 logger = logging.getLogger(__name__)
+
+
+client = SimplenlgClient('localhost', 50007)
 
 
 def realise(msg, **kwargs):
@@ -51,7 +54,7 @@ def realise_element(elt, **kwargs):
     v = XmlVisitor()
     elt.accept(v)
     logger.debug('XML for realisation:\n{0}'.format(v.to_xml()))
-    result = simplenlg_client.xml_request(v.to_xml())
+    result = kwargs.get('client', client).xml_request(v.to_xml())
     return result.replace(' ,', ',')
 
 
