@@ -7,7 +7,7 @@ of the spanish version running on port 50007
 """
 import logging
 
-from nlglib.realisation.backends.simplenlg.realisation import realise, SimplenlgClient
+from nlglib.realisation.simplenlg.realisation import realise, SimplenlgClient
 from nlglib.structures import *
 from nlglib.structures.factories import *
 

@@ -56,6 +56,6 @@ def shutdown(server=True, client=True):
 
 
 if not simplenlg_client:
-    simplenlg_client = SimplenlgClient(host='localhost', port=50007)
+    simplenlg_client = SimplenlgClient(host='roman.kutlak.info', port=40000)
 
 from .realisation import *

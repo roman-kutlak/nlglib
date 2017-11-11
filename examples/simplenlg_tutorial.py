@@ -1,4 +1,4 @@
-from nlglib.realisation.backends.simplenlg.realisation import realise
+from nlglib.realisation.simplenlg.realisation import realise
 from nlglib.structures import *
 from nlglib.structures.factories import *
 

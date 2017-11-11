@@ -17,9 +17,6 @@ The input is a document where NLG Elements were already realised to strings.
 logger = logging.getLogger(__name__)
 
 
-client = SimplenlgClient('localhost', 50007)
-
-
 def realise(msg, **kwargs):
     """ Perform lexicalisation on the message depending on the type. """
     if msg is None:
@@ -54,7 +51,7 @@ def realise_element(elt, **kwargs):
     v = XmlVisitor()
     elt.accept(v)
     logger.debug('XML for realisation:\n{0}'.format(v.to_xml()))
-    result = kwargs.get('client', client).xml_request(v.to_xml())
+    result = kwargs.get('client', simplenlg_client).xml_request(v.to_xml())
     return result.replace(' ,', ',')
 
 

@@ -1,10 +1,11 @@
 import logging
 
-from nlglib.realisation.backends.simplenlg.realisation import realise
+from nlglib.realisation.simplenlg.realisation import realise
 from nlglib.lexicalisation import Lexicaliser
 from nlglib.macroplanning import *
 from nlglib.structures.microplanning import *
 from nlglib.structures.factories import *
+
 
 def run():
     lex = Lexicaliser(templates={
