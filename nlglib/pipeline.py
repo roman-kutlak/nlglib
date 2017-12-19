@@ -7,14 +7,14 @@ import sys
 from threading import Lock
 from werkzeug.datastructures import ImmutableDict
 
-from . import macroplanning, lexicalisation, aggregation, reg, format
+from . import macroplanning, lexicalisation, format
 
-from .config import Config, ConfigAttribute
+from flask.config import Config, ConfigAttribute
 from .ctx import PipelineContext, LinguisticContext
 from .globals import _pipeline_ctx_stack, _linguistic_ctx_stack
 from .signals import pipeline_context_tearing_down
 from .utils import PackageBoundObject, locked_cached_property, find_package
-from .lexicon import Lexicon
+# from .lexicon import Lexicon
 
 # a singleton sentinel value for parameter defaults
 _sentinel = object()
@@ -63,15 +63,15 @@ class Pipeline(PackageBoundObject):
         'PROPAGATE_EXCEPTIONS': None,
         'PRESERVE_CONTEXT_ON_EXCEPTION': None,
         'LOGGER_NAME': None,
-        'LEXICON': Lexicon,
+        # 'LEXICON': Lexicon,
         'CONTENT_PREPROCESSING': macroplanning.preprocess_content,
         'CONTENT_SELECTION': macroplanning.select_content,
         'CONTENT_AGGREGATION': macroplanning.aggregate_content,
         'CONTENT_STRUCTURING': macroplanning.structure_content,
         'LEXICALISATION': ('lexicalisation', 'Lexicaliser'),
-        'AGGREGATION': aggregation.aggregate,
+        # 'AGGREGATION': aggregation.aggregate,
         'PRONOMINALISATION': None,
-        'REFERRING': reg.generate_re,
+        # 'REFERRING': reg.generate_re,
         'REALISATION': ('realisation.backends.simplenlg', 'realise'),
         'FORMATTING': format.to_text
     })

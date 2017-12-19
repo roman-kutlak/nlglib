@@ -28,12 +28,11 @@ setup(
         'Topic :: Text Processing :: Linguistic'
     ],
     packages=find_packages(exclude=['tests/*']),
-    keywords=['natural language generation', 'NLG', 'text generation', 'nlglib'],
+    keywords=['natural language generation', 'NLG', 'text generation', 'nlglib', 'library'],
     install_requires=[
         'rdflib',
         'flask'
     ],
-
     include_package_data=True,
     package_dir={'nlglib': 'nlglib'},
     package_data={'nlglib': ['resources/*']},

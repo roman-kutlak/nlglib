@@ -1,4 +1,5 @@
 flask
+nltk
 rdflib
 nose
 coverage
