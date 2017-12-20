@@ -32,6 +32,8 @@ def run():
     print(realise(lex(formula_to_rst(expr(r'rich(roman) | -happy(roman)')))))
     print(realise(lex(formula_to_rst(expr(r'rich(roman) -> -happy(roman)')))))
     print(realise(lex(formula_to_rst(expr(r'-happy(roman) <-> rich(roman)')))))
+    print(realise(lex(formula_to_rst(expr(r'-happy(roman) <-> -rich(roman)')))))
+    print(realise(lex(formula_to_rst(expr(r'-(happy(roman) <-> rich(roman))')))))
 
 
 if __name__ == '__main__':

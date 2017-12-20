@@ -118,7 +118,7 @@ class TestVar(unittest.TestCase):
         s = self.e.to_json()
         self.assertIn('<class \'nlglib.structures.microplanning.Var\'>', s)
         self.assertIn('"foo": "bar"', s)
-        self.assertIn('"key": "x"', s)
+        self.assertIn('"id": "x"', s)
 
     def test_from_json(self):
         s = self.e.to_json()
@@ -526,7 +526,7 @@ class TestClause(unittest.TestCase):
         self.assertIn('VerbPhrase(String(\'write\',', s)
 
     def test_xml(self):
-        s = self.clause.to_xml()
+        s = self.clause.to_xml(headers=True)
         expected = '''\
 <?xml version="1.0" encoding="utf-8"?>
 <nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"

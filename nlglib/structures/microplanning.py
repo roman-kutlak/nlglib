@@ -289,7 +289,7 @@ class Element(object, metaclass=FeatureModulesLoader):
             v = str(self.features[k])
             if v.lower() in ('true', 'false'):
                 v = v.lower()
-            elif k not in ('conj', 'COMPLEMENTISER'):
+            elif k not in ('conj', 'COMPLEMENTISER', 'discourseFunction'):
                 v = v.upper()
             features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         features = features.strip()
