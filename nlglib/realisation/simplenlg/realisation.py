@@ -1,10 +1,3 @@
-import logging
-
-from nlglib.structures import *
-from nlglib.microplanning import XmlVisitor
-
-from ..simplenlg import simplenlg_client, SimplenlgClient
-
 """ This package provides functionality for surface realising NLG Elements.
 
 The only supported format at the moment is text although the future versions
@@ -14,7 +7,17 @@ The input is a document where NLG Elements were already realised to strings.
 
 """
 
+import logging
+
+from nlglib.structures import *
+from nlglib.microplanning import XmlVisitor
+
+from . import SimplenlgClient
+
 logger = logging.getLogger(__name__)
+
+
+simplenlg_client = SimplenlgClient(host='roman.kutlak.info', port=40000)
 
 
 def realise(msg, **kwargs):

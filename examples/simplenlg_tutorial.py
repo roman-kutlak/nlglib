@@ -4,8 +4,6 @@ from nlglib.structures.factories import *
 
 
 def main():
-    # path = '/Users/roman/Research/software/nlglib/nlglib/_resources/default-lexicon.xml'
-    # lexicon = DefaultLexicon.from_xml(path)
     c = Clause('Mary', 'chase', 'the monkey')
     print(realise(c))
     tense()

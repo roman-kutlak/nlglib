@@ -289,7 +289,7 @@ class Element(object, metaclass=FeatureModulesLoader):
             v = str(self.features[k])
             if v.lower() in ('true', 'false'):
                 v = v.lower()
-            elif k not in ('conj', 'COMPLEMENTISER', 'discourseFunction'):
+            elif k not in ('conj', 'COMPLEMENTISER'):
                 v = v.upper()
             features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
         features = features.strip()
@@ -672,11 +672,11 @@ class Coordination(Element):
         """Add one or more elements as a co-ordinate in the clause. """
         for e in [raise_to_element(elt) for elt in elts if elt is not None]:
             self.coords.append(e)
-            cat = self.coords[0].cat
-            if not all(x.coordinate_category == cat if isinstance(x, Coordination) else x.cat == cat for x in self.coords):
-                msg = ('All elements of a coordination have to have '
-                       'the same lexical category ({} but entering {}).')
-                raise TypeError(msg.format(cat, self.coords[-1].cat))
+            # cat = self.coords[0].cat
+            # if not all(x.coordinate_category == cat if isinstance(x, Coordination) else x.cat == cat for x in self.coords):
+            #     msg = ('All elements of a coordination have to have '
+            #            'the same lexical category ({} but entering {}).')
+            #     raise TypeError(msg.format(cat, self.coords[-1].cat))
 
     def constituents(self):
         """Return a generator to iterate through constituents. """
@@ -1385,7 +1385,6 @@ def is_clause_t(o):
 
 def is_adj_mod_t(o):
     """Return True if `o` is adjective modifier (adj or AdjP)"""
-    from nlglib import lexicon
     return (isinstance(o, AdjectivePhrase) or
             isinstance(o, Word) and o.pos == ADJECTIVE or
             isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
@@ -1393,7 +1392,6 @@ def is_adj_mod_t(o):
 
 def is_adv_mod_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
-    from nlglib import lexicon
     return (isinstance(o, AdverbPhrase) or
             isinstance(o, Word) and o.pos == ADVERB or
             isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
@@ -1401,7 +1399,6 @@ def is_adv_mod_t(o):
 
 def is_noun_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
-    from nlglib import lexicon
     return (isinstance(o, NounPhrase) or
             isinstance(o, Word) and o.pos == NOUN or
             isinstance(o, Coordination) and is_noun_t(o.coords[0]))

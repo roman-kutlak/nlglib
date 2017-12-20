@@ -1,9 +1,5 @@
-from nlglib.features import person, number, gender
-from nlglib.features.category import *
-from nlglib.globals import current_lexicon
-from nlglib.structures import Element
-
 from nlglib.structures import Word
+from nlglib.features.category import *
 
 
 ###############################################################################

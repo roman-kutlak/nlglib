@@ -128,7 +128,7 @@ class SimplenlgClient:
             sock.send_string(data)
             result = sock.recv_string()
             if 'Exception: XML unmarshal error' == result:
-                raise ServerError
+                raise ServerError(result)
             # decode xml symbols
             return urllib.parse.unquote_plus(result, encoding='utf-8')
 

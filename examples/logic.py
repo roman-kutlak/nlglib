@@ -13,6 +13,7 @@ def run():
         'roman': Male('Roman'),
         'happy': Clause(Var(0), VP('is', Adjective('happy'))),
         'rich': Clause(Var(0), VP('is', Adjective('rich'))),
+        'content': Clause(Var(0), VP('is', Adjective('content'))),
     })
     print(realise(lex(formula_to_rst(expr(r'x')))))
     print(realise(lex(formula_to_rst(expr(r'-x')))))
@@ -34,6 +35,9 @@ def run():
     print(realise(lex(formula_to_rst(expr(r'-happy(roman) <-> rich(roman)')))))
     print(realise(lex(formula_to_rst(expr(r'-happy(roman) <-> -rich(roman)')))))
     print(realise(lex(formula_to_rst(expr(r'-(happy(roman) <-> rich(roman))')))))
+
+    print(realise(lex(formula_to_rst(expr(r'rich(roman) & happy(roman) & content(roman)')))))
+    print(realise(lex(formula_to_rst(expr(r'rich(roman) | happy(roman) | content(roman)')))))
 
 
 if __name__ == '__main__':
