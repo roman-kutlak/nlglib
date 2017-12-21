@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-import realisation.backends.simplenlg.client as snlg
+import realisation.simplenlg.client as snlg
 
 test_data = """\
 <?xml version="1.0" encoding="utf-8"?>

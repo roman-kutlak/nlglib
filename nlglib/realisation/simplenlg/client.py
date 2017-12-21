@@ -10,8 +10,7 @@ import urllib.parse
 from nlglib.utils import LogPipe
 
 
-def get_log(name=__name__):
-    return logging.getLogger(name)
+log = logging.getLogger(__name__)
 
 
 class ServerError(Exception):
@@ -44,14 +43,12 @@ class Socket:
         except OSError as msg:
             self.socket.close()
             self.socket = None
-            get_log().exception('Socket.connect() caught an exception: %s'
-                                % msg)
+            log.exception('Socket.connect() caught an exception: %s' % msg)
             raise
 
     def _send(self, msg, length):
         """ Send a sequence of bytes of the specified length. """
         total_sent = 0
-        sent = -1
         while total_sent < length:
             sent = self.socket.send(msg[total_sent:])
             if sent == 0:
@@ -97,7 +94,7 @@ class Socket:
             if self.socket is not None:
                 self.socket.close()
         except OSError as e:
-            get_log().exception(
+            log.exception(
                 'Socket.close() caught an exception: %s' % str(e))
             raise
 
@@ -117,8 +114,7 @@ class SimplenlgClient:
     """
 
     def __init__(self, host, port):
-        get_log().debug('Starting SimplenlgClient(%s:%s)'
-                        % (str(host), str(port)))
+        log.debug('Starting SimplenlgClient(%s:%s)' % (str(host), str(port)))
         self.host = host
         self.port = port
         self.socket = Socket(self.host, int(self.port))
@@ -146,8 +142,8 @@ class SimpleNLGServer(threading.Thread):
 
     def __init__(self, jar_path, port):
         super(SimpleNLGServer, self).__init__()
-        get_log().debug('Creating simpleNLG server (%s)' % jar_path)
-        get_log().debug('simpleNLG server port: ' + str(port))
+        log.debug('Creating simpleNLG server (%s)' % jar_path)
+        log.debug('simpleNLG server port: ' + str(port))
         if not os.path.exists(jar_path):
             msg = 'The simpleNLG jar file "{}" does not exist.'
             raise ServerError(msg.format(jar_path))
@@ -157,8 +153,8 @@ class SimpleNLGServer(threading.Thread):
         self.exit_cv = threading.Condition()
         self._ready = False
         self._shutdown = False
-        self.error_log = LogPipe(get_log('nlglib.simplenlg.server').error)
-        self.output_log = LogPipe(get_log('nlglib.simplenlg.server').debug)
+        self.error_log = LogPipe(logging.getLogger('nlglib.simplenlg.server').error)
+        self.output_log = LogPipe(logging.getLogger('nlglib.simplenlg.server').debug)
 
     def start(self):
         """ Start the server (calling run() on a different thread) and wait for
@@ -166,10 +162,10 @@ class SimpleNLGServer(threading.Thread):
         Note that the caller will block until the thread starts.
 
         """
-        get_log().debug('Starting simpleNLG server (%s)' % self.jar_path)
+        log.debug('Starting simpleNLG server (%s)' % self.jar_path)
         super(SimpleNLGServer, self).start()
         self._wait_for_startup()
-        get_log().info('Server up and running (%s)', self.port)
+        log.info('Server up and running (%s)', self.port)
 
     def run(self):
         """ Start up SimpleNLG server as a subprocess and wait until someone
@@ -186,82 +182,66 @@ class SimpleNLGServer(threading.Thread):
                 # use a condition variable to signal that the process is running
                 time.sleep(1)
                 self._signal_startup_done()
-
                 self._wait_for_shutdown()
-
                 try:
                     out, errs = proc.communicate('exit\n', timeout=5)
                     if out:
-                        get_log().debug('Server output: "{0}"'.format(out))
+                        log.debug('Server output: "{0}"'.format(out))
                     if errs:
-                        get_log().error('Server errors: "{0}"'.format(errs))
+                        log.error('Server errors: "{0}"'.format(errs))
                 except subprocess.TimeoutExpired:
                     proc.kill()
-                    #            self.output_log.close()
-                    #            self.error_log.close()
 
     def is_ready(self):
         """ Return true if the server is initialised. """
-        self.start_cv.acquire()
-        ready = self._ready
-        self.start_cv.release()
-        get_log().debug('SimpleNLG server (%s) is ready' % self.jar_path)
+        with self.start_cv:
+            ready = self._ready
+        log.debug('SimpleNLG server (%s) is ready' % self.jar_path)
         return ready
 
     def wait_for_init(self):
         """ Block until server is ready. """
-        get_log().debug('SimpleNLG server (%s): waiting for init...'
-                        % self.jar_path)
+        log.debug('SimpleNLG server (%s): waiting for init...' % self.jar_path)
         self._wait_for_startup()
-        get_log().debug('SimpleNLG server (%s): init done.'
-                        % self.jar_path)
+        log.debug('SimpleNLG server (%s): init done.' % self.jar_path)
 
     def _wait_for_startup(self):
         """ Wait for the subprocess to start. """
-        get_log().debug('SimpleNLG server (%s): waiting for startup...'
-                        % self.jar_path)
-        self.start_cv.acquire()
-        while not self._ready:
-            self.start_cv.wait()
-        self.start_cv.release()
-        get_log().debug('SimpleNLG server (%s): startup done.'
-                        % self.jar_path)
+        log.debug('SimpleNLG server (%s): waiting for startup...' % self.jar_path)
+        with self.start_cv:
+            while not self._ready:
+                self.start_cv.wait()        
+        log.debug('SimpleNLG server (%s): startup done.' % self.jar_path)
 
     def _wait_for_shutdown(self):
         """Block until self._shutdown is set to true (by calling shutdown())."""
-        get_log().debug('SimpleNLG server (%s): is up and running...'
-                        % self.jar_path)
-        self.exit_cv.acquire()
-        while not self._shutdown:
-            self.exit_cv.wait()
-        self.exit_cv.release()
+        log.debug('SimpleNLG server (%s): is up and running...' % self.jar_path)
+        with self.exit_cv:
+            while not self._shutdown:
+                self.exit_cv.wait()
 
     def _signal_startup_done(self):
         """ Set self._ready to True to signal that the server is running. """
-        self.start_cv.acquire()
-        self._ready = True
-        self.start_cv.notify()
-        self.start_cv.release()
-        get_log().debug('SimpleNLG server (%s): signalling startup done.'
-                        % self.jar_path)
+        with self.start_cv:
+            self._ready = True
+            self.start_cv.notify()
+        log.debug('SimpleNLG server (%s): signalling startup done.' % self.jar_path)
 
     def _signal_shutdown(self):
         """ Signal to the server that it should shut down the subprocess (the
         actual SimpleNLG server running in java virtual machine.
 
         """
-        self.exit_cv.acquire()
-        self._shutdown = True
-        self.exit_cv.notify()
-        self.exit_cv.release()
-        get_log().debug('SimpleNLG server (%s): signalling shutdown done.'
-                        % self.jar_path)
+        with self.exit_cv:
+            self._shutdown = True
+            self.exit_cv.notify()
+        log.debug('SimpleNLG server (%s): signalling shutdown done.' % self.jar_path)
 
     def shutdown(self):
         """ Signal the server that it should shut down and wait for it.
         Note that the caller of this method will block until the server exits.
 
         """
-        get_log().debug('Shutting down simpleNLG server (%s)' % self.jar_path)
+        log.debug('Shutting down simpleNLG server (%s)' % self.jar_path)
         self._signal_shutdown()
         self.join()
