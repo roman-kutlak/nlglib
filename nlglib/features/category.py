@@ -1,8 +1,5 @@
-# encoding: utf-8
-
 """Definition of the lexical categories."""
 
-from __future__ import unicode_literals
 
 #  A default value, indicating an unspecified category.
 ANY = "ANY"
@@ -54,13 +51,22 @@ MODAL = "MODAL"
 #  An auxiliary verb element.
 AUXILIARY = "AUXILIARY"
 
+# types of clauses:
+ELEMENT = 'ELEMENT'  # abstract
+ELEMENT_LIST = 'ELEMENT_LIST'
+VAR = 'VAR'
+STRING = 'STRING'
+WORD = 'WORD'
+
+COORDINATION = 'COORDINATION'
+
+PHRASE = 'PHRASE'  # abstract
 CLAUSE = "CLAUSE"
 ADJECTIVE_PHRASE = "ADJECTIVE_PHRASE"
 ADVERB_PHRASE = "ADVERB_PHRASE"
 NOUN_PHRASE = "NOUN_PHRASE"
 PREPOSITION_PHRASE = "PREPOSITION_PHRASE"
 VERB_PHRASE = "VERB_PHRASE"
-CANNED_TEXT = "CANNED_TEXT"
 
 # Full document
 DOCUMENT = "DOCUMENT"
@@ -69,7 +75,8 @@ RST = "RST"
 # Message Specification
 MSG = 'MSG'
 
-TAGS = [
+# Part of speech tags
+POS_CATEGORIES = [
     ANY,
     ADJECTIVE,
     ADVERB,
@@ -86,4 +93,14 @@ TAGS = [
     PRONOUN,
     SYMBOL,
     VERB,
+]
+
+
+ELEMENT_CATEGORIES = [
+    ELEMENT, ELEMENT_LIST,
+    STRING, WORD, VAR,
+    COORDINATION,
+    PHRASE, NOUN_PHRASE, VERB_PHRASE,
+    PREPOSITION_PHRASE, ADJECTIVE_PHRASE, ADVERB_PHRASE,
+    CLAUSE
 ]

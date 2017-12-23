@@ -116,8 +116,8 @@ class SimplenlgClient:
     def __init__(self, host, port):
         log.debug('Starting SimplenlgClient(%s:%s)' % (str(host), str(port)))
         self.host = host
-        self.port = port
-        self.socket = Socket(self.host, int(self.port))
+        self.port = int(port)
+        self.socket = Socket(self.host, self.port)
 
     def xml_request(self, data):
         with self.socket as sock:
@@ -148,7 +148,7 @@ class SimpleNLGServer(threading.Thread):
             msg = 'The simpleNLG jar file "{}" does not exist.'
             raise ServerError(msg.format(jar_path))
         self.jar_path = jar_path
-        self.port = port
+        self.port = str(port)
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
         self._ready = False

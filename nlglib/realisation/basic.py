@@ -1,42 +1,45 @@
 import logging
-from nlglib import logger
+import string
 
-from nlglib.structures import (Element, MsgSpec, Message,
-                               Document, is_clause_t)
-from nlglib import lexicon
+from nlglib.structures import Document, is_clause_t
+from nlglib.features import category
+from nlglib.utils import flatten
 
 
 class Realiser(object):
 
-    def __init__(self, **kwargs):
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
+    def __init__(self, logger=None):
+        self.logger = logger or logging.getLogger(__name__)
 
     def __call__(self, msg, **kwargs):
         return self.realise(msg, **kwargs)
 
     def realise(self, msg, **kwargs):
         if msg is None:
-            return None
-        elif isinstance(msg, str):
-            return msg
-        elif isinstance(msg, Element):
+            return ''
+        elif msg.category in category.ELEMENT_CATEGORIES:
             return self.realise_element(msg, **kwargs)
-        elif isinstance(msg, MsgSpec):
+        elif msg.category == category.MSG:
             return self.realise_message_spec(msg, **kwargs)
-        elif isinstance(msg, (list, tuple)):
+        elif msg.category == category.ELEMENT_LIST:
             return self.realise_list(msg, **kwargs)
-        elif isinstance(msg, Message):
+        elif msg.category == category.RST:
             return self.realise_message(msg, **kwargs)
-        elif isinstance(msg, Document):
+        elif msg.category == category.DOCUMENT:
             return self.realise_document(msg, **kwargs)
         else:
-            raise TypeError('"%s" is neither a Message nor a MsgInstance' %
-                            type(msg))
+            return str(msg)
 
     def realise_element(self, elt, **kwargs):
         """ Realise NLG element. """
         self.logger.debug('Realising element (simple realisation):\n{0}'.format(repr(elt)))
-        return simple_realisation(elt, **kwargs)
+        v = RealisationVisitor()
+        elt.accept(v)
+        result = str(v).replace(' ,', ',')
+        if result:
+            return '{0}{1}.'.format(result[:1].upper(), result[1:])
+        else:
+            return ''
 
     def realise_message_spec(self, msg, **kwargs):
         """ Realise message specification - this should not happen """
@@ -46,23 +49,24 @@ class Realiser(object):
     def realise_list(self, elt, **kwargs):
         """ Realise a list. """
         self.logger.debug('Realising list of elements:\n{0}'.format(repr(elt)))
-        return ' '.join(realise(x, **kwargs) for x in elt)
+        return ' '.join(self.realise(x, **kwargs) for x in elt)
 
     def realise_message(self, msg, **kwargs):
         """ Return a copy of Message with strings. """
         self.logger.debug('Realising message:\n{0}'.format(repr(msg)))
         if msg is None: return None
-        nucl = realise(msg.nucleus, **kwargs)
-        sats = [realise(x, **kwargs) for x in msg.satellites if x is not None]
-        #    if len(sats) > 0:
-        #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
-        sentences = _flatten([nucl] + sats)
+        nuclei = [self.realise(n, **kwargs) for n in msg.nuclei]
+        satellite = self.realise(msg.satellite, **kwargs)
+        sentences = flatten(nuclei + [satellite])
         self.logger.debug('flattened sentences: %s' % sentences)
-        # TODO: this si wrong because the recursive call can apply capitalisation
-        # and punctuation multiple times...
-        sentences = list(map(lambda e: e[:1].upper() + e[1:] +
-                                       ('.' if e[-1] != '.' else ''),
-                             [s for s in sentences if s != '']))
+        rv = []
+        for s in sentences:
+            if not s:
+                continue
+            formatted_sent = s[0].upper() + s[1:]
+            if formatted_sent[-1] not in string.punctuation:
+                formatted_sent += '.'
+            rv.append(formatted_sent)
         return sentences
 
     def realise_document(self, msg, **kwargs):
@@ -70,112 +74,12 @@ class Realiser(object):
         self.logger.debug('Realising document.')
         if msg is None:
             return None
-        title = realise(msg.title, **kwargs)
-        sections = [realise(x, **kwargs) for x in msg.sections]
+        title = self.realise(msg.title, **kwargs)
+        sections = [self.realise(x, **kwargs) for x in msg.sections]
         return Document(title, *sections)
-
-    @staticmethod
-    def _flatten(lst):
-        """ Return a list where all elemts are items.
-        Any encountered list will be expanded.
-
-        """
-        result = list()
-        for x in lst:
-            if isinstance(x, list):
-                for y in x:
-                    result.append(y)
-            else:
-                if x is not None:
-                    result.append(x)
-        return result
 
 
 # **************************************************************************** #
-
-
-def realise(msg, **kwargs):
-    """ Perform lexicalisation on the message depending on the type. """
-    if msg is None:
-        return None
-    elif isinstance(msg, str):
-        return msg
-    elif isinstance(msg, Element):
-        return realise_element(msg, **kwargs)
-    elif isinstance(msg, MsgSpec):
-        return realise_message_spec(msg, **kwargs)
-    elif isinstance(msg, (list, tuple)):
-        return realise_list(msg, **kwargs)
-    elif isinstance(msg, Message):
-        return realise_message(msg, **kwargs)
-    elif isinstance(msg, Document):
-        return realise_document(msg, **kwargs)
-    else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance' %
-                        type(msg))
-
-
-def realise_element(elt, **kwargs):
-    """ Realise NLG element. """
-    logger.debug('Realising element (simple realisation):\n{0}'
-                 .format(repr(elt)))
-    return simple_realisation(elt, **kwargs)
-
-
-def realise_message_spec(msg, **kwargs):
-    """ Realise message specification - this should not happen """
-    logger.debug('Realising message spec:\n{0}'.format(repr(msg)))
-    return str(msg).strip()
-
-
-def realise_list(elt, **kwargs):
-    """ Realise a list. """
-    logger.debug('Realising list of elements:\n{0}'.format(repr(elt)))
-    return ' '.join(realise(x, **kwargs) for x in elt)
-
-
-def realise_message(msg, **kwargs):
-    """ Return a copy of Message with strings. """
-    logger.debug('Realising message:\n{0}'.format(repr(msg)))
-    if msg is None: return None
-    nucl = realise(msg.nucleus, **kwargs)
-    sats = [realise(x, **kwargs) for x in msg.satellites if x is not None]
-    #    if len(sats) > 0:
-    #        sats[0].add_front_modifier(Word(msg.marker, 'ADV'))
-    sentences = _flatten([nucl] + sats)
-    logger.debug('flattened sentences: %s' % sentences)
-    # TODO: this si wrong because the recursive call can apply capitalisation
-    # and punctuation multiple times...
-    sentences = list(map(lambda e: e[:1].upper() + e[1:] +
-                                   ('.' if e[-1] != '.' else ''),
-                         [s for s in sentences if s != '']))
-    return sentences
-
-
-def realise_document(msg, **kwargs):
-    """ Return a copy of a Document with strings. """
-    logger.debug('Realising document.')
-    if msg is None:
-        return None
-    title = realise(msg.title, **kwargs)
-    sections = [realise(x, **kwargs) for x in msg.sections]
-    return Document(title, *sections)
-
-
-def _flatten(lst):
-    """ Return a list where all elemts are items. 
-    Any encountered list will be expanded.
-
-    """
-    result = list()
-    for x in lst:
-        if isinstance(x, list):
-            for y in x:
-                result.append(y)
-        else:
-            if x is not None:
-                result.append(x)
-    return result
 
 
 class RealisationVisitor:
@@ -202,9 +106,8 @@ class RealisationVisitor:
 
     def visit_word(self, node):
         word = node.word
-        if (node.has_feature('NUMBER', 'PLURAL') and
-                    node.pos == 'NOUN'):
-            word = lexicon.pluralise_noun(node.word)
+        # if (node.has_feature('NUMBER', 'PLURAL') and node.pos == 'NOUN'):
+        #     word = lexicon.pluralise_noun(node.word)
         if node.has_feature('NEGATED', 'true'):
             self.text += 'not '
         self.text += word + ' '
@@ -213,12 +116,11 @@ class RealisationVisitor:
         if node.value:
             node.value.accept(self)
         else:
-            self.text += str(self.id)
+            self.text += str(node.id)
         self.text += ' '
 
     def visit_clause(self, node):
         # do a bit of coordination
-        logger.debug('Clause is "{0}"'.format(repr(node)))
         node.vp.features.update(node.features)
         if node.subj.has_feature('NUMBER'):
             node.vp.set_feature('NUMBER', node.subj.get_feature('NUMBER'))
@@ -258,7 +160,6 @@ class RealisationVisitor:
         assert False, 'not implemented'
 
     def visit_noun_phrase(self, node):
-        for c in node.front_modifiers: c.accept(self)
         node.spec.accept(self)
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
@@ -270,15 +171,17 @@ class RealisationVisitor:
         for c in node.postmodifiers: c.accept(self)
 
     def visit_verb_phrase(self, node):
-        for c in node.front_modifiers: c.accept(self)
         for c in node.premodifiers: c.accept(self)
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
-        logger.debug('VP is "{0}"'.format(repr(node)))
-        logger.debug('  head of VP is "{0}"'.format(head))
-        modals = [f for f in lexicon.Modal.values]
-        # logger.warning('Modals: {}'.format(modals))
+        modals = [
+            'can', 'could',
+            'may', 'might',
+            'must', 'ought',
+            'shall', 'should',
+            'will', 'would'
+        ]
         if node.has_feature('MODAL'):
             self.text += ' ' + node.get_feature('MODAL') + ' '
             if node.has_feature('NEGATED', 'true'):
@@ -343,17 +246,3 @@ class RealisationVisitor:
             self.text += ' {0} '.format(node.get_feature('COMPLEMENTISER'))
         for c in node.complements: c.accept(self)
         for c in node.postmodifiers: c.accept(self)
-
-
-def simple_realisation(struct, **kwargs):
-    """ Use the RealisationVisitor that performs only the most basic realisation
-    and return the created surface realisation as a string.
-
-    """
-    v = RealisationVisitor()
-    struct.accept(v)
-    result = str(v).replace(' ,', ',')
-    if result:
-        return '{0}{1}.'.format(result[:1].upper(), result[1:])
-    else:
-        return ''

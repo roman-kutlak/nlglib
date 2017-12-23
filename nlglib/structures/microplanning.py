@@ -14,108 +14,32 @@
 
 import collections
 import inspect
-import importlib
 import json
 import logging
-import os
 
 from copy import deepcopy
-from os.path import join, dirname, relpath
 from urllib.parse import quote_plus
 
-from nlglib.features import discourse
+import nlglib.features
+from nlglib.features import discourse, category, FeatureSet
 
 logger = logging.getLogger(__name__)
 
 _sentinel = object()
 
-# types of clauses:
-ELEMENT_LIST = 'ELEMENT_LIST'
-ELEMENT = 'ELEMENT'  # abstract
-VAR = 'VAR'
-STRING = 'STRING'
-WORD = 'WORD'
 
-#  A default value, indicating an unspecified category.
-ANY = "ANY"
-#  The element represents a symbol.
-SYMBOL = "SYMBOL"
-
-NOUN = "NOUN"
-ADJECTIVE = "ADJECTIVE"
-ADVERB = "ADVERB"
-VERB = "VERB"
-DETERMINER = "DETERMINER"
-PRONOUN = "PRONOUN"
-CONJUNCTION = "CONJUNCTION"
-PREPOSITION = "PREPOSITION"
-COMPLEMENTISER = "COMPLEMENTISER"
-MODAL = "MODAL"
-AUXILIARY = "AUXILIARY"
-
-PHRASE = 'PHRASE'  # abstract
-NOUN_PHRASE = 'NOUN_PHRASE'
-VERB_PHRASE = 'VERB_PHRASE'
-PREPOSITION_PHRASE = 'PREPOSITION_PHRASE'
-ADJECTIVE_PHRASE = 'ADJECTIVE_PHRASE'
-ADVERB_PHRASE = 'ADVERB_PHRASE'
-
-CLAUSE = 'CLAUSE'
-COORDINATION = 'COORDINATION'
-
-CATEGORIES = [
-    ELEMENT, STRING, WORD, VAR,
-    COORDINATION,
-    PHRASE, NOUN_PHRASE, VERB_PHRASE,
-    PREPOSITION_PHRASE, ADJECTIVE_PHRASE, ADVERB_PHRASE,
-    CLAUSE
-]
-
-# features that are excluded from equality comparison
-NON_COMPARABLE_FEATURES = [discourse.FEATURE_GROUP]
-
-# features that should be transferred on replacement
-TRANSFERABLE_FEATURES = [discourse.FEATURE_GROUP]
-
-
-class FeatureModulesLoader(type):
-    """Metaclass injecting the feature module property onto a class."""
-
-    def __new__(cls, clsname, bases, dct):
-        features = {}
-        feature_pkg_path = relpath(
-            join(dirname(__file__), '..', 'lexicon', 'feature'))
-        for dirpath, _, filenames in os.walk(feature_pkg_path):
-            pkg_root = dirpath.replace('/', '.')
-            for filename in filenames:
-                if not filename.endswith('.py'):
-                    continue
-                pkg_path = pkg_root + '.' + filename.replace('.py', '')
-                if pkg_path.startswith('.'):  # no relative imports please
-                    _, root, child = pkg_path.rpartition('nlglib')
-                    pkg_path = root + child
-                mod = importlib.import_module(pkg_path)
-                modfeatures = [c for c in dir(mod) if c.isupper()]
-                for feat in modfeatures:
-                    features[feat] = getattr(mod, feat)
-
-        dct['_feature_constants'] = features
-
-        return super(FeatureModulesLoader, cls).__new__(
-            cls, clsname, bases, dct)
-
-
-class Element(object, metaclass=FeatureModulesLoader):
+# noinspection PyShadowingBuiltins
+class Element(object):
     """A base class representing an NLG element.
         Aside for providing a base class for other kinds of NLG elements,
         the class also implements basic functionality for elements.
 
     """
 
-    category = ELEMENT
+    category = category.ELEMENT
 
     def __init__(self, features=None, parent=None, id=None):
-        self.features = features or {}
+        self.features = features or FeatureSet()
         self.parent = parent
         self.id = id
         self.hash = -1
@@ -306,7 +230,7 @@ class Element(object, metaclass=FeatureModulesLoader):
 
     def arguments(self):
         """Return any arguments (vars) from the element as a list. """
-        return [x for x in self.constituents() if x.category == VAR]
+        return [x for x in self.constituents() if x.category == category.VAR]
 
     def replace(self, one, another, key=lambda x: x):
         """Replace the first occurrence of `one` by `another`.
@@ -348,29 +272,23 @@ class Element(object, metaclass=FeatureModulesLoader):
             self.parent = parent
 
     def has_feature(self, feature, value=None):
-        import warnings
-        warnings.warn('This method is deprecated')
         if not value:
             return feature in self
         else:
             return self[feature] == value
 
     def get_feature(self, feature, value=None):
-        import warnings
-        warnings.warn('This method is deprecated')
         if feature not in self:
             return value
         else:
             return self[feature]
 
     def set_feature(self, feature, value=None):
-        import warnings
-        warnings.warn('This method is deprecated')
         self[feature] = value
 
 
 class ElementList(collections.UserList):
-    category = ELEMENT_LIST
+    category = category.ELEMENT_LIST
 
     def __init__(self, lst=None, parent=None, features=None):
         super().__init__()
@@ -406,6 +324,7 @@ class ElementList(collections.UserList):
         # value.features.update(self.features)
         super().__setitem__(i, value)
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = self.__class__()
         memo[id(self)] = rv
@@ -449,7 +368,7 @@ class Var(Element):
 
     """
 
-    category = VAR
+    category = category.VAR
 
     def __init__(self, id=None, obj=None, features=None, parent=None):
         super().__init__(features, parent, id)
@@ -472,6 +391,7 @@ class Var(Element):
     def __copy__(self):
         return self.__class__(self.id, self.value, self.features, self.parent)
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = self.__class__(self.id, self.value)
         memo[id(self)] = rv
@@ -495,7 +415,7 @@ class Var(Element):
 class String(Element):
     """String is a basic element representing canned text. """
 
-    category = STRING
+    category = category.STRING
 
     def __init__(self, value='', features=None, parent=None, id=None):
         super().__init__(features, parent, id)
@@ -517,6 +437,7 @@ class String(Element):
     def __copy__(self):
         return self.__class__(self.value, self.features, self.parent, self.id)
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = self.__class__(self.value, None, None, self.id)
         memo[id(self)] = rv
@@ -536,7 +457,7 @@ class String(Element):
 class Word(Element):
     """Word represents word and its corresponding POS (Part-of-Speech) tag. """
 
-    category = WORD
+    category = category.WORD
 
     def __init__(self, word, pos='ANY', features=None, parent=None, id=None):
         super().__init__(features, parent, id)
@@ -562,6 +483,7 @@ class Word(Element):
         return self.__class__(self.word, pos=self.pos, features=self.features,
                               parent=self.parent, id=self.id)
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         # pos is in features
         rv = self.__class__(self.word, pos=self.pos, features=None,
@@ -587,7 +509,7 @@ class Coordination(Element):
     
     """
 
-    category = COORDINATION
+    category = category.COORDINATION
 
     def __init__(self, *coords, conj='and', features=None, parent=None, id=None):
         super().__init__(features, parent, id)
@@ -611,6 +533,7 @@ class Coordination(Element):
         return self.__class__(*self.coords, features=self.features,
                               parent=self.parent, id=self.id)
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         # pos is in features
         rv = self.__class__(features=None, parent=None, id=self.id)
@@ -654,7 +577,7 @@ class Coordination(Element):
         coordination.coords.parent = None
         for x in coordination.coords:
             x.parent = None
-            if x.category == COORDINATION:
+            if x.category == category.COORDINATION:
                 Coordination._reset_parent(x)
 
     def update_parents(self, parent=_sentinel):
@@ -673,7 +596,8 @@ class Coordination(Element):
         for e in [raise_to_element(elt) for elt in elts if elt is not None]:
             self.coords.append(e)
             # cat = self.coords[0].cat
-            # if not all(x.coordinate_category == cat if isinstance(x, Coordination) else x.cat == cat for x in self.coords):
+            # if not all(x.coordinate_category == cat \
+            #            if isinstance(x, Coordination) else x.cat == cat for x in self.coords):
             #     msg = ('All elements of a coordination have to have '
             #            'the same lexical category ({} but entering {}).')
             #     raise TypeError(msg.format(cat, self.coords[-1].cat))
@@ -719,7 +643,7 @@ class Phrase(Element):
     """
 
     _head = Element()
-    category = PHRASE
+    category = category.PHRASE
 
     def __init__(self, features=None, parent=None, id=None, **kwargs):
         super().__init__(features, parent, id)
@@ -757,6 +681,7 @@ class Phrase(Element):
         rv.postmodifiers = self.postmodifiers[:]
         return rv
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = self.__class__(id=self.id)
         memo[id(self)] = rv
@@ -793,7 +718,7 @@ class Phrase(Element):
             self._head = new_value
         else:
             self._head = Element()
-        self._head[discourse.FEATURE_GROUP] = discourse.HEAD
+        self._head[nlglib.features.FEATURE_GROUP] = discourse.HEAD  # FIXME: feature comparison
 
     def yield_premodifiers(self):
         """Iterate through pre-modifiers. """
@@ -900,7 +825,7 @@ class NounPhrase(Phrase):
      """
 
     _spec = Element()
-    category = NOUN_PHRASE
+    category = category.NOUN_PHRASE
 
     def __init__(self, head=None, spec=None, features=None,
                  parent=None, id=None, **kwargs):
@@ -926,6 +851,7 @@ class NounPhrase(Phrase):
         rv.postmodifiers = self.postmodifiers[:]
         return rv
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = super().__deepcopy__(memo=memo)
         rv.spec = deepcopy(self.spec, memo=memo)
@@ -953,7 +879,7 @@ class NounPhrase(Phrase):
             self._spec = new_value
         else:
             self._spec = Element()
-        self._spec[discourse.FEATURE_GROUP] = discourse.SPECIFIER
+        self._spec[discourse.FEATURE_GROUP] = discourse.SPECIFIER  # FIXME: feature comparison
 
     def constituents(self):
         """Return a generator to iterate through constituents. """
@@ -1002,7 +928,7 @@ class VerbPhrase(Phrase):
      * </UL>
      """
 
-    category = VERB_PHRASE
+    category = category.VERB_PHRASE
 
     def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
         super().__init__(features, parent, **kwargs)
@@ -1065,7 +991,7 @@ class VerbPhrase(Phrase):
 
 
 class PrepositionPhrase(Phrase):
-    category = PREPOSITION_PHRASE
+    category = category.PREPOSITION_PHRASE
 
     def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
         super().__init__(features, parent, **kwargs)
@@ -1074,7 +1000,7 @@ class PrepositionPhrase(Phrase):
 
 
 class AdverbPhrase(Phrase):
-    category = ADVERB_PHRASE
+    category = category.ADVERB_PHRASE
 
     def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
         super().__init__(features, parent, **kwargs)
@@ -1083,7 +1009,7 @@ class AdverbPhrase(Phrase):
 
 
 class AdjectivePhrase(Phrase):
-    category = ADJECTIVE_PHRASE
+    category = category.ADJECTIVE_PHRASE
 
     def __init__(self, head=None, *compl, features=None, parent=None, **kwargs):
         super().__init__(features, parent, **kwargs)
@@ -1110,7 +1036,7 @@ class Clause(Phrase):
 
     _subject = None
     _predicate = None
-    category = CLAUSE
+    category = category.CLAUSE
 
     def __init__(self, subject=None, predicate=None, objekt=None,
                  features=None, parent=None, **kwargs):
@@ -1161,6 +1087,7 @@ class Clause(Phrase):
         rv.postmodifiers = self.postmodifiers[:]
         return rv
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = self.__class__(id=self.id)
         memo[id(self)] = rv
@@ -1340,7 +1267,7 @@ def raise_to_np(phrase):
         return phrase
     if isinstance(phrase, (String, Word)):
         return NounPhrase(head=phrase)
-    if isinstance(phrase, Element) and phrase.category == ELEMENT:
+    if isinstance(phrase, Element) and phrase.category == category.ELEMENT:
         return NounPhrase(head=phrase)
     return phrase
 
@@ -1370,9 +1297,9 @@ def is_element_t(o):
 def is_phrase_t(o):
     """Return True if `o` is a phrase. """
     return (is_element_t(o) and
-            (o.category in (PHRASE, NOUN_PHRASE, VERB_PHRASE,
-                            ADJECTIVE_PHRASE, ADVERB_PHRASE,
-                            PREPOSITION_PHRASE)))
+            (o.category in (category.PHRASE, category.NOUN_PHRASE, category.VERB_PHRASE,
+                            category.ADJECTIVE_PHRASE, category.ADVERB_PHRASE,
+                            category.PREPOSITION_PHRASE)))
 
 
 def is_clause_t(o):
@@ -1380,38 +1307,38 @@ def is_clause_t(o):
     a coordination of clauses.
 
     """
-    return is_element_t(o) and o.category == CLAUSE
+    return is_element_t(o) and o.category == category.CLAUSE
 
 
 def is_adj_mod_t(o):
     """Return True if `o` is adjective modifier (adj or AdjP)"""
     return (isinstance(o, AdjectivePhrase) or
-            isinstance(o, Word) and o.pos == ADJECTIVE or
+            isinstance(o, Word) and o.pos == category.ADJECTIVE or
             isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
 
 
 def is_adv_mod_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     return (isinstance(o, AdverbPhrase) or
-            isinstance(o, Word) and o.pos == ADVERB or
+            isinstance(o, Word) and o.pos == category.ADVERB or
             isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
 
 
 def is_noun_t(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     return (isinstance(o, NounPhrase) or
-            isinstance(o, Word) and o.pos == NOUN or
+            isinstance(o, Word) and o.pos == category.NOUN or
             isinstance(o, Coordination) and is_noun_t(o.coords[0]))
 
 
-def comparable_features(features):
+def comparable_features(original_features):
     """Return a dict of features limited to ones that can be used 
     for equality comparison.
     
     """
-    rv = features.copy()
+    rv = original_features.copy()
     # disregard discourse features
-    ignored = NON_COMPARABLE_FEATURES
+    ignored = nlglib.features.NON_COMPARABLE_FEATURES
     for f in ignored:
         rv.pop(f, None)
     return rv
@@ -1421,7 +1348,7 @@ def transfer_features(source, target):
     """Copy transferable features from `source` to `target`."""
     if target is None:
         return
-    for f in TRANSFERABLE_FEATURES:
+    for f in nlglib.features.TRANSFERABLE_FEATURES:
         if f in source:
             target[f] = source[f]
 

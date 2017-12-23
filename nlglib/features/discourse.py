@@ -1,14 +1,12 @@
-# encoding: utf-8
-
 """
-An enumeration representing the grammatical function that an element might
-take. The discourse function is recorded under the
-Feature.DISCOURSE_FUNCTION feature and applies to any type of
-NLGElement.
+An enumeration representing the grammatical function
+that an element might take. The discourse function
+is recorded under the feature `discourse_function`
+and applies to any type of NLGElement.
 
 """
 
-from __future__ import unicode_literals
+from .feature import FeatureGroup
 
 # Auxiliaries are the additional verbs added to a verb phrase to alter the
 # meaning being described. For public static final String example =
@@ -94,7 +92,8 @@ SUBJECT = "subject"
 PREDICATE = "verb_phrase"
 
 
-DISCOURSE_FEATURES = [
+discourse_function = FeatureGroup(
+    'discourse_function',
     AUXILIARY,
     COMPLEMENT,
     CONJUNCTION,
@@ -108,6 +107,10 @@ DISCOURSE_FEATURES = [
     SPECIFIER,
     SUBJECT,
     PREDICATE
-]
+)
 
-FEATURE_GROUP = 'discourseFunction'
+# features that are excluded from equality comparison
+NON_COMPARABLE_FEATURES = [discourse_function]
+
+# features that should be transferred on replacement
+TRANSFERABLE_FEATURES = [discourse_function]
