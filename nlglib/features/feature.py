@@ -123,7 +123,7 @@ class FeatureSet(MutableSet):
         '<FeatureSet {<Feature number: plural>}>'
 
         """
-        self.discard(value.name)
+        self.discard(value)
         self.add(value)
 
     def discard(self, value):
@@ -133,17 +133,13 @@ class FeatureSet(MutableSet):
         >>> fs.discard(Feature('number', 'plural'))
         >>> repr(fs)
         '<FeatureSet {<Feature number: singular>}>'
-        >>> fs.discard('number')
+        >>> fs.discard(FeatureGroup('number'))
         >>> repr(fs)
         '<FeatureSet set()>'
 
         """
-        if isinstance(value, (str, FeatureGroup)):
-            group_name = str(value)
-            to_del = (x for x in self.feature_set if x.name == group_name)
-            self.feature_set -= set(to_del)
-        else:
-            self.feature_set.discard(value)
+        to_del = (x for x in self.feature_set if x.name == value.name)
+        self.feature_set -= set(to_del)
 
     def __len__(self):
         return len(self.feature_set)
@@ -170,45 +166,44 @@ class FeatureSet(MutableSet):
         return x in self.feature_set
 
     def __getitem__(self, feature):
-        """Return the value of the corresponding feature group (eg number or tense)
+        """Return the value of the corresponding feature group (eg number or tense) or None
 
         >>> fs = FeatureSet([Feature('number', 'plural')])
-        >>> fs['number']
+        >>> fs[FeatureGroup('number')]
         <Feature number: plural>
 
         """
-        feature = str(feature)
         for f in self.feature_set:
-            if f.name == feature:
+            if f.name == feature.name:
                 return f
-        raise KeyError('This element does not have feature "{}"'.format(feature))
+        return None
 
     def __setitem__(self, key, value):
-        """Add the given `value` using `self.replace`; `key` is redundant
+        """Add the given `value` using `self.replace`; `key` is used only if `value` is a string.
 
         >>> number = FeatureGroup('number', 'singular', 'plural')
         >>> fs = FeatureSet([number.singular])
         >>> fs[number] = number.plural
         >>> repr(fs)
         '<FeatureSet {<Feature number: plural>}>'
+        >>> fs[number] = 'singular'
 
         """
+        if isinstance(value, str):
+            value = Feature(str(key), value)
         self.replace(value)
 
     def get(self, feature, default=None):
         """Get the value of a given feature group or return `default` if it is not present
 
         >>> fs = FeatureSet([Feature('number', 'plural')])
-        >>> fs.get('number')
+        >>> fs.get(FeatureGroup('number'))
         <Feature number: plural>
-        >>> fs.get('tense', 'some-default')
+        >>> fs.get(FeatureGroup('tense'), 'some-default')
         'some-default'
 
         """
-        try:
-            return self[feature]
-        except KeyError:
-            return default
+        return self[feature] if self[feature] is not None else default
 
     def __repr__(self):
         return '<FeatureSet {0}>'.format(str(self.feature_set))
@@ -220,3 +215,25 @@ class FeatureSet(MutableSet):
 
         """
         return {f.name: f.value for f in self.feature_set}
+
+    def keys(self):
+        for f in self.feature_set:
+            yield f.name
+
+    def values(self):
+        for f in self.feature_set:
+            yield f.value
+
+    def items(self):
+        for f in self.feature_set:
+            yield (f.name, f.value)
+
+    def update(self, other):
+        if isinstance(other, dict):
+            for k, v in other.items():
+                self.replace(Feature(k, v))
+        elif isinstance(other, FeatureSet):
+            self.feature_set |= other.feature_set
+        else:
+            msg = 'FeatureSet does not know how to update from "{}".'
+            raise TypeError(msg.format(type(other)))

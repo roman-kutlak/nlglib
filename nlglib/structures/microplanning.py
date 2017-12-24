@@ -44,7 +44,7 @@ class Element(object):
         self.id = id
         self.hash = -1
         if 'cat' not in self.features:
-            self.features['cat'] = 'ANY'
+            self.features['cat'] = category.ANY
 
     def __copy__(self):
         rv = self.__class__(features=self.features,
@@ -52,6 +52,7 @@ class Element(object):
                             id=self.id)
         return rv
 
+    # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = self.__class__(features=None,
                             parent=None,
@@ -97,7 +98,7 @@ class Element(object):
         return str(v)
 
     def __str__(self):
-        from nlglib.microplanning import StrVisitor, SimpleStrVisitor
+        from nlglib.microplanning import SimpleStrVisitor
         v = SimpleStrVisitor()
         self.accept(v)
         return str(v)
@@ -107,12 +108,12 @@ class Element(object):
         return feature_name in self.features
 
     def __setitem__(self, feature_name, feature_value):
-        """Set the feature name/value in the element feature dict."""
+        """Set the feature name/value in the element feature set."""
         self.features[feature_name] = feature_value
 
     def __getitem__(self, feature_name):
         """Return the value associated with the feature name, from the
-        element feature dict.
+        element feature set.
 
         If the feature name is not found in the feature dict, return None.
 
@@ -121,48 +122,10 @@ class Element(object):
 
     def __delitem__(self, feature_name):
         """Remove the argument feature name and its associated value from
-        the element feature dict.
-
-        If the feature name was not initially present in the feature dict,
-        a KeyError will be raised.
+        the element feature set.
 
         """
-        if feature_name in self.features:
-            del self.features[feature_name]
-
-    def __getattr__(self, name):
-        """When a undefined attribute name is accessed, try to return
-        self.features[name] if it exists.
-
-        If name is not in self.features, but name.upper() is defined as
-        a feature constant, don't raise an AttribueError. Instead, try
-        to return the feature value associated with the feature constant
-        value.
-
-        This allows us to have a more consistant API when
-        dealing with NLGElement and instances of sublclasses.
-
-        If no such match is found, raise an AttributeError.
-
-        Example:
-        >>> elt = Element(features={'plural': 'plop', 'infl': ['foo']})
-        >>> elt.plural
-        'plop'  # because 'plural' is in features
-        >>> elt.infl
-        ['foo']  # because 'infl' is in features
-        >>> elt.inflections
-        ['foo']  # because INFLECTIONS='infl' is defined as a feature constant
-                # constant, and elt.features['infl'] = ['foo']
-
-        """
-        n = name.upper()
-        if name in self.features:
-            return self.features[name]
-        elif n in self._feature_constants:
-            new_name = self._feature_constants[n]
-            return self.features.get(new_name)
-        cls_name = self.__class__.__name__
-        raise AttributeError('{} does not have attribute {}'.format(cls_name, name))
+        self.features.discard(feature_name)
 
     def __add__(self, other):
         """Add two elements resulting in a coordination 
@@ -174,12 +137,6 @@ class Element(object):
         if not other:
             return self
         return Coordination(self, other)
-
-    def to_str(self):
-        from nlglib.microplanning import SimpleStrVisitor
-        visitor = SimpleStrVisitor()
-        self.accept(visitor)
-        return str(visitor)
 
     def to_xml(self, depth=0, headers=False):
         from nlglib.microplanning import XmlVisitor
@@ -271,21 +228,6 @@ class Element(object):
         if parent is not _sentinel:
             self.parent = parent
 
-    def has_feature(self, feature, value=None):
-        if not value:
-            return feature in self
-        else:
-            return self[feature] == value
-
-    def get_feature(self, feature, value=None):
-        if feature not in self:
-            return value
-        else:
-            return self[feature]
-
-    def set_feature(self, feature, value=None):
-        self[feature] = value
-
 
 class ElementList(collections.UserList):
     category = category.ELEMENT_LIST
@@ -293,7 +235,7 @@ class ElementList(collections.UserList):
     def __init__(self, lst=None, parent=None, features=None):
         super().__init__()
         self.parent = parent
-        self.features = features or {}
+        self.features = features or FeatureSet()
         for o in lst or []:
             self.append(o)
 
@@ -319,9 +261,8 @@ class ElementList(collections.UserList):
 
     def __setitem__(self, i, value):
         value = raise_to_element(value)
-        # FIXME: is this a bug? missing parent and features
-        # value.parent = self.parent
-        # value.features.update(self.features)
+        value.parent = self.parent
+        value.features.update(self.features)
         super().__setitem__(i, value)
 
     # noinspection PyArgumentList
@@ -374,7 +315,7 @@ class Var(Element):
         super().__init__(features, parent, id)
         self.value = None
         self.set_value(obj)
-        self.features['cat'] = 'ANY'
+        self.features['cat'] = category.ANY
 
     def __bool__(self):
         """Return True """
@@ -420,7 +361,7 @@ class String(Element):
     def __init__(self, value='', features=None, parent=None, id=None):
         super().__init__(features, parent, id)
         self.value = str(value)
-        self.features['cat'] = 'ANY'
+        self.features['cat'] = category.ANY
 
     def __bool__(self):
         """Return True if the string is non-empty. """
@@ -459,7 +400,7 @@ class Word(Element):
 
     category = category.WORD
 
-    def __init__(self, word, pos='ANY', features=None, parent=None, id=None):
+    def __init__(self, word, pos=category.ANY, features=None, parent=None, id=None):
         super().__init__(features, parent, id)
         self.word = str(word)
         self.pos = pos
@@ -718,7 +659,7 @@ class Phrase(Element):
             self._head = new_value
         else:
             self._head = Element()
-        self._head[nlglib.features.FEATURE_GROUP] = discourse.HEAD  # FIXME: feature comparison
+        self._head[discourse] = discourse.HEAD
 
     def yield_premodifiers(self):
         """Iterate through pre-modifiers. """

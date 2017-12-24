@@ -124,7 +124,7 @@ class TestFeatureSet(unittest.TestCase):
     def test_getitem(self):
         fs = FeatureSet([self.number.singular, self.person.first])
         self.assertEqual(self.number.singular, fs[self.number])
-        self.assertRaises(KeyError, fs.__getitem__, self.tense)
+        self.assertIsNone(fs[self.tense])
 
     def test_get(self):
         fs = FeatureSet([self.number.singular, self.person.first])
