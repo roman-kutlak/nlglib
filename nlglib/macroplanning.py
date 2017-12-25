@@ -1,6 +1,5 @@
 import itertools
 import logging
-from collections import defaultdict
 
 import nltk
 from nltk.sem import *
@@ -8,6 +7,8 @@ from nltk.sem.logic import *
 
 from nlglib.structures import RhetRel, PredicateMsg, StringMsg,Word, Var
 from nlglib.structures import NounPhrase, Document
+
+from nlglib.features import element_type
 
 expr = nltk.sem.Expression.fromstring
 
@@ -116,7 +117,7 @@ def formula_to_rst(f):
         predicate = f.term
         m = PredicateMsg(predicate.pred.variable.name,
                          *[formula_to_rst(x) for x in predicate.args],
-                         features={'NEGATED': 'true'})
+                         features=(element_type.negated, ))
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, IndividualVariableExpression):
         logger.debug('negated variable: ' + str(f))

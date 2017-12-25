@@ -262,14 +262,14 @@ class ReprVisitor(PrintVisitor):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0}'.format(repr(node.value))
         if node.features != dict():
-            self.data += ', ' + repr(node.features)
+            self.data += ', ' + str(node.features)
         self.data += ')'
 
     def visit_word(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Word({0}, {1}'.format(repr(node.word), repr(node.pos))
         if node.features != dict():
-            self.data += ', ' + repr(node.features)
+            self.data += ', ' + str(node.features)
         self.data += ')'
 
     def visit_var(self, node):
@@ -279,7 +279,7 @@ class ReprVisitor(PrintVisitor):
         else:
             self.data += 'Var({0}, {1}'.format(repr(node.id), repr(node.value))
         if node.features != dict():
-            self.data += ', ' + repr(node.features)
+            self.data += ', ' + str(node.features)
         self.data += ')'
 
     def visit_noun_phrase(self, node):
@@ -292,7 +292,7 @@ class ReprVisitor(PrintVisitor):
             self.data += ', '
             node.spec.accept(self)
         if node.features != dict():
-            self.data += ', features=' + repr(node.features)
+            self.data += ', features=' + str(node.features)
         self.do_indent = True
         self._process_elements(node, 'premodifiers')
         self._process_elements(node, 'complements')
@@ -319,7 +319,7 @@ class ReprVisitor(PrintVisitor):
             self.do_indent = True
         if node.features != dict():
             self.data += ',\n'
-            self.data += self.indent + 'features=' + repr(node.features)
+            self.data += self.indent + 'features=' + str(node.features)
         self._process_elements(node, 'premodifiers')
         self._process_elements(node, 'postmodifiers')
         self.data += ')'
@@ -348,7 +348,7 @@ class ReprVisitor(PrintVisitor):
         node.vp.accept(self)
         if node.features != dict():
             self.data += ',\n'
-            self.data += self.indent + 'features=' + repr(node.features)
+            self.data += self.indent + 'features=' + str(node.features)
         self._process_elements(node, 'front_modifiers')
         self._process_elements(node, 'premodifiers')
         self._process_elements(node, 'complements')
@@ -367,10 +367,10 @@ class ReprVisitor(PrintVisitor):
             c.accept(self)
             self.data += ',\n'
             self.do_indent = True
-        self.data += self.indent + 'conj={0}'.format(repr(node.conj))
+        self.data += self.indent + 'conj={0}'.format(repr(node['conj']))
         if node.features != dict():
             self.data += ',\n' + self.indent
-            self.data += 'features=' + repr(node.features)
+            self.data += 'features=' + str(node.features)
         self.do_indent = True
         self.data += ')'
         self.indent = self.indent[:-len('Coordination(')]
@@ -651,7 +651,7 @@ class ElementVisitor:
     def visit_adjective_phrase(self, node):
         self.visit_phrase(node)
 
-    def visit_advp(self, node):
+    def visit_adverb_phrase(self, node):
         self.visit_phrase(node)
 
     def visit_coordination(self, node):

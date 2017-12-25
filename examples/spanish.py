@@ -7,19 +7,22 @@ of the spanish version running on port 50007
 """
 import logging
 
-from nlglib.realisation.simplenlg.realisation import realise, SimplenlgClient
+from nlglib.realisation.simplenlg.realisation import SimplenlgClient, Realiser
 from nlglib.structures import *
 from nlglib.structures.factories import *
 
 english_client = SimplenlgClient('roman.kutlak.info', 40000)
 spanish_client = SimplenlgClient('roman.kutlak.info', 40001)
 
+realise_en = Realiser(client=english_client)
+realise_es = Realiser(client=spanish_client)
+
 
 def main():
     p = Clause("María", "perseguir", "un mono")
     # expected = 'María persigue un mono.'
     p['TENSE'] = 'PAST'
-    print(realise(p, client=spanish_client))
+    print(realise_es(p))
     p = Clause(NP("la", "rápida", "corredora"), VP("perseguir"), NP("un", "mono"))
     subject = NP("la", "corredora")
     objekt = NP("un", "mono")
@@ -29,9 +32,9 @@ def main():
     p.predicate = verb
     p.object = objekt
     # expected = 'La rápida corredora persigue un mono.'
-    print(realise(p, client=spanish_client))
+    print(realise_es(p))
     p = Clause(NP('this', 'example'), VP('show', 'how cool is simplenlg'))
-    print(realise(p, client=english_client))
+    print(realise_en(p))
 
 
 if __name__ == '__main__':

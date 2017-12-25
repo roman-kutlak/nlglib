@@ -1,8 +1,7 @@
 import unittest
 
-from nlglib.structures.microplanning import *
 from nlglib.microplanning import XmlVisitor, ReprVisitor, ElementVisitor
-from nlglib.lexicon import *
+from nlglib.structures import *
 
 
 class TestXmlFormatting(unittest.TestCase):
@@ -39,7 +38,7 @@ class TestXmlFormatting(unittest.TestCase):
 
     def test_NP(self):
         v = XmlVisitor()
-        s = NP(Noun('truck'), Determiner('the'))
+        s = NP(Determiner('the'), Noun('truck'))
         expected = """\
 <child xsi:type="NPPhraseSpec">
   <spec xsi:type="WordElement" cat="DETERMINER">

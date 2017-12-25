@@ -21,7 +21,7 @@ from copy import deepcopy
 from urllib.parse import quote_plus
 
 import nlglib.features
-from nlglib.features import discourse_function, category, FeatureSet
+from nlglib.features import FeatureSet, discourse_function, category, element_type
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,9 @@ class Element(object):
 
     category = category.ELEMENT
 
-    def __init__(self, features=None, parent=None, id=None):
-        self.features = features or FeatureSet()
+    def __init__(self, features=FeatureSet(), parent=None, id=None):
+        self.features = FeatureSet()
+        self.features.update(features)
         self.parent = parent
         self.id = id
         self.hash = -1
@@ -165,17 +166,26 @@ class Element(object):
 
     def features_to_xml_attributes(self):
         features = ""
-        keys = sorted(self.features.keys())
-        for k in keys:
-            v = str(self.features[k])
+        features_dict = {}
+        for f in self.features:
+            if f == discourse_function:
+                continue
+            if f == element_type.negated:
+                features_dict['NEGATED'] = 'true'
+                continue
+            if f == element_type.elided:
+                features_dict['ELIDED'] = 'true'
+                continue
+            v = str(f.value)
             if v.lower() in ('true', 'false'):
                 v = v.lower()
-            elif k not in ('conj', 'COMPLEMENTISER'):
+            elif f.name not in ('conj', 'COMPLEMENTISER'):
                 v = v.upper()
-            features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
-        features = features.strip()
-        if features != '':
-            return ' ' + features
+            features_dict[f.name] = v
+        if features_dict:
+            for k, v in features_dict.items():
+                features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
+            return ' ' + features.strip()
         return ''
 
     def constituents(self):
@@ -232,10 +242,11 @@ class Element(object):
 class ElementList(collections.UserList):
     category = category.ELEMENT_LIST
 
-    def __init__(self, lst=None, parent=None, features=None):
+    def __init__(self, lst=None, parent=None, features=FeatureSet()):
         super().__init__()
         self.parent = parent
-        self.features = features or FeatureSet()
+        self.features = FeatureSet()
+        self.features.update(features)
         for o in lst or []:
             self.append(o)
 
@@ -398,9 +409,8 @@ class String(Element):
 class Word(Element):
     """Word represents word and its corresponding POS (Part-of-Speech) tag. """
 
-    category = category.WORD
-
     def __init__(self, word, pos=category.ANY, features=None, parent=None, id=None):
+        self.category = category.WORD
         super().__init__(features, parent, id)
         self.word = str(word)
         self.pos = pos
@@ -456,7 +466,7 @@ class Coordination(Element):
         super().__init__(features, parent, id)
         self.coords = ElementList(parent=self)
         self.add_coordinates(*coords)
-        self.coordinate_category = self.coords[0].cat if self.coords else None
+        self.coordinate_category = self.coords[0].category if self.coords else None
         self.features['conj'] = conj
 
     def __len__(self):
@@ -1281,7 +1291,7 @@ def comparable_features(original_features):
     # disregard discourse_function features
     ignored = nlglib.features.NON_COMPARABLE_FEATURES
     for f in ignored:
-        rv.pop(f, None)
+        rv.discard(f)
     return rv
 
 

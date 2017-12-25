@@ -4,7 +4,7 @@ from nlglib.microplanning import *
 from nlglib.structures.microplanning import *
 from nlglib.structures.macroplanning import *
 from nlglib.structures.factories import *
-
+from nlglib.features import element_type
 
 default_logger = logging.getLogger(__name__)
 
@@ -189,10 +189,10 @@ class Lexicaliser(object):
             result.predicate = tmp_vp
         elif relation == 'inequality':
             result = Clause()
-            result.set_subj(nucleus)
+            result.subject(nucleus)
             objekt = satellite
-            features['NEGATED'] = 'true'
-            result.set_vp(VP('is', objekt, features=features))
+            features[element_type] = element_type.negated
+            result.predicate(VP('is', objekt, features=features))
         elif relation == 'quantifier':
             # quantifiers have multiple nuclei (variables)
             quant = rel.marker
@@ -216,7 +216,7 @@ class Lexicaliser(object):
             self.logger.debug('Result:\n' + repr(result))
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
-                                              features={'NEGATED': 'true'}))
+                                              features=(element_type.negated, )))
             cl = self.promote_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.vp.complements.append(cl)

@@ -1,6 +1,9 @@
-from nlglib.realisation.simplenlg.realisation import realise
+from nlglib.realisation.simplenlg.realisation import Realiser
 from nlglib.structures import *
 from nlglib.structures.factories import *
+
+
+realise = Realiser(host='roman.kutlak.info')
 
 
 def main():

@@ -7,6 +7,7 @@ not found in others.
 
 """
 
+import copy
 from collections import MutableSet
 
 
@@ -137,6 +138,8 @@ class FeatureSet(MutableSet):
         '<FeatureSet {<Feature number: plural>}>'
 
         """
+        if not value:
+            return
         self.discard(value)
         self.add(value)
 
@@ -152,8 +155,10 @@ class FeatureSet(MutableSet):
         '<FeatureSet set()>'
 
         """
-        to_del = (x for x in self.feature_set if x.name == value.name)
+        feature = value if isinstance(value, str) else value.name
+        to_del = (x for x in self.feature_set if x.name == feature)
         self.feature_set -= set(to_del)
+        return to_del
 
     def __len__(self):
         return len(self.feature_set)
@@ -177,6 +182,8 @@ class FeatureSet(MutableSet):
         True
 
         """
+        if isinstance(x, str):
+            x = FeatureGroup(x)
         return x in self.feature_set
 
     def __getitem__(self, feature):
@@ -188,7 +195,8 @@ class FeatureSet(MutableSet):
 
         """
         for f in self.feature_set:
-            if f.name == feature.name:
+            name = feature if isinstance(feature, str) else feature.name
+            if name == f.name:
                 return f
         return None
 
@@ -207,6 +215,9 @@ class FeatureSet(MutableSet):
             value = Feature(str(key), value)
         self.replace(value)
 
+    def __delitem__(self, item):
+        self.discard(item)
+
     def get(self, feature, default=None):
         """Get the value of a given feature group or return `default` if it is not present
 
@@ -221,6 +232,10 @@ class FeatureSet(MutableSet):
 
     def __repr__(self):
         return '<FeatureSet {0}>'.format(str(self.feature_set))
+
+    def __str__(self):
+        features = sorted(self.feature_set, key=lambda f: (f.name, f.value))
+        return '{' + ', '.join('{k}: {v}'.format(k=repr(f.name), v=repr(f.value)) for f in features) + '}'
 
     def as_dict(self):
         """Return given feature set as a dictionary;
@@ -243,11 +258,24 @@ class FeatureSet(MutableSet):
             yield (f.name, f.value)
 
     def update(self, other):
+        if not other:
+            return
         if isinstance(other, dict):
             for k, v in other.items():
                 self.replace(Feature(k, v))
         elif isinstance(other, FeatureSet):
-            self.feature_set |= other.feature_set
+            for f in other.feature_set:
+                self.replace(f)
+        elif isinstance(other, (list, tuple)):
+            for x in other:
+                if isinstance(x, Feature):
+                    self.replace(x)
+                else:
+                    msg = 'FeatureSet does not know how to update with "{}".'
+                    raise TypeError(msg.format(type(x)))
         else:
             msg = 'FeatureSet does not know how to update from "{}".'
             raise TypeError(msg.format(type(other)))
+
+    def copy(self):
+        return copy.copy(self)

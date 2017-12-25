@@ -1,6 +1,7 @@
 import inspect
 import logging
 
+from nlglib.features import element_type
 from .microplanning import String, Element
 
 logger = logging.getLogger(__name__)
@@ -306,7 +307,7 @@ class PredicateMsg(MsgSpec):
             return self.name
         else:
             neg = ''
-            if self.features.get('NEGATED') == 'true':
+            if element_type.negated in self.features:
                 neg = '-'
             return neg + self.name + '(' + ', '.join([str(x) for x in self.args]) + ')'
 

@@ -2,8 +2,12 @@ import logging
 import string
 
 from nlglib.structures import Document, is_clause_t
-from nlglib.features import category
+from nlglib.features import category, number, gender, case, tense, element_type, modal, FeatureGroup
 from nlglib.utils import flatten
+
+
+# a complementiser group
+complementiser = FeatureGroup('complementiser')
 
 
 class Realiser(object):
@@ -17,7 +21,7 @@ class Realiser(object):
     def realise(self, msg, **kwargs):
         if msg is None:
             return ''
-        elif msg.category in category.ELEMENT_CATEGORIES:
+        elif msg.category in category.element:
             return self.realise_element(msg, **kwargs)
         elif msg.category == category.MSG:
             return self.realise_message_spec(msg, **kwargs)
@@ -100,7 +104,7 @@ class RealisationVisitor:
         pass
 
     def visit_string(self, node):
-        if node.has_feature('NEGATED', 'true'):
+        if element_type.negated in node:
             self.text += 'not '
         self.text += node.value + ' '
 
@@ -108,7 +112,7 @@ class RealisationVisitor:
         word = node.word
         # if (node.has_feature('NUMBER', 'PLURAL') and node.pos == 'NOUN'):
         #     word = lexicon.pluralise_noun(node.word)
-        if node.has_feature('NEGATED', 'true'):
+        if element_type.negated in node:
             self.text += 'not '
         self.text += word + ' '
 
@@ -122,21 +126,17 @@ class RealisationVisitor:
     def visit_clause(self, node):
         # do a bit of coordination
         node.vp.features.update(node.features)
-        if node.subj.has_feature('NUMBER'):
-            node.vp.set_feature('NUMBER', node.subj.get_feature('NUMBER'))
-        if node.subj.has_feature('GENDER'):
-            node.vp.set_feature('GENDER', node.subj.get_feature('GENDER'))
-        if node.subj.has_feature('CASE'):
-            node.vp.set_feature('CASE', node.subj.get_feature('CASE'))
-        if node.has_feature('NEGATED'):
-            node.vp.set_feature('NEGATED', node.get_feature('NEGATED'))
+        node.vp.features.replace(node.subj[number])
+        node.vp.features.replace(node.subj[gender])
+        node.vp.features.replace(node.subj[case])
+        node.vp.features.replace(node[element_type])
         for o in node.front_modifiers: o.accept(self)
         node.subj.accept(self)
         for o in node.premodifiers: o.accept(self)
         node.vp.accept(self)
         if len(node.complements) > 0:
-            if node.complements[0].has_feature('COMPLEMENTISER'):
-                self.text += node.complements[0].get_feature('COMPLEMENTISER')
+            if complementiser in node.complements[0]:
+                self.text += node.complements[0][complementiser]
                 self.text += ' '
         for c in node.complements: c.accept(self)
         for o in node.postmodifiers: o.accept(self)
@@ -148,11 +148,12 @@ class RealisationVisitor:
             return
         for i, x in enumerate(node.coords):
             x.accept(self)
-            if node.conj == 'and' and i < len(node.coords) - 2:
+            conjunction = node['conj'].value if 'conj' in node else ''
+            if conjunction == 'and' and i < len(node.coords) - 2:
                 self.text += ', '
             elif i < len(node.coords) - 1:
-                conj = node.conj
-                if is_clause_t(self): conj = ', ' + node.conj
+                conj = conjunction
+                if is_clause_t(self): conj = ', ' + conjunction
                 self.text += ' ' + conj + ' '
 
     # FIXME: implement
@@ -164,8 +165,8 @@ class RealisationVisitor:
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
         if len(node.complements) > 0:
-            if node.complements[0].has_feature('COMPLEMENTISER'):
-                self.text += node.complements[0].get_feature('COMPLEMENTISER')
+            if complementiser in node.complements[0]:
+                self.text += node.complements[0][complementiser]
                 self.text += ' '
         for c in node.complements: c.accept(self)
         for c in node.postmodifiers: c.accept(self)
@@ -175,56 +176,48 @@ class RealisationVisitor:
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
-        modals = [
-            'can', 'could',
-            'may', 'might',
-            'must', 'ought',
-            'shall', 'should',
-            'will', 'would'
-        ]
-        if node.has_feature('MODAL'):
-            self.text += ' ' + node.get_feature('MODAL') + ' '
-            if node.has_feature('NEGATED', 'true'):
+        if modal in node:
+            self.text += ' ' + node[modal] + ' '
+            if element_type.negated in node:
                 self.text += 'not '
             node.head.accept(self)
         # hs the head a modal verb?
-        elif head in modals:
+        elif head in modal:
             self.text += ' '
             node.head.accept(self)
             self.text += ' '
-            if node.has_feature('NEGATED', 'true'):
+            if element_type.negated in node:
                 self.text += 'not '
         elif head == 'have':
-            if node.has_feature('NEGATED', 'true'):
+            if element_type.negated in node:
                 self.text += 'do not have '
             else:
                 self.text += 'have '
         elif head == 'has':
-            if node.has_feature('NEGATED', 'true'):
+            if element_type.negated in node:
                 self.text += 'does not have '
             else:
                 self.text += 'has '
         elif head == 'be' or head == 'is':
-            if node.has_feature('NUMBER', 'PLURAL'):
-                if node.has_feature('TENSE', 'PAST'):
+            if number.plural in node:
+                if tense.past in node:
                     self.text += 'were '
                 else:
                     self.text += 'are '
             else:
-                if node.has_feature('TENSE', 'PAST'):
+                if tense.past in node:
                     self.text += 'was '
                 else:
                     self.text += 'is '
-            if node.has_feature('NEGATED', 'true'):
+            if element_type.negated in node:
                 self.text += 'not '
         else:
-            if node.has_feature('NEGATED', 'true'):
+            if element_type.negated in node:
                 self.text += 'does not '
             node.head.accept(self)
         if len(node.complements) > 0:
-            if node.complements[0].has_feature('COMPLEMENTISER'):
-                self.text += ' {0} '.format(
-                    node.complements[0].get_feature('COMPLEMENTISER'))
+            if complementiser in node.complements[0]:
+                self.text += ' ' + node.complements[0][complementiser] + ' '
         for c in node.complements:
             c.accept(self)
         for c in node.postmodifiers: c.accept(self)
@@ -242,7 +235,7 @@ class RealisationVisitor:
         for c in node.front_modifiers: c.accept(self)
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
-        if node.has_feature('COMPLEMENTISER'):
-            self.text += ' {0} '.format(node.get_feature('COMPLEMENTISER'))
+        if complementiser in node:
+            self.text += ' {0} '.format(node[complementiser])
         for c in node.complements: c.accept(self)
         for c in node.postmodifiers: c.accept(self)

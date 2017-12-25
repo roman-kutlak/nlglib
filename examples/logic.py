@@ -1,6 +1,6 @@
 import logging
 
-from nlglib.realisation.simplenlg.realisation import realise
+from nlglib.realisation.simplenlg.realisation import Realiser
 from nlglib.lexicalisation import Lexicaliser
 from nlglib.macroplanning import *
 from nlglib.structures.microplanning import *
@@ -8,6 +8,8 @@ from nlglib.structures.factories import *
 
 
 def run():
+
+    realise = Realiser(host='roman.kutlak.info')
     lex = Lexicaliser(templates={
         'x': Noun('x'),
         'roman': Male('Roman'),

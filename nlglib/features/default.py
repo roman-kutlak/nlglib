@@ -146,12 +146,10 @@ clause = FeatureGroup(
     transform='lower'
 )
 
-pronoun_use = FeatureGroup(
-    'pronoun_use',
-    'subjective',
-    'objective',
-    'reflexive',
-    'possessive',
+noun_type = FeatureGroup(
+    'noun_type',
+    'common',
+    'proper',
     transform='lower'
 )
 
@@ -167,6 +165,22 @@ pronoun_type = FeatureGroup(
     'indefinite',
     transform='lower'
 )
+
+pronoun_use = FeatureGroup(
+    'pronoun_use',
+    'subjective',
+    'objective',
+    'reflexive',
+    'possessive',
+    transform='lower'
+)
+
+element_type = FeatureGroup(
+    'element_type',
+    'elided',
+    'negated',
+)
+
 
 # ######################### Discourse ######################### #
 
