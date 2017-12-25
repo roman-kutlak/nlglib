@@ -43,7 +43,7 @@ class Feature(object):
 class FeatureGroup(object):
     """Represents a group of features such as number or tense. """
 
-    def __init__(self, name, *values):
+    def __init__(self, name, *values, transform=None):
         """Create a feature group with given values as Feature instances.
 
         The values are accessible as instance attributes. The values are
@@ -51,15 +51,25 @@ class FeatureGroup(object):
 
         Note that the order of values matters! (intentionally)
 
+        :param str name: the name of the group (eg number or tense)
+        :param str values: the individual feature values (eg first, second or present, past)
+        :param str transform: string transformation for given values ('lower', 'upper' or None)
+
         >>> number = FeatureGroup('number', 'singular', 'plural')
         >>> number.singular
         <Feature number: singular>
 
         """
-        self.name = name
+        def ident(x):
+            return x
+        fn = ident
+        if transform:
+            fn = getattr(str, transform)
+        self.transform = fn
+        self.name = fn(name)
         self.values = list(values)
         for v in values:
-            setattr(self, v, Feature(name, v))
+            setattr(self, fn(v), Feature(fn(name), fn(v)))
 
     def __str__(self):
         return self.name
@@ -96,6 +106,10 @@ class FeatureGroup(object):
     def __hash__(self):
         # hash uses only the name so that we can compare with Feature
         return hash(self.name)
+
+    def __getattr__(self, item):
+        item = self.transform(item)
+        return super(FeatureGroup, self).__getattribute__(item)
 
 
 class FeatureSet(MutableSet):

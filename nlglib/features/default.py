@@ -7,20 +7,52 @@ If you are defining your own features, use the `Feature` and
 
 from .feature import FeatureGroup
 
+case = FeatureGroup(
+    'case',
+    'nominative',
+    'accusative',
+    'genitive',
+    'dative',
+    'vocative',
+    'locative',
+    'instrumental',
+    transform='lower'
+)
 
-case = FeatureGroup('case',
-                    'nominative', 'accusative', 'genitive',
-                    'dative', 'vocative', 'locative', 'instrumental')
+number = FeatureGroup(
+    'number',
+    'singular',
+    'plural',
+    'both',
+    transform='lower'
+)
 
-number = FeatureGroup('number', 'singular', 'plural', 'both')
-
-gender = FeatureGroup('gender', 'masculine', 'feminine', 'neuter')
+gender = FeatureGroup(
+    'gender',
+    'masculine',
+    'feminine',
+    'neuter',
+    transform='lower'
+)
 
 # `generic` can be used for pronouns eg 'you' in
-person = FeatureGroup('person', 'first', 'second', 'third', 'generic')
+person = FeatureGroup(
+    'person',
+    'first',
+    'second',
+    'third',
+    'generic',
+    transform='lower'
+)
 
-tense = FeatureGroup('tense', 'present', 'past', 'future', 'conditional')
-
+tense = FeatureGroup(
+    'tense',
+    'present',
+    'past',
+    'future',
+    'conditional',
+    transform='lower'
+)
 
 # The Simple Aspect (Indefinite Aspect)	Example
 # simple past tense	            I went
@@ -38,56 +70,103 @@ tense = FeatureGroup('tense', 'present', 'past', 'future', 'conditional')
 # past perfect progressive tense	I had been going
 # present perfect progressive tense	I have been going
 # future perfect progressive tense	I will have been going
-aspect = FeatureGroup('aspect', 'simple', 'perfect', 'progressive', 'perfect progressive')
+aspect = FeatureGroup(
+    'aspect',
+    'simple',
+    'perfect',
+    'progressive',
+    'perfect progressive',
+    transform='lower'
+)
 
-mood = FeatureGroup('mood', 'indicative', 'imperative', 'subjunctive')
+mood = FeatureGroup(
+    'mood',
+    'indicative',
+    'imperative',
+    'subjunctive',
+    transform='lower'
+)
 
-modal = FeatureGroup('modal',
-                     'can', 'could',
-                     'may', 'might',
-                     'must', 'ought',
-                     'shall', 'should',
-                     'will', 'would')
+modal = FeatureGroup(
+    'modal',
+    'can', 'could',
+    'may', 'might',
+    'must', 'ought',
+    'shall', 'should',
+    'will', 'would',
+    transform='lower'
+)
 
-voice = FeatureGroup('voice', 'active', 'passive')
+voice = FeatureGroup(
+    'voice',
+    'active',
+    'passive',
+    transform='lower'
+)
 
-form = FeatureGroup('form',
-                    'bare_infinitive',
-                    'gerund',
-                    'imperative',
-                    'infinitive',
-                    'indicative',
-                    'past_participle',
-                    'present_participle')
+form = FeatureGroup(
+    'form',
+    'bare_infinitive',
+    'gerund',
+    'imperative',
+    'infinitive',
+    'indicative',
+    'past_participle',
+    'present_participle',
+    transform='lower'
+)
 
-interrogative_type = FeatureGroup('interrogative_type',
-                                  'how',
-                                  'why',
-                                  'where',
-                                  'how_many',
-                                  'yes_no',
-                                  'how_predicate',
-                                  'what_object',
-                                  'what_subject',
-                                  'who_object',
-                                  'who_subject',
-                                  'who_indirect_object')
+interrogative_type = FeatureGroup(
+    'interrogative_type',
+    'how',
+    'why',
+    'where',
+    'how_many',
+    'yes_no',
+    'how_predicate',
+    'what_object',
+    'what_subject',
+    'who_object',
+    'who_subject',
+    'who_indirect_object',
+    transform='lower'
+)
 
-register = FeatureGroup('register', 'formal', 'informal')
+register = FeatureGroup(
+    'register',
+    'formal',
+    'informal',
+    transform='lower'
+)
 
-clause = FeatureGroup('clause', 'matrix', 'subordinate')
+clause = FeatureGroup(
+    'clause',
+    'matrix',
+    'subordinate',
+    transform='lower'
+)
 
-pronoun_use = FeatureGroup('pronoun_use', 'subjective', 'objective', 'reflexive', 'possessive')
+pronoun_use = FeatureGroup(
+    'pronoun_use',
+    'subjective',
+    'objective',
+    'reflexive',
+    'possessive',
+    transform='lower'
+)
 
-pronoun_type = FeatureGroup('pronoun_type',
-                            'personal',
-                            'special_personal',
-                            'snumeral',
-                            'possessive',
-                            'demonstrative',
-                            'relative',
-                            'interrogative',
-                            'indefinite')
+pronoun_type = FeatureGroup(
+    'pronoun_type',
+    'personal',
+    'special_personal',
+    'snumeral',
+    'possessive',
+    'demonstrative',
+    'relative',
+    'interrogative',
+    'indefinite',
+    transform='lower'
+)
 
 # ######################### Discourse ######################### #
 
@@ -185,6 +264,9 @@ discourse_function = FeatureGroup(
     # public static final String particle = "particle"; such as <em>kiss</em>,
     # <em>talk</em>, <em>bark</em>, <em>fall down</em>, <em>pick up</em>.
     "predicate",
+
+    # use lower case for constants
+    transform='lower'
 )
 
 # features that are excluded from equality comparison

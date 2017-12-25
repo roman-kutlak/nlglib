@@ -1,5 +1,6 @@
 """Definition of the lexical categories."""
 
+from .feature import FeatureGroup
 
 #  A default value, indicating an unspecified category.
 ANY = "ANY"
@@ -76,7 +77,8 @@ RST = "RST"
 MSG = 'MSG'
 
 # Part of speech tags
-POS_CATEGORIES = [
+pos = FeatureGroup(
+    'POS',
     ANY,
     ADJECTIVE,
     ADVERB,
@@ -93,14 +95,16 @@ POS_CATEGORIES = [
     PRONOUN,
     SYMBOL,
     VERB,
-]
+    transform='lower'
+)
 
-
-ELEMENT_CATEGORIES = [
+element = FeatureGroup(
+    'element',
     ELEMENT, ELEMENT_LIST,
     STRING, WORD, VAR,
     COORDINATION,
     PHRASE, NOUN_PHRASE, VERB_PHRASE,
     PREPOSITION_PHRASE, ADJECTIVE_PHRASE, ADVERB_PHRASE,
-    CLAUSE
-]
+    CLAUSE,
+    transform='lower'
+)
