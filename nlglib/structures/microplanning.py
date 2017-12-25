@@ -4,7 +4,7 @@
 # TODO: check serialisation of phrases/clause
 # TODO: check deepcopy
 # TODO: raise_to_xxx should use category
-# TODO: set discourse features of elements \
+# TODO: set discourse_function features of elements \
 # (matrix clause, object, subject, head, spec, ...)
 # TODO: create module `element_algebra` and pud add/iadd into it
 # TODO: move current microplanning visitors into \
@@ -21,7 +21,7 @@ from copy import deepcopy
 from urllib.parse import quote_plus
 
 import nlglib.features
-from nlglib.features import discourse, category, FeatureSet
+from nlglib.features import discourse_function, category, FeatureSet
 
 logger = logging.getLogger(__name__)
 
@@ -497,7 +497,7 @@ class Coordination(Element):
         return rv
 
     def __iadd__(self, other):
-        other.features.pop('discourseFunction', None)
+        other.features.discard(discourse_function)
         self.coords.append(other)
         return self
 
@@ -659,7 +659,7 @@ class Phrase(Element):
             self._head = new_value
         else:
             self._head = Element()
-        self._head[discourse] = discourse.HEAD
+        self._head[discourse_function] = discourse_function.head
 
     def yield_premodifiers(self):
         """Iterate through pre-modifiers. """
@@ -820,7 +820,7 @@ class NounPhrase(Phrase):
             self._spec = new_value
         else:
             self._spec = Element()
-        self._spec[discourse.FEATURE_GROUP] = discourse.SPECIFIER  # FIXME: feature comparison
+        self._spec[discourse_function] = discourse_function.specifier
 
     def constituents(self):
         """Return a generator to iterate through constituents. """
@@ -885,21 +885,21 @@ class VerbPhrase(Phrase):
     @property
     def object(self):
         for c in self.complements:
-            if c[discourse.FEATURE_GROUP] == discourse.OBJECT:
+            if c[discourse_function] == discourse_function.object:
                 return c
         return None
 
     @object.setter
     def object(self, value):
         to_remove = [c for c in self.complements
-                     if c[discourse.FEATURE_GROUP] == discourse.OBJECT]
+                     if c[discourse_function] == discourse_function.object]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value[discourse.FEATURE_GROUP] = discourse.OBJECT
+        new_value[discourse_function] = discourse_function.object
         self.complements.append(new_value)
 
     @property
@@ -913,21 +913,21 @@ class VerbPhrase(Phrase):
     @property
     def indirect_object(self):
         for c in self.complements:
-            if c[discourse.FEATURE_GROUP] == discourse.INDIRECT_OBJECT:
+            if c[discourse_function] == discourse_function.indirect_object:
                 return c
         return None
 
     @indirect_object.setter
     def indirect_object(self, value):
         to_remove = [c for c in self.complements
-                     if c[discourse.FEATURE_GROUP] == discourse.INDIRECT_OBJECT]
+                     if c[discourse_function] == discourse_function.indirect_object]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value[discourse.FEATURE_GROUP] = discourse.INDIRECT_OBJECT
+        new_value[discourse_function] = discourse_function.indirect_object
         self.complements.insert(0, new_value)
 
 
@@ -1060,7 +1060,7 @@ class Clause(Phrase):
             self._subject = new_value
         else:
             self._subject = Element()
-        self._subject[discourse.FEATURE_GROUP] = discourse.SUBJECT
+        self._subject[discourse_function] = discourse_function.subject
 
     @property
     def subj(self):
@@ -1084,7 +1084,7 @@ class Clause(Phrase):
             self._predicate = new_value
         else:
             self._predicate = Element()
-        self._predicate[discourse.FEATURE_GROUP] = discourse.PREDICATE
+        self._predicate[discourse_function] = discourse_function.predicate
 
     @property
     def head(self):
@@ -1148,8 +1148,8 @@ class Clause(Phrase):
         yield from self.yield_postmodifiers()
 
     def replace(self, one, another, key=lambda x: x):
-        """Replace first occurance of one with another.
-        Return True if successful.
+        """Replace first occurrence of `one` with `another` and
+        return True if successful.
 
         """
         one = raise_to_element(one)
@@ -1278,7 +1278,7 @@ def comparable_features(original_features):
     
     """
     rv = original_features.copy()
-    # disregard discourse features
+    # disregard discourse_function features
     ignored = nlglib.features.NON_COMPARABLE_FEATURES
     for f in ignored:
         rv.pop(f, None)
