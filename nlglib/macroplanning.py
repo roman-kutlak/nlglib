@@ -59,14 +59,16 @@ def aggregate_content(items, **_):
 
 def structure_content(items, **_):
     if isinstance(items, (list, tuple)):
-        rv = Document(None, *items)
+        rv = Document(*items)
     else:
-        rv = Document(None, items)
+        rv = Document(items)
     return rv
 
 
 def formula_to_rst(f):
     """ Convert a FOL formula to an RST tree. """
+    # TODO: handle inequality better
+    # TODO: handle lambdas (use Var?)
     logger.debug(str(f))
     if isinstance(f, AndExpression):
         first = formula_to_rst(f.first)

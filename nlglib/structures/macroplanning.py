@@ -1,7 +1,7 @@
 import inspect
 import logging
 
-from nlglib.features import element_type
+from nlglib.features import element_type, category
 from .microplanning import String, Element
 
 logger = logging.getLogger(__name__)
@@ -22,20 +22,20 @@ class Document:
 
     """
 
-    category = 'DOCUMENT'
+    category = category.DOCUMENT
 
-    def __init__(self, title, *sections):
+    def __init__(self, *sections, title=None):
         """Create a new `Document` with `title` and zero or more `sections`.
 
-        :param title: the tile of the document (`Document` or `Element` type)
         :param sections: document sections (`Document` or `Element` type)
+        :param title: the tile of the document (`Document` or `Element` type)
 
         """
         self._title = promote_to_string(title)
         self._sections = [promote_to_string(s) for s in sections]
 
     def __eq__(self, other):
-        return (isinstance(other, Document) and
+        return (other.category == self.category and
                 self.title == other.title and
                 self.sections == other.sections)
 
@@ -47,8 +47,11 @@ class Document:
         return '<Document: ({})>'.format(title)
 
     def __str__(self):
-        return (str(self.title) + '\n\n' +
-                '\n\n'.join([str(s) for s in self.sections]))
+        if self.title:
+            return (str(self.title) + '\n\n' +
+                    '\n\n'.join([str(s) for s in self.sections]))
+        else:
+            return '\n\t'.join([str(s) for s in self.sections])
 
     @property
     def title(self):
@@ -106,7 +109,7 @@ class RhetRel:
 
     """
 
-    category = "RHET_REL"
+    category = category.RST
     phrases = ['']
     element_order = ['nucleus', 'satellite']
     is_abstract = True  # subclasses should override this
@@ -140,7 +143,7 @@ class RhetRel:
                                          self.marker, self.satellite)
 
     def __eq__(self, other):
-        return (isinstance(other, RhetRel) and
+        return (other.category == self.category and
                 self.relation == other.relation and
                 self.nuclei == other.nuclei and
                 self.satellite == other.satellite and
@@ -155,7 +158,7 @@ class RhetRel:
 
     def constituents(self):
         for x in self.order:
-            yield x
+            yield from x.constituents()
 
     def to_xml(self, lvl=0, indent='  '):
         spaces = indent * lvl
@@ -189,7 +192,7 @@ class RhetRel:
         return rv
 
 
-# partial backwards compatibility
+# FIXME: replace in code --  partial backwards compatibility
 Message = RhetRel
 
 
@@ -208,7 +211,7 @@ class MsgSpec:
 
     """
 
-    category = "MSG_SPEC"
+    category = category.MSG
 
     def __init__(self, name, features=None):
         self.name = name
@@ -221,7 +224,7 @@ class MsgSpec:
         return str(self.name)
 
     def __eq__(self, other):
-        return (isinstance(other, type(self)) and
+        return (other.category == self.category and
                 self.name == other.name)
 
     @property
