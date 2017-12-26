@@ -77,7 +77,6 @@ class Realiser(object):
         return Document(*sections, title=title)
 
 
-
 # **************************************************************************** #
 
 

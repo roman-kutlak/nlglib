@@ -1,5 +1,5 @@
 from nlglib.structures import Word
-from nlglib import features as common_features
+from nlglib.features import number, gender, noun_type
 from nlglib.features.category import *
 
 
@@ -128,38 +128,38 @@ def NN(word, features=None):
 @str_or_element
 def NNS(word, features=None):
     o = Noun(word, features=features)
-    o[common_features.number] = common_features.number.plural
+    o[number] = number.plural
     return o
 
 
 @str_or_element
 def NNP(name, features=None):
     o = Noun(name, features=features)
-    o[common_features.noun_type] = common_features.noun_type.proper
+    o[noun_type] = noun_type.proper
     return o
 
 
 @str_or_element
 def NNPS(name, features=None):
     o = Noun(name, features=features)
-    o[common_features.noun_type] = common_features.noun_type.proper
-    o[common_features.number] = common_features.number.plural
+    o[noun_type] = noun_type.proper
+    o[number] = number.plural
     return o
 
 
 @str_or_element
 def Male(name, features=None):
     o = Noun(name, features=features)
-    o[common_features.noun_type] = common_features.noun_type.proper
-    o[common_features.gender] = common_features.gender.masculine
+    o[noun_type] = noun_type.proper
+    o[gender] = gender.masculine
     return o
 
 
 @str_or_element
 def Female(name, features=None):
     o = Noun(name, features=features)
-    o[common_features.noun_type] = common_features.noun_type.proper
-    o[common_features.gender] = common_features.gender.feminine
+    o[noun_type] = noun_type.proper
+    o[gender] = gender.feminine
     return o
 
 
