@@ -63,15 +63,7 @@ class Realiser(object):
         satellite = self.realise(msg.satellite, **kwargs)
         sentences = flatten(nuclei + [satellite])
         self.logger.debug('flattened sentences: %s' % sentences)
-        rv = []
-        for s in sentences:
-            if not s:
-                continue
-            formatted_sent = s[0].upper() + s[1:]
-            if formatted_sent[-1] not in string.punctuation:
-                formatted_sent += '.'
-            rv.append(formatted_sent)
-        return sentences
+        return ' '.join(sentences).strip()
 
     def realise_document(self, msg, **kwargs):
         """ Return a copy of a Document with strings. """
@@ -79,8 +71,11 @@ class Realiser(object):
         if msg is None:
             return None
         title = self.realise(msg.title, **kwargs)
+        if not kwargs.get('keep_title_punctuation') and title.endswith('.'):
+            title = title[:-1]
         sections = [self.realise(x, **kwargs) for x in msg.sections]
-        return Document(title, *sections)
+        return Document(*sections, title=title)
+
 
 
 # **************************************************************************** #
