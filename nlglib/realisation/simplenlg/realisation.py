@@ -72,12 +72,7 @@ class Realiser(object):
         satellite = self.realise(msg.satellite, **kwargs)
         sentences = flatten(nuclei + [satellite])
         self.logger.debug('flattened sentences: %s' % sentences)
-        # # TODO: this si wrong because the recursive call can apply capitalisation
-        # # and punctuation multiple times...
-        # sentences = list(map(lambda e: e[:1].upper() + e[1:] +
-        #                                ('.' if e[-1] != '.' else ''),
-        #                      [s for s in sentences if s != '']))
-        return sentences
+        return ' '.join(sentences).strip()
 
     def realise_document(self, msg, **kwargs):
         """ Return a copy of a Document with strings. """
@@ -85,5 +80,7 @@ class Realiser(object):
         if msg is None:
             return None
         title = self.realise(msg.title, **kwargs)
+        if not kwargs.get('keep_title_punctuation') and title.endswith('.'):
+            title = title[:-1]
         sections = [self.realise(x, **kwargs) for x in msg.sections]
-        return Document(title, *sections)
+        return Document(*sections, title=title)

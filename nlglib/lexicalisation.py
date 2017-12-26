@@ -23,7 +23,7 @@ class Lexicaliser(object):
     """
 
     default_templates = {
-        'string_message_spec': Clause(predicate=Var('val'))
+        'string_message_spec': Clause(subject=Var('val'))
     }
 
     def __init__(self, **kwargs):
@@ -237,7 +237,7 @@ class Lexicaliser(object):
             return None
         title = self(doc.title, **kwargs)
         sections = [self(x, **kwargs) for x in doc.sections]
-        return Document(title, *sections)
+        return Document(*sections, title=title)
 
     def get_template(self, item, **kwargs):
         """Return the template for given `element`.
