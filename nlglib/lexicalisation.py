@@ -158,25 +158,25 @@ class Lexicaliser(object):
                                   features=features)
         elif relation == 'imply':
             self.logger.debug('RST Implication: ' + repr(rel))
-            subj = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
+            subj = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'then'
-            result = promote_to_clause(subj)
+            result = raise_to_clause(subj)
             result.complements.append(compl)
             result.front_modifiers.append('if')
         elif relation == 'equivalent':
-            result = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
+            result = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'if and only if'
             result.complements.append(compl)
         elif relation == 'impliedBy':
-            result = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
+            result = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'if'
             result.complements.append(compl)
         elif relation == 'unless':
-            result = promote_to_phrase(nucleus)
-            compl = promote_to_phrase(satellite)
+            result = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'unless'
             result.complements.append(compl)
         elif relation == 'equality':
@@ -201,7 +201,7 @@ class Lexicaliser(object):
             else:
                 np['COMPLEMENTISER'] = String(',')
 
-            result = promote_to_phrase(satellite)
+            result = raise_to_phrase(satellite)
 
             front_mod = np
             # front_mod should go in front of existing front_mods
@@ -214,7 +214,7 @@ class Lexicaliser(object):
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
                                               features=(element_type.negated, )))
-            cl = promote_to_phrase(nucleus)
+            cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.vp.complements.append(cl)
         else:

@@ -3,9 +3,7 @@
 # FIXME: more unit tests with coverage
 # TODO: check serialisation of phrases/clause
 # TODO: check deepcopy
-# TODO: raise_to_xxx should use category
-# TODO: set discourse_function features of elements \
-# (matrix clause, object, subject, head, spec, ...)
+# TODO: raise_to_xxx should use category?
 # TODO: create module `element_algebra` and pud add/iadd into it
 # TODO: remove 'subj' and 'vp' from clause?
 
@@ -831,14 +829,6 @@ class NounPhrase(Phrase):
         return rv
 
     @property
-    def spec(self):
-        return self.specifier
-
-    @spec.setter
-    def spec(self, value):
-        self.specifier = value
-
-    @property
     def specifier(self):
         return self._spec
 
@@ -950,14 +940,6 @@ class VerbPhrase(Phrase):
         self.complements.append(new_value)
 
     @property
-    def direct_object(self):
-        return self.object
-
-    @direct_object.setter
-    def direct_object(self, value):
-        self.object = value
-
-    @property
     def indirect_object(self):
         for c in self.complements:
             if c[discourse_function] == discourse_function.indirect_object:
@@ -1008,17 +990,17 @@ class AdjectivePhrase(Phrase):
 class Clause(Phrase):
     """Clause - sentence.
     From simplenlg:
- * <UL>
- * <li>FrontModifier (eg, "Yesterday")
- * <LI>Subject (eg, "John")
- * <LI>PreModifier (eg, "reluctantly")
- * <LI>Verb (eg, "gave")
- * <LI>IndirectObject (eg, "Mary")
- * <LI>Object (eg, "an apple")
- * <LI>PostModifier (eg, "before school")
- * </UL>
- * Note that verb, indirect object, and object are propagated to the underlying
- * verb phrase
+    * <UL>
+    * <li>FrontModifier (eg, "Yesterday")
+    * <LI>Subject (eg, "John")
+    * <LI>PreModifier (eg, "reluctantly")
+    * <LI>Verb (eg, "gave")
+    * <LI>IndirectObject (eg, "Mary")
+    * <LI>Object (eg, "an apple")
+    * <LI>PostModifier (eg, "before school")
+    * </UL>
+    * Note that verb, indirect object, and object are propagated to the underlying
+    * verb phrase
 
     """
 
@@ -1055,10 +1037,10 @@ class Clause(Phrase):
         if isinstance(other, Clause):
             return Coordination(self_, other_)
         if is_adjective_type(other):
-            self_.subj += other_
+            self_.subject += other_
             return self_
         if is_adverb_type(other):
-            self_.vp += other_
+            self_.predicate += other_
             return self_
         else:
             msg = 'Cannot add these up: "{}" + "{}"'
@@ -1091,7 +1073,7 @@ class Clause(Phrase):
 
     @property
     def string(self):
-        return self.subj.string if self.subj else self.predicate.string
+        return self.subject.string or self.predicate.string
 
     @property
     def subject(self):
@@ -1101,6 +1083,7 @@ class Clause(Phrase):
     def subject(self, value):
         if self._subject:
             self._subject.parent = None
+            del self._subject[discourse_function]
         if value is not None:
             new_value = raise_to_np(value)
             new_value.parent = self
@@ -1110,14 +1093,6 @@ class Clause(Phrase):
         self._subject[discourse_function] = discourse_function.subject
 
     @property
-    def subj(self):
-        return self.subject
-
-    @subj.setter
-    def subj(self, value):
-        self.subject = value
-
-    @property
     def predicate(self):
         return self._predicate
 
@@ -1125,6 +1100,7 @@ class Clause(Phrase):
     def predicate(self, value):
         if self._predicate:
             self._predicate.parent = None
+            del self._predicate[discourse_function]
         if value is not None:
             new_value = raise_to_vp(value)
             new_value.parent = self
@@ -1142,15 +1118,8 @@ class Clause(Phrase):
         self.predicate = value
 
     @property
-    def vp(self):
-        return self.predicate
-
-    @vp.setter
-    def vp(self, value):
-        self.predicate = value
-
-    @property
     def verb(self):
+        # noinspection PyUnresolvedReferences
         return self.predicate.head if self.predicate else None
 
     @verb.setter
@@ -1158,31 +1127,29 @@ class Clause(Phrase):
         if self.predicate:
             self.predicate.head = raise_to_element(value)
         else:
-            self.predicate = value
+            self.predicate = raise_to_vp(value)
 
     @property
     def object(self):
+        # noinspection PyUnresolvedReferences
         return self.predicate.object if self.predicate else None
 
     @object.setter
     def object(self, value):
-        if self.predicate:
-            self.predicate.object = value
-        else:
-            msg = "Clause doesn't have a verb to set its object."
-            raise KeyError(msg)
+        if not self.predicate:
+            self.predicate = VerbPhrase()
+        self.predicate.object = value
 
     @property
     def indirect_object(self):
+        # noinspection PyUnresolvedReferences
         return self.predicate.indirect_object if self.predicate else None
 
     @indirect_object.setter
     def indirect_object(self, value):
-        if self.predicate:
-            self.predicate.indirect_object = value
-        else:
-            msg = "Clause doesn't have a verb to set its indirect object."
-            raise KeyError(msg)
+        if not self.predicate:
+            self.predicate = VerbPhrase()
+        self.predicate.indirect_object = value
 
     def elements(self, recursive=False, itself=None):
         """Return a generator yielding elements contained in the element
@@ -1244,6 +1211,62 @@ class Clause(Phrase):
         super().update_parents(parent)
 
 
+def is_adjective_type(element, strict=False):
+    """Return True if `element` is adjective modifier (adj or AdjP)"""
+    check = all if strict else any
+    return (isinstance(element, AdjectivePhrase) or
+            isinstance(element, Word) and element.pos == category.ADJECTIVE or
+            isinstance(element, Coordination) and check(is_adjective_type(c) for c in element.coords))
+
+
+def is_adverb_type(element, strict=False):
+    """Return True if `element` is adverb modifier (adv or AdvP)"""
+    check = all if strict else any
+    return (isinstance(element, AdverbPhrase) or
+            isinstance(element, Word) and element.pos == category.ADVERB or
+            isinstance(element, Coordination) and check(is_adverb_type(c) for c in element.coords))
+
+
+def is_noun_type(element, strict=False):
+    """Return True if `element` is adverb modifier (adv or AdvP)"""
+    check = all if strict else any
+    return (isinstance(element, NounPhrase) or
+            isinstance(element, Word) and element.pos == category.NOUN or
+            isinstance(element, Coordination) and check(is_noun_type(c) for c in element.coords))
+
+
+def is_verb_type(element, strict=False):
+    """Return True if `element` is adverb modifier (adv or AdvP)"""
+    check = all if strict else any
+    return (isinstance(element, VerbPhrase) or
+            isinstance(element, Word) and element.pos == category.VERB or
+            isinstance(element, Coordination) and check(is_verb_type(c) for c in element.coords))
+
+
+def is_element_type(element):
+    """Return True if `element` is an instance of `Element`."""
+    return isinstance(element, Element)
+
+
+def is_phrase_type(element, strict=False):
+    """Return True if `element` is a phrase. """
+    check = all if strict else any
+    if isinstance(element, Coordination):
+        return check(is_phrase_type(c) for c in element.coords)
+    return isinstance(element, Phrase)
+
+
+def is_clause_type(element, strict=False):
+    """An object is a clause type if it is a clause, subordination or
+    a coordination of clauses.
+
+    """
+    check = all if strict else any
+    if isinstance(element, Coordination):
+        return check(is_clause_type(c) for c in element.coords)
+    return isinstance(element, Clause)
+
+
 def raise_to_element(element):
     """Raise the given thing to an element (e.g., String). """
     if element is None:
@@ -1253,88 +1276,81 @@ def raise_to_element(element):
     return element
 
 
-def raise_to_np(phrase):
+def raise_to_np(element):
     """Take the current phrase and raise it to an NP.
     If `phrase` is a Noun it will be promoted to NP and used as a head;
     If `phrase` is a CC its coordinates will be raised to NPs
 
     """
-    phrase = raise_to_element(phrase)
-    if isinstance(phrase, Coordination):
-        phrase.coords = [raise_to_np(c) for c in phrase.coords]
-        return phrase
-    if isinstance(phrase, (String, Word)):
-        return NounPhrase(head=phrase)
-    if isinstance(phrase, Element) and phrase.category == category.ELEMENT:
-        return NounPhrase(head=phrase)
-    return phrase
+    element = raise_to_element(element)
+    if isinstance(element, Coordination):
+        element.coords = ElementList([raise_to_np(c) for c in element.coords])
+        return element
+    if isinstance(element, (String, Word)):
+        return NounPhrase(head=element)
+    if isinstance(element, Element) and element.category == category.ELEMENT:
+        return NounPhrase(head=element)
+    return element
 
 
-def raise_to_vp(phrase):
+def raise_to_vp(element):
     """Take the current phrase and raise it to a VP.
     If `phrase` is a Word it will be promoted to VP and used as a head;
     If `phrase` is a CC its coordinants will be raised to VPs
 
     """
-    phrase = raise_to_element(phrase)
-    if isinstance(phrase, Coordination):
-        phrase.coords = [raise_to_vp(c) for c in phrase.coords]
-        return phrase
-    if isinstance(phrase, String):
-        return VerbPhrase(head=phrase)
-    if isinstance(phrase, Word):
-        return VerbPhrase(head=phrase)
-    return phrase
+    element = raise_to_element(element)
+    if isinstance(element, Coordination):
+        element.coords = ElementList([raise_to_vp(c) for c in element.coords])
+        return element
+    if isinstance(element, String):
+        return VerbPhrase(head=element)
+    if isinstance(element, Word):
+        return VerbPhrase(head=element)
+    return element
 
 
-def is_element_type(o):
-    """Return True if `o` is an instance of `Element`."""
-    return isinstance(o, Element)
+def raise_to_phrase(element):
+    """ Convert element into a phrase. If it is a clause, return it as is.
 
-
-def is_phrase_type(o):
-    """Return True if `o` is a phrase. """
-    if o.category == category.COORDINATION and len(o.coords):
-        return any(is_phrase_type(c) for c in o.coords)
-    return (is_element_type(o) and
-            (o.category in (category.PHRASE, category.NOUN_PHRASE, category.VERB_PHRASE,
-                            category.ADJECTIVE_PHRASE, category.ADVERB_PHRASE,
-                            category.PREPOSITION_PHRASE)))
-
-
-def is_clause_type(o):
-    """An object is a clause type if it is a clause, subordination or
-    a coordination of clauses.
+    We use `isinstance()` instead of the element category because functions,
+    unlike classes can't be easily extended if you add a new category.
 
     """
-    if o.category == category.COORDINATION and len(o.coords):
-        return any(is_clause_type(c) for c in o.coords)
-    return is_element_type(o) and o.category == category.CLAUSE
+    if is_clause_type(element):
+        return element
+    if is_phrase_type(element):
+        return element
+    if isinstance(element, (Var, String)):
+        return NounPhrase(element, features=element.features)
+    if isinstance(element, Word):
+        if element.pos == category.VERB:
+            return VerbPhrase(element, features=element.features)
+        elif element.pos == category.ADVERB:
+            return VerbPhrase(element, features=element.features)
+        else:
+            return NounPhrase(element, features=element.features)
+    if isinstance(element, Coordination):
+        element.coords = ElementList([raise_to_phrase(c) for c in element.coords])
+        return element
+    return NounPhrase(element, features=element.features)
 
 
-def is_adjective_type(o):
-    """Return True if `o` is adjective modifier (adj or AdjP)"""
-    return (isinstance(o, AdjectivePhrase) or
-            isinstance(o, Word) and o.pos == category.ADJECTIVE or
-            isinstance(o, Coordination) and is_adjective_type(o.coords[0]))
-
-
-def is_adverb_type(o):
-    """Return True if `o` is adverb modifier (adv or AdvP)"""
-    return (isinstance(o, AdverbPhrase) or
-            isinstance(o, Word) and o.pos == category.ADVERB or
-            isinstance(o, Coordination) and is_adverb_type(o.coords[0]))
-
-
-def is_noun_type(o):
-    """Return True if `o` is adverb modifier (adv or AdvP)"""
-    return (isinstance(o, NounPhrase) or
-            isinstance(o, Word) and o.pos == category.NOUN or
-            isinstance(o, Coordination) and is_noun_type(o.coords[0]))
+def raise_to_clause(element):
+    """ Convert element into a clause. If it is a clause, return it as is. """
+    if is_clause_type(element):
+        return element
+    if is_phrase_type(element):
+        if is_noun_type(element): return Clause(subject=element)
+        if is_verb_type(element): return Clause(predicate=element)
+    if isinstance(element, Coordination):
+        element.coords = ElementList([raise_to_clause(c) for c in element.coords])
+        return element
+    return Clause(element)
 
 
 def comparable_features(original_features):
-    """Return a dict of features limited to ones that can be used
+    """Return a copy of features limited to ones that can be used
     for equality comparison.
 
     """
@@ -1352,32 +1368,6 @@ def transfer_features(source, target):
     for f in TRANSFERABLE_FEATURES:
         if f in source:
             target[f] = source[f]
-
-
-def promote_to_clause(e):
-    """ Convert element into a clause. If it is a clause, return it as is. """
-    if is_clause_type(e):
-        return e
-    if is_phrase_type(e):
-        if e.category == category.NOUN_PHRASE: return Clause(subject=e)
-        if e.category == category.VERB_PHRASE: return Clause(predicate=e)
-    return Clause(e)
-
-
-def promote_to_phrase(e):
-    """ Convert element into a clause. If it is a clause, return it as is. """
-    if is_clause_type(e): return e
-    if is_phrase_type(e): return e
-    if e.category == category.STRING: return NounPhrase(e, features=e.features)
-    if e.category == category.VAR: return NounPhrase(e, features=e.features)
-    if e.category == category.WORD:
-        if e.pos == category.VERB: return VerbPhrase(e, features=e.features)
-        if e.pos == category.ADVERB: return VerbPhrase(e, features=e.features)
-        return NounPhrase(e, features=e.features)
-    if e.category == category.COORDINATION:
-        return Coordination(*[promote_to_phrase(x) for x in e.coords],
-                            conj=e.conj, features=e.features)
-    return NounPhrase(e, features=e.features)
 
 
 class ElementEncoder(json.JSONEncoder):
