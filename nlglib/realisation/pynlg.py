@@ -21,21 +21,21 @@ def realise(msg, **kwargs):
     elif isinstance(msg, str):
         return msg
     elif isinstance(msg, Element):
-        return realise_element(msg, **kwargs)
+        return element(msg, **kwargs)
     elif isinstance(msg, MsgSpec):
-        return realise_message_spec(msg, **kwargs)
+        return message_spec(msg, **kwargs)
     elif isinstance(msg, (list, tuple)):
-        return realise_list(msg, **kwargs)
+        return list(msg, **kwargs)
     elif isinstance(msg, Message):
-        return realise_message(msg, **kwargs)
+        return message(msg, **kwargs)
     elif isinstance(msg, Document):
-        return realise_document(msg, **kwargs)
+        return document(msg, **kwargs)
     else:
         raise TypeError('"%s" is neither a Message nor a MsgInstance' %
                         type(msg))
 
 
-def realise_element(elt, **kwargs):
+def element(elt, **kwargs):
     """ Realise NLG element. """
     logger.debug('Realising element (simple realisation):\n{0}'
                  .format(repr(elt)))
@@ -44,19 +44,19 @@ def realise_element(elt, **kwargs):
     return element.realise()
 
 
-def realise_message_spec(msg, **kwargs):
+def message_spec(msg, **kwargs):
     """ Realise message specification - this should not happen """
     logger.debug('Realising message spec:\n{0}'.format(repr(msg)))
-    return realise_element(StringElement(str(msg).strip()), **kwargs)
+    return element(StringElement(str(msg).strip()), **kwargs)
 
 
-def realise_list(elt, **kwargs):
+def list(elt, **kwargs):
     """ Realise a list. """
     logger.debug('Realising list of elements:\n{0}'.format(repr(elt)))
     return ' '.join(realise(x, **kwargs) for x in elt)
 
 
-def realise_message(msg, **kwargs):
+def message(msg, **kwargs):
     """ Return a copy of Message with strings. """
     logger.debug('Realising message:\n{0}'.format(repr(msg)))
     if msg is None: return None
@@ -74,7 +74,7 @@ def realise_message(msg, **kwargs):
     return sentences
 
 
-def realise_document(msg, **kwargs):
+def document(msg, **kwargs):
     """ Return a copy of a Document with strings. """
     logger.debug('Realising document.')
     if msg is None:

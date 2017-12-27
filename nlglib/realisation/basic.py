@@ -23,19 +23,19 @@ class Realiser(object):
         if msg is None:
             return ''
         elif msg.category in category.element:
-            return self.realise_element(msg, **kwargs)
+            return self.element(msg, **kwargs)
         elif msg.category == category.MSG:
-            return self.realise_message_spec(msg, **kwargs)
+            return self.message_spec(msg, **kwargs)
         elif msg.category == category.ELEMENT_LIST:
-            return self.realise_list(msg, **kwargs)
+            return self.list(msg, **kwargs)
         elif msg.category == category.RST:
-            return self.realise_message(msg, **kwargs)
+            return self.message(msg, **kwargs)
         elif msg.category == category.DOCUMENT:
-            return self.realise_document(msg, **kwargs)
+            return self.document(msg, **kwargs)
         else:
             return str(msg)
 
-    def realise_element(self, elt, **kwargs):
+    def element(self, elt, **kwargs):
         """ Realise NLG element. """
         self.logger.debug('Realising element (simple realisation):\n{0}'.format(repr(elt)))
         v = RealisationVisitor()
@@ -46,17 +46,17 @@ class Realiser(object):
         else:
             return ''
 
-    def realise_message_spec(self, msg, **kwargs):
+    def message_spec(self, msg, **kwargs):
         """ Realise message specification - this should not happen """
-        self.logger.debug('Realising message spec:\n{0}'.format(repr(msg)))
+        self.logger.error('Realising message spec:\n{0}'.format(repr(msg)))
         return str(msg).strip()
 
-    def realise_list(self, elt, **kwargs):
+    def list(self, elt, **kwargs):
         """ Realise a list. """
         self.logger.debug('Realising list of elements:\n{0}'.format(repr(elt)))
         return ' '.join(self.realise(x, **kwargs) for x in elt)
 
-    def realise_message(self, msg, **kwargs):
+    def message(self, msg, **kwargs):
         """ Return a copy of Message with strings. """
         self.logger.debug('Realising message:\n{0}'.format(repr(msg)))
         if msg is None: return None
@@ -66,7 +66,7 @@ class Realiser(object):
         self.logger.debug('flattened sentences: %s' % sentences)
         return ' '.join(sentences).strip()
 
-    def realise_document(self, msg, **kwargs):
+    def document(self, msg, **kwargs):
         """ Return a copy of a Document with strings. """
         self.logger.debug('Realising document.')
         if msg is None:
@@ -95,15 +95,15 @@ class RealisationVisitor:
         tmp = tmp.split(' ')
         return ' '.join([x for x in tmp if x != '']).strip()
 
-    def visit_element(self, node):
+    def element(self, node):
         pass
 
-    def visit_string(self, node):
+    def string(self, node):
         if element_type.negated in node:
             self.text += 'not '
         self.text += node.value + ' '
 
-    def visit_word(self, node):
+    def word(self, node):
         word = node.word
         # if (node.has_feature('NUMBER', 'PLURAL') and node.pos == 'NOUN'):
         #     word = lexicon.pluralise_noun(node.word)
@@ -111,14 +111,14 @@ class RealisationVisitor:
             self.text += 'not '
         self.text += word + ' '
 
-    def visit_var(self, node):
+    def var(self, node):
         if node.value:
             node.value.accept(self)
         else:
             self.text += str(node.id)
         self.text += ' '
 
-    def visit_clause(self, node):
+    def clause(self, node):
         # do a bit of coordination
         node.vp.features.update(node.features)
         node.vp.features.replace(node.subj[number])
@@ -136,14 +136,14 @@ class RealisationVisitor:
         for c in node.complements: c.accept(self)
         for o in node.postmodifiers: o.accept(self)
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         if node.coords is None or len(node.coords) == 0: return ''
         if len(node.coords) == 1:
             node.coords[0].accept(self)
             return
         for i, x in enumerate(node.coords):
             x.accept(self)
-            conjunction = node['conj'].value if 'conj' in node else ''
+            conjunction = node.conj if 'conj' in node else ''
             if conjunction == 'and' and i < len(node.coords) - 2:
                 self.text += ', '
             elif i < len(node.coords) - 1:
@@ -151,11 +151,7 @@ class RealisationVisitor:
                 if is_clause_type(self): conj = ', ' + conjunction
                 self.text += ' ' + conj + ' '
 
-    # FIXME: implement
-    def visit_subordination(self, node):
-        assert False, 'not implemented'
-
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         node.spec.accept(self)
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
@@ -166,7 +162,7 @@ class RealisationVisitor:
         for c in node.complements: c.accept(self)
         for c in node.postmodifiers: c.accept(self)
 
-    def visit_verb_phrase(self, node):
+    def verb_phrase(self, node):
         for c in node.premodifiers: c.accept(self)
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
@@ -217,16 +213,16 @@ class RealisationVisitor:
             c.accept(self)
         for c in node.postmodifiers: c.accept(self)
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node)
+    def preposition_phrase(self, node):
+        self.phrase(node)
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node)
+    def adjective_phrase(self, node):
+        self.phrase(node)
 
-    def visit_advp(self, node):
-        self.visit_phrase(node)
+    def advp(self, node):
+        self.phrase(node)
 
-    def visit_phrase(self, node):
+    def phrase(self, node):
         for c in node.front_modifiers: c.accept(self)
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)

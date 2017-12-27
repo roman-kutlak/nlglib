@@ -10,21 +10,6 @@ from .struct import *
 ###############################################################################
 
 
-# decorator
-def str_or_element(fn):
-    def helper(word, features=None):
-        if isinstance(word, str):
-            return fn(word, features=features)
-        elif isinstance(word, Element):
-            tmp = fn(str(word), features=features)
-            word.features.update(tmp.features)
-            return word
-        else:
-            return fn(str(word), features=features)
-
-    return helper
-
-
 @str_or_element
 def Any(word, features=None):
     return Word(word, ANY, features)

@@ -11,10 +11,10 @@
 
 
 import collections
-import inspect
 import json
 
 from copy import deepcopy
+from functools import wraps
 from urllib.parse import quote_plus
 
 from nlglib.features import NON_COMPARABLE_FEATURES, TRANSFERABLE_FEATURES
@@ -142,21 +142,17 @@ class Element(object):
         else:
             return str(visitor.xml)
 
-    def accept(self, visitor, element='Element'):
+    def accept(self, visitor, **kwargs):
         """Implementation of the Visitor pattern."""
-        visitor_name = 'visit_' + self.category.lower()
+        visitor_method_name = self.category.lower()
         # get the appropriate method of the visitor instance
-        m = getattr(visitor, visitor_name)
+        m = getattr(visitor, visitor_method_name)
         # ensure that the method is callable
         if not hasattr(m, '__call__'):
             msg = 'Error: cannot call undefined method: %s on visitor'
-            raise ValueError(msg % visitor_name)
-        sig = inspect.signature(m)
+            raise ValueError(msg % visitor_method_name)
         # and finally call the callback
-        if len(sig.parameters) == 1:
-            return m(self)
-        if len(sig.parameters) == 2:
-            return m(self, element)
+        return m(self, **kwargs)
 
     def features_to_xml_attributes(self):
         features = ""
@@ -182,16 +178,19 @@ class Element(object):
             return ' ' + features.strip()
         return ''
 
-    def constituents(self):
-        """Return a list or a generator representing 
-        the constituents of an element. 
-        
+    def elements(self, recursive=False, itself=None):
+        """Return a generator yielding elements contained in the element
+
+        :param bool recursive: also include sub-elements of the contained elements
+        :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
+
         """
-        return []
+        if itself or recursive:
+            yield self
 
     def arguments(self):
         """Return any arguments (vars) from the element as a list. """
-        return [x for x in self.constituents() if x.category == category.VAR]
+        return [x for x in self.elements(recursive=True) if x.category == category.VAR]
 
     def replace(self, one, another, key=lambda x: x):
         """Replace the first occurrence of `one` by `another`.
@@ -233,6 +232,21 @@ class Element(object):
             self.parent = parent
 
 
+# decorator
+def str_or_element(fn):
+    @wraps(fn)
+    def helper(word, features=None):
+        if isinstance(word, str):
+            return fn(word, features=features)
+        elif isinstance(word, Element):
+            tmp = fn(str(word), features=features)
+            word.features.update(tmp.features)
+            return word
+        else:
+            return fn(str(word), features=features)
+    return helper
+
+
 class ElementList(collections.UserList):
     category = category.ELEMENT_LIST
 
@@ -255,6 +269,14 @@ class ElementList(collections.UserList):
         item.parent = self.parent
         item.features.update(self.features)
         super().insert(i, item)
+
+    def remove(self, item):
+        raised_item = raise_to_element(item)
+        super().remove(raised_item)
+
+    def __contains__(self, item):
+        raised_item = raise_to_element(item)
+        super().__contains__(raised_item)
 
     def __iadd__(self, other):
         if isinstance(other, (ElementList, list, tuple)):
@@ -293,8 +315,22 @@ class ElementList(collections.UserList):
     def to_json(self):
         return json.dumps(self, cls=ElementEncoder)
 
-    def constituents(self):
-        return iter(self)
+    def elements(self, recursive=False, itself=None):
+        """Return a generator yielding elements contained in the element
+
+        Note that ElementList is a pseudo-element so it doesn't return
+        itself even if the param is specified.
+
+        :param bool recursive: also include sub-elements of the contained elements
+        :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
+
+        """
+        if recursive:
+            for e in self:
+                yield from e.elements(recursive, itself)
+        else:
+            for e in self:
+                yield e
 
     def update_parents(self, parent=_sentinel):
         if parent is not _sentinel:
@@ -344,9 +380,6 @@ class Var(Element):
         rv.parent = memo.get(id(self.parent), None)
         return rv
 
-    def constituents(self):
-        return [self]
-
     def set_value(self, val):
         if val is None: val = Word(str(self.id), 'NOUN')
         self.value = String(val) if isinstance(val, str) else val
@@ -389,9 +422,6 @@ class String(Element):
         rv.parent = memo.get(id(self.parent), None)
         return rv
 
-    def constituents(self):
-        return [self]
-
     @property
     def string(self):
         """Return the string inside the value. """
@@ -414,7 +444,7 @@ class Word(Element):
         return True
 
     def __eq__(self, other):
-        return super().__eq__(other) and self.word == other.word
+        return super().__eq__(other) and self.word == other.word and self.pos == other.pos
 
     def __hash__(self):
         if self.hash == -1:
@@ -436,9 +466,6 @@ class Word(Element):
         rv.parent = memo.get(id(self.parent), None)
         return rv
 
-    def constituents(self):
-        return [self]
-
     @property
     def string(self):
         """Return the word. """
@@ -454,12 +481,12 @@ class Coordination(Element):
 
     category = category.COORDINATION
 
-    def __init__(self, *coords, conj='and', features=None, parent=None, id=None):
+    def __init__(self, *coords, conj=None, features=None, parent=None, id=None):
         super().__init__(features, parent, id)
         self.coords = ElementList(parent=self)
         self.add_coordinates(*coords)
         self.coordinate_category = self.coords[0].category if self.coords else None
-        self.features['conj'] = conj
+        self.conj = conj if conj is not None else Word('and', category.CONJUNCTION)
 
     def __len__(self):
         return len(self.coords)
@@ -545,13 +572,29 @@ class Coordination(Element):
             #            'the same lexical category ({} but entering {}).')
             #     raise TypeError(msg.format(cat, self.coords[-1].cat))
 
-    def constituents(self):
-        """Return a generator to iterate through constituents. """
-        yield self
-        for c in self.coords:
-            yield c
-            if hasattr(c, 'constituents'):
-                yield from c.constituents()
+    def elements(self, recursive=False, itself=None):
+        """Return a generator yielding elements contained in the element
+
+        :param bool recursive: also include sub-elements of the contained elements
+        :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
+
+        """
+        if itself == 'first':
+            yield self
+
+        for i, e in enumerate(self.coords, start=1):
+            if i == len(self.coords) and self.conj:
+                if recursive:
+                    yield from self.conj.elements(recursive, itself)
+                else:
+                    yield self.conj
+            if recursive:
+                yield from e.elements(recursive, itself)
+            else:
+                yield e
+
+        if itself == 'last':
+            yield self
 
     def replace(self, one, another, key=lambda x: x):
         """Replace first occurrence of `one` with `another`.
@@ -600,7 +643,7 @@ class Phrase(Element):
 
     def __bool__(self):
         """Return True """
-        return any([x for x in self.constituents() if x is not self])
+        return any(bool(x) for x in self.elements())
 
     def __eq__(self, other):
         return (super().__eq__(other) and
@@ -662,37 +705,26 @@ class Phrase(Element):
             self._head = Element()
         self._head[discourse_function] = discourse_function.head
 
-    def yield_premodifiers(self):
-        """Iterate through pre-modifiers. """
-        for o in self.premodifiers:
-            for x in o.constituents():
-                yield from x.constituents()
+    def elements(self, recursive=False, itself=None):
+        """Return a generator yielding elements contained in the element
 
-    def yield_head(self):
-        """Iterate through the elements composing the head. """
-        if self.head is not None:
-            for x in self.head.constituents():
-                yield from x.constituents()
+        :param bool recursive: also include sub-elements of the contained elements
+        :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
 
-    def yield_complements(self):
-        """Iterate through complements. """
-        for o in self.complements:
-            for x in o.constituents():
-                yield from x.constituents()
+        """
+        if itself == 'first':
+            yield self
 
-    def yield_postmodifiers(self):
-        """Iterate throught post-modifiers. """
-        for o in self.postmodifiers:
-            for x in o.constituents():
-                yield from x.constituents()
+        yield from self.premodifiers.elements(recursive, itself)
+        if recursive:
+            yield from self.head.elements(recursive, itself)
+        else:
+            yield self.head
+        yield from self.complements.elements(recursive, itself)
+        yield from self.postmodifiers.elements(recursive, itself)
 
-    def constituents(self):
-        """Return a generator to iterate through constituents. """
-        yield self
-        yield from self.yield_premodifiers()
-        yield from self.yield_head()
-        yield from self.yield_complements()
-        yield from self.yield_postmodifiers()
+        if itself == 'last':
+            yield self
 
     def _replace_in_list(self, lst, one, another, key):
         for i, o in enumerate(lst):
@@ -822,15 +854,30 @@ class NounPhrase(Phrase):
             self._spec = Element()
         self._spec[discourse_function] = discourse_function.specifier
 
-    def constituents(self):
-        """Return a generator to iterate through constituents. """
-        yield self
-        for c in self.spec.constituents():
-            yield from c.constituents()
-        yield from self.yield_premodifiers()
-        yield from self.yield_head()
-        yield from self.yield_complements()
-        yield from self.yield_postmodifiers()
+    def elements(self, recursive=False, itself=None):
+        """Return a generator yielding elements contained in the element
+
+        :param bool recursive: also include sub-elements of the contained elements
+        :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
+
+        """
+        if itself == 'first':
+            yield self
+
+        if recursive:
+            yield from self.specifier.elements(recursive, itself)
+        else:
+            yield self.specifier
+        yield from self.premodifiers.elements(recursive, itself)
+        if recursive:
+            yield from self.head.elements(recursive, itself)
+        else:
+            yield self.head
+        yield from self.complements.elements(recursive, itself)
+        yield from self.postmodifiers.elements(recursive, itself)
+
+        if itself == 'last':
+            yield self
 
     def replace(self, one, another, key=lambda x: x):
         """Replace first occurrence of one with another.
@@ -1137,15 +1184,31 @@ class Clause(Phrase):
             msg = "Clause doesn't have a verb to set its indirect object."
             raise KeyError(msg)
 
-    def constituents(self):
-        """Return a generator to iterate through constituents. """
-        yield self
-        yield from self.yield_front_modifiers()
-        yield from self.subject.constituents()
-        yield from self.yield_premodifiers()
-        yield from self.predicate.constituents()
-        yield from self.yield_complements()
-        yield from self.yield_postmodifiers()
+    def elements(self, recursive=False, itself=None):
+        """Return a generator yielding elements contained in the element
+
+        :param bool recursive: also include sub-elements of the contained elements
+        :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
+
+        """
+        if itself == 'first':
+            yield self
+
+        yield from self.front_modifiers.elements(recursive, itself)
+        if recursive:
+            yield from self.subject.elements(recursive, itself)
+        else:
+            yield self.subject
+        yield from self.premodifiers.elements(recursive, itself)
+        if recursive:
+            yield from self.predicate.elements(recursive, itself)
+        else:
+            yield self.predicate
+        yield from self.complements.elements(recursive, itself)
+        yield from self.postmodifiers.elements(recursive, itself)
+
+        if itself == 'last':
+            yield self
 
     def replace(self, one, another, key=lambda x: x):
         """Replace first occurrence of `one` with `another` and
@@ -1171,12 +1234,6 @@ class Clause(Phrase):
 
         return super().replace(one, another, key)
 
-    def yield_front_modifiers(self):
-        """Iterate through front-modifiers. """
-        for o in self.front_modifiers:
-            for x in o.constituents():
-                yield from x.constituents()
-
     def update_parents(self, parent=_sentinel):
         if parent is not _sentinel:
             self.parent = parent
@@ -1192,7 +1249,7 @@ def raise_to_element(element):
     if element is None:
         return Element()
     if not isinstance(element, Element):
-        return String(str(element))  # use str() in case of numbers
+        return String(element)
     return element
 
 
@@ -1237,6 +1294,8 @@ def is_element_type(o):
 
 def is_phrase_type(o):
     """Return True if `o` is a phrase. """
+    if o.category == category.COORDINATION and len(o.coords):
+        return any(is_phrase_type(c) for c in o.coords)
     return (is_element_type(o) and
             (o.category in (category.PHRASE, category.NOUN_PHRASE, category.VERB_PHRASE,
                             category.ADJECTIVE_PHRASE, category.ADVERB_PHRASE,
@@ -1248,6 +1307,8 @@ def is_clause_type(o):
     a coordination of clauses.
 
     """
+    if o.category == category.COORDINATION and len(o.coords):
+        return any(is_clause_type(c) for c in o.coords)
     return is_element_type(o) and o.category == category.CLAUSE
 
 

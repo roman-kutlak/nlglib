@@ -78,7 +78,7 @@ def coordinations():
     obj += NP('Martha')
     c = Clause(subj, VP('chase'), obj)
     print(realise(c))
-    obj['conj'] = 'or'
+    obj.conj = 'or'
     print(realise(c))
 
 

@@ -31,19 +31,19 @@ class Realiser(object):
         elif isinstance(msg, str):
             return msg
         elif isinstance(msg, Element):
-            return self.realise_element(msg, **kwargs)
+            return self.element(msg, **kwargs)
         elif isinstance(msg, MsgSpec):
-            return self.realise_message_spec(msg, **kwargs)
+            return self.message_spec(msg, **kwargs)
         elif isinstance(msg, (list, tuple)):
-            return self.realise_list(msg, **kwargs)
+            return self.list(msg, **kwargs)
         elif isinstance(msg, Message):
-            return self.realise_message(msg, **kwargs)
+            return self.message(msg, **kwargs)
         elif isinstance(msg, Document):
-            return self.realise_document(msg, **kwargs)
+            return self.document(msg, **kwargs)
         else:
             raise TypeError('"%s" is neither a Message nor a MsgInstance' % type(msg))
 
-    def realise_element(self, elt, **kwargs):
+    def element(self, elt, **kwargs):
         """ Realise NLG element. """
         self.logger.debug('Realising element:\n{0}'.format(repr(elt)))
         if not elt.string:
@@ -54,17 +54,17 @@ class Realiser(object):
         result = self.client.xml_request(v.to_xml())
         return result.replace(' ,', ',')
 
-    def realise_message_spec(self, msg, **kwargs):
+    def message_spec(self, msg, **kwargs):
         """ Realise message specification - this should not happen """
         self.logger.debug('Realising message spec:\n{0}'.format(repr(msg)))
         return str(msg).strip()
 
-    def realise_list(self, elt, **kwargs):
+    def list(self, elt, **kwargs):
         """ Realise a list. """
         self.logger.debug('Realising list of elements:\n{0}'.format(repr(elt)))
         return ' '.join(self.realise(x, **kwargs) for x in elt)
 
-    def realise_message(self, msg, **kwargs):
+    def message(self, msg, **kwargs):
         """ Return a copy of Message with strings. """
         self.logger.debug('Realising message:\n{0}'.format(repr(msg)))
         if msg is None: return None
@@ -74,7 +74,7 @@ class Realiser(object):
         self.logger.debug('flattened sentences: %s' % sentences)
         return ' '.join(sentences).strip()
 
-    def realise_document(self, msg, **kwargs):
+    def document(self, msg, **kwargs):
         """ Return a copy of a Document with strings. """
         self.logger.debug('Realising document.')
         if msg is None:

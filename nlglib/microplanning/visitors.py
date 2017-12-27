@@ -1,12 +1,6 @@
-import logging
 from urllib.parse import quote_plus
 
 from .struct import Element, Clause, Phrase, Coordination, NounPhrase
-
-
-logger = logging.getLogger(__name__)
-
-# Visitors -- printing, xml, etc.
 
 
 class PrintVisitor:
@@ -89,10 +83,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml = xml
         self.ancestors.append('child')
 
-    def visit_element(self):
+    def element(self):
         pass
 
-    def visit_string(self, node):
+    def string(self, node):
         # neg = 'not ' if node.negated == 'true' else ''
         neg = ''
         features = node.features_to_xml_attributes()
@@ -104,7 +98,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
                                                **self._get_args(f=features))
         self.xml += text
 
-    def visit_word(self, node):
+    def word(self, node):
         # a bug in simplenlg treats 'is' differently from 'be'
         # so keep 'is' in templates to allow simple to_str realisation
         # but change it to 'be' for simplenlg
@@ -118,10 +112,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
                                                **self._get_args(f=features))
         self.xml += text
 
-    def visit_var(self, node):
+    def var(self, node):
         node.value.accept(self)
 
-    def visit_clause(self, node):
+    def clause(self, node):
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="SPhraseSpec"{f}>{sep}' \
             .format(**self._get_args(f=features))
@@ -133,7 +127,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self._process_elements(node, 'postmodifiers', name='postMod')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="NPPhraseSpec"{f}>{sep}' \
             .format(**self._get_args(f=features))
@@ -144,7 +138,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self._process_elements(node, 'postmodifiers', 'postMod')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
-    def visit_phrase(self, node, typ):
+    def phrase(self, node, typ):
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="{type}"{f}>{sep}' \
             .format(type=typ, **self._get_args(f=features))
@@ -154,19 +148,19 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self._process_elements(node, 'postmodifiers', 'postMod')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
-    def visit_verb_phrase(self, node):
-        self.visit_phrase(node, 'VPPhraseSpec')
+    def verb_phrase(self, node):
+        self.phrase(node, 'VPPhraseSpec')
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node, 'PPPhraseSpec')
+    def preposition_phrase(self, node):
+        self.phrase(node, 'PPPhraseSpec')
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node, 'AdjPhraseSpec')
+    def adjective_phrase(self, node):
+        self.phrase(node, 'AdjPhraseSpec')
 
-    def visit_advp(self, node):
-        self.visit_phrase(node, 'AdvPhraseSpec')
+    def advp(self, node):
+        self.phrase(node, 'AdvPhraseSpec')
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         features = node.features_to_xml_attributes()
         self.xml += '{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f}>{sep}' \
             .format(**self._get_args(f=features))
@@ -216,39 +210,39 @@ class ReprVisitor(PrintVisitor):
         self.data += ', '.join(tmp_no_whites)
         self.data += ']'
 
-    def visit_msg_spec(self, node):
+    def msg_spec(self, node):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(repr(node))
 
-    def visit_element(self, _):
+    def element(self, _):
         if self.do_indent: self.data += self.indent
         self.data += 'Element()'
 
-    def visit_string(self, node):
+    def string(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0}'.format(repr(node.value))
         if node.features != dict():
             self.data += ', ' + str(node.features)
         self.data += ')'
 
-    def visit_word(self, node):
+    def word(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Word({0}, {1}'.format(repr(node.word), repr(node.pos))
-        if node.features != dict():
+        if node.features:
             self.data += ', ' + str(node.features)
         self.data += ')'
 
-    def visit_var(self, node):
+    def var(self, node):
         if self.do_indent: self.data += self.indent
         if not node.value:
             self.data += 'Var({0}'.format(repr(node.id))
         else:
             self.data += 'Var({0}, {1}'.format(repr(node.id), repr(node.value))
-        if node.features != dict():
+        if node.features:
             self.data += ', ' + str(node.features)
         self.data += ')'
 
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'NounPhrase('
         self.indent += ' ' * len('NounPhrase(')
@@ -266,7 +260,7 @@ class ReprVisitor(PrintVisitor):
         self.data += ')'
         self.indent = self.indent[:-len('NounPhrase(')]
 
-    def visit_phrase(self, node, name=''):
+    def phrase(self, node, name=''):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
         self.data += name + '('
@@ -291,19 +285,19 @@ class ReprVisitor(PrintVisitor):
         self.data += ')'
         self.indent = self.indent[:-len(name + '(')]
 
-    def visit_verb_phrase(self, node):
-        self.visit_phrase(node, 'VerbPhrase')
+    def verb_phrase(self, node):
+        self.phrase(node, 'VerbPhrase')
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node, 'PrepositionPhrase')
+    def preposition_phrase(self, node):
+        self.phrase(node, 'PrepositionPhrase')
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node, 'AdjectivePhrase')
+    def adjective_phrase(self, node):
+        self.phrase(node, 'AdjectivePhrase')
 
-    def visit_advp(self, node):
-        self.visit_phrase(node, 'AdverbPhrase')
+    def advp(self, node):
+        self.phrase(node, 'AdverbPhrase')
 
-    def visit_clause(self, node):
+    def clause(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Clause('
         self.do_indent = False
@@ -322,7 +316,7 @@ class ReprVisitor(PrintVisitor):
         self.data += ')'
         self.indent = self.indent[:-len('Clause(')]
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Coordination('
         self.do_indent = False
@@ -333,7 +327,7 @@ class ReprVisitor(PrintVisitor):
             c.accept(self)
             self.data += ',\n'
             self.do_indent = True
-        self.data += self.indent + 'conj={0}'.format(repr(node['conj']))
+        self.data += self.indent + 'conj={0}'.format(repr(node.conj))
         if node.features != dict():
             self.data += ',\n' + self.indent
             self.data += 'features=' + str(node.features)
@@ -366,29 +360,29 @@ class StrVisitor(PrintVisitor):
         self.data = data
         self.do_indent = True
 
-    def visit_msg_spec(self, node):
+    def msg_spec(self, node):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(node)
 
-    def visit_element(self, _):
+    def element(self, _):
         self.data += ''
 
-    def visit_string(self, node):
+    def string(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0})'.format(repr(node.value))
 
-    def visit_word(self, node):
+    def word(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Word({0}, {1})'.format(repr(node.word), repr(node.pos))
 
-    def visit_var(self, node):
+    def var(self, node):
         if self.do_indent: self.data += self.indent
         if node.value == Element():
             self.data += 'Var({0})'.format(repr(node.id))
         else:
             self.data += 'Var({0}, {1})'.format(repr(node.id), repr(node.value))
 
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'NounPhrase('
         self.indent += ' ' * len('NounPhrase(')
@@ -401,7 +395,7 @@ class StrVisitor(PrintVisitor):
         self.do_indent = True
         self.indent = self.indent[:-len('NounPhrase(')]
 
-    def visit_phrase(self, node, name=''):
+    def phrase(self, node, name=''):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
         self.data += name + '('
@@ -421,19 +415,19 @@ class StrVisitor(PrintVisitor):
         self.data += ')'
         self.indent = self.indent[:-len(name + '(')]
 
-    def visit_verb_phrase(self, node):
-        self.visit_phrase(node, 'VerbPhrase')
+    def verb_phrase(self, node):
+        self.phrase(node, 'VerbPhrase')
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node, 'PrepositionPhrase')
+    def preposition_phrase(self, node):
+        self.phrase(node, 'PrepositionPhrase')
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node, 'AdjectivePhrase')
+    def adjective_phrase(self, node):
+        self.phrase(node, 'AdjectivePhrase')
 
-    def visit_advp(self, node):
-        self.visit_phrase(node, 'AdverbPhrase')
+    def advp(self, node):
+        self.phrase(node, 'AdverbPhrase')
 
-    def visit_clause(self, node):
+    def clause(self, node):
         self.data += self.indent
         self.data += 'Clause('
         self.do_indent = False
@@ -445,7 +439,7 @@ class StrVisitor(PrintVisitor):
         self.data += ')'
         self.indent = self.indent[:-len('Clause(')]
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Coordination('
         self.do_indent = False
@@ -479,29 +473,29 @@ class SimpleStrVisitor(PrintVisitor):
         self.data = data
         self.do_indent = True
 
-    def visit_msg_spec(self, node):
+    def msg_spec(self, node):
         if self.do_indent: self.data += self.indent
         self.data = ' '.join((self.data, node))
 
-    def visit_element(self, _):
+    def element(self, _):
         pass
 
-    def visit_string(self, node):
+    def string(self, node):
         if self.do_indent: self.data += self.indent
         self.data = ' '.join((self.data, str(node.value)))
 
-    def visit_word(self, node):
+    def word(self, node):
         if self.do_indent: self.data += self.indent
         self.data = ' '.join((self.data, str(node.word)))
 
-    def visit_var(self, node):
+    def var(self, node):
         if self.do_indent: self.data += self.indent
         if node.value == Element():
             self.data = ' '.join((self.data, str(node.id)))
         else:
             self.data = ' '.join((self.data, str(node.value)))
 
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         if node.spec != Element():
             node.spec.accept(self)
         for mod in node.premodifiers:
@@ -512,7 +506,7 @@ class SimpleStrVisitor(PrintVisitor):
         for mod in node.postmodifiers:
             mod.accept(self)
 
-    def visit_phrase(self, node, _=''):
+    def phrase(self, node, _=''):
         for mod in node.premodifiers:
             mod.accept(self)
         node.head.accept(self)
@@ -521,19 +515,19 @@ class SimpleStrVisitor(PrintVisitor):
         for mod in node.postmodifiers:
             mod.accept(self)
 
-    def visit_verb_phrase(self, node):
-        self.visit_phrase(node, 'VerbPhrase')
+    def verb_phrase(self, node):
+        self.phrase(node, 'VerbPhrase')
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node, 'PrepositionPhrase')
+    def preposition_phrase(self, node):
+        self.phrase(node, 'PrepositionPhrase')
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node, 'AdjectivePhrase')
+    def adjective_phrase(self, node):
+        self.phrase(node, 'AdjectivePhrase')
 
-    def visit_advp(self, node):
-        self.visit_phrase(node, 'AdverbPhrase')
+    def advp(self, node):
+        self.phrase(node, 'AdverbPhrase')
 
-    def visit_clause(self, node):
+    def clause(self, node):
         for mod in node.front_modifiers:
             mod.accept(self)
         if node.subj:
@@ -547,7 +541,7 @@ class SimpleStrVisitor(PrintVisitor):
         for mod in node.postmodifiers:
             mod.accept(self)
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         i = len(node.coords) - 2
         node.coords[0].accept(self)
         for c in node.coords[1:]:
@@ -583,44 +577,44 @@ class ElementVisitor:
         o = getattr(node, name)
         o.accept(self)
 
-    def visit_element(self):
+    def element(self):
         pass
 
-    def visit_string(self, node):
+    def string(self, node):
         self.elements.append(node)
 
-    def visit_word(self, node):
+    def word(self, node):
         self.elements.append(node)
 
-    def visit_var(self, node):
+    def var(self, node):
         self.elements.append(node)
 
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         self._process_element(node, 'spec')
         self._process_elements(node, 'premodifiers')
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
         self._process_elements(node, 'postmodifiers')
 
-    def visit_phrase(self, node):
+    def phrase(self, node):
         self._process_elements(node, 'premodifiers')
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
         self._process_elements(node, 'postmodifiers')
 
-    def visit_verb_phrase(self, node):
-        self.visit_phrase(node)
+    def verb_phrase(self, node):
+        self.phrase(node)
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node)
+    def preposition_phrase(self, node):
+        self.phrase(node)
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node)
+    def adjective_phrase(self, node):
+        self.phrase(node)
 
-    def visit_adverb_phrase(self, node):
-        self.visit_phrase(node)
+    def adverb_phrase(self, node):
+        self.phrase(node)
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         self._process_elements(node, 'coords')
 
 
@@ -639,19 +633,19 @@ class ConstituentVisitor:
         o = getattr(node, name)
         o.accept(self)
 
-    def visit_element(self):
+    def element(self):
         pass
 
-    def visit_string(self, node):
+    def string(self, node):
         self.elements.append(node)
 
-    def visit_word(self, node):
+    def word(self, node):
         self.elements.append(node)
 
-    def visit_var(self, node):
+    def var(self, node):
         self.elements.append(node)
 
-    def visit_noun_phrase(self, node):
+    def noun_phrase(self, node):
         self.elements.append(self)
         self._process_element(node, 'spec')
         self._process_elements(node, 'premodifiers')
@@ -659,26 +653,26 @@ class ConstituentVisitor:
         self._process_elements(node, 'complements')
         self._process_elements(node, 'postmodifiers')
 
-    def visit_phrase(self, node):
+    def phrase(self, node):
         self.elements.append(self)
         self._process_elements(node, 'premodifiers')
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
         self._process_elements(node, 'postmodifiers')
 
-    def visit_verb_phrase(self, node):
-        self.visit_phrase(node)
+    def verb_phrase(self, node):
+        self.phrase(node)
 
-    def visit_preposition_phrase(self, node):
-        self.visit_phrase(node)
+    def preposition_phrase(self, node):
+        self.phrase(node)
 
-    def visit_adjective_phrase(self, node):
-        self.visit_phrase(node)
+    def adjective_phrase(self, node):
+        self.phrase(node)
 
-    def visit_advp(self, node):
-        self.visit_phrase(node)
+    def advp(self, node):
+        self.phrase(node)
 
-    def visit_coordination(self, node):
+    def coordination(self, node):
         self.elements.append(self)
         self._process_elements(node, 'coords')
 
