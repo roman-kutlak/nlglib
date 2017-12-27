@@ -19,7 +19,7 @@ class TestRhetRel(unittest.TestCase):
       This is the nuclei
     </semrep>
     <semrep>
-      this is the satelite
+      this is the satellite
     </semrep>
   </RhetRel>
 """
@@ -36,7 +36,7 @@ class TestRhetRel(unittest.TestCase):
         this is another nuclei
       </semrep>
       <semrep>
-        this is the satelite
+        this is the satellite
       </semrep>
     </RhetRel>
   </RhetRel>
@@ -44,11 +44,11 @@ class TestRhetRel(unittest.TestCase):
 
     def test_init(self):
         nucleus = 'This is the nucleus'
-        satelite = 'this is the satelite'
-        r = RhetRel('elaboration', nucleus, satelite, marker='and')
+        satellite = 'this is the satellite'
+        r = RhetRel('elaboration', nucleus, satellite, marker='and')
         self.assertEqual(self.expected1, r.to_xml(1))
         nucleus2 = 'this is another nucleus'
-        r2 = RhetRel('concession', nucleus2, satelite, marker='however')
+        r2 = RhetRel('concession', nucleus2, satellite, marker='however')
         r = RhetRel('elaboration', nucleus, r2, marker='and')
         self.assertEqual(self.expected2, r.to_xml(1))
 
@@ -99,8 +99,7 @@ class TestMessage(unittest.TestCase):
         descr = repr(m)
         self.assertEqual(expected, descr)
 
-        expected = (
-        "Message (Contrast): Message (Elaboration): 'foo' 'bar' 'baz' 'bar' 'baz'")
+        expected = "Message (Contrast): Message (Elaboration): 'foo' 'bar' 'baz' 'bar' 'baz'"
         m2 = Message('Contrast', m, 'bar', 'baz')
         descr = repr(m2)
         self.assertEqual(expected, descr)
@@ -385,7 +384,7 @@ class TestWord(unittest.TestCase):
         self.assertNotEqual(w1, w2)
 
         w2.pos = 'NOUN'
-        w2.features['cat'] = 'NOUN'
+        w2.category = 'NOUN'
         self.assertEqual(w1, w2)
 
         w2.set_feature('role', 'subject')

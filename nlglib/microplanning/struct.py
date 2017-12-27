@@ -13,7 +13,6 @@
 import collections
 import inspect
 import json
-import logging
 
 from copy import deepcopy
 from urllib.parse import quote_plus
@@ -21,7 +20,6 @@ from urllib.parse import quote_plus
 from nlglib.features import NON_COMPARABLE_FEATURES, TRANSFERABLE_FEATURES
 from nlglib.features import FeatureSet, discourse_function, category, element_type
 
-logger = logging.getLogger(__name__)
 
 _sentinel = object()
 
@@ -42,8 +40,6 @@ class Element(object):
         self.parent = parent
         self.id = id
         self.hash = -1
-        if 'cat' not in self.features:
-            self.features['cat'] = category.ANY
 
     def __copy__(self):
         rv = self.__class__(features=self.features,
@@ -324,7 +320,6 @@ class Var(Element):
         super().__init__(features, parent, id)
         self.value = None
         self.set_value(obj)
-        self.features['cat'] = category.ANY
 
     def __bool__(self):
         """Return True """
@@ -370,7 +365,6 @@ class String(Element):
     def __init__(self, value='', features=None, parent=None, id=None):
         super().__init__(features, parent, id)
         self.value = str(value)
-        self.features['cat'] = category.ANY
 
     def __bool__(self):
         """Return True if the string is non-empty. """
@@ -407,12 +401,12 @@ class String(Element):
 class Word(Element):
     """Word represents word and its corresponding POS (Part-of-Speech) tag. """
 
-    def __init__(self, word, pos=category.ANY, features=None, parent=None, id=None):
-        self.category = category.WORD
+    category = category.WORD
+
+    def __init__(self, word, pos=None, features=None, parent=None, id=None):
         super().__init__(features, parent, id)
         self.word = str(word)
-        self.pos = pos
-        self.features['cat'] = pos
+        self.pos = pos or category.ANY
         self.do_inflection = False
 
     def __bool__(self):
@@ -596,7 +590,6 @@ class Phrase(Element):
 
     def __init__(self, features=None, parent=None, id=None, **kwargs):
         super().__init__(features, parent, id)
-        self['cat'] = self.category
         self.premodifiers = (ElementList(parent=self) +
                              kwargs.pop('premodifiers', []))
         self.head = kwargs.pop('head', None)
@@ -738,7 +731,6 @@ class Phrase(Element):
             transfer_features(self.head, another)
             self.head = another
             self.features.update(another.features)
-            self.features['cat'] = self.category
             return True
         if self.head.replace(one, another, key):
             return True
