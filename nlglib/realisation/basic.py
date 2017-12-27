@@ -2,7 +2,7 @@ import logging
 import string
 
 from nlglib.macroplanning import Document
-from nlglib.microplanning import is_clause_t
+from nlglib.microplanning import is_clause_type
 from nlglib.features import category, number, gender, case, tense, element_type, modal, FeatureGroup
 from nlglib.utils import flatten
 
@@ -148,7 +148,7 @@ class RealisationVisitor:
                 self.text += ', '
             elif i < len(node.coords) - 1:
                 conj = conjunction
-                if is_clause_t(self): conj = ', ' + conjunction
+                if is_clause_type(self): conj = ', ' + conjunction
                 self.text += ' ' + conj + ' '
 
     # FIXME: implement

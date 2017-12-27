@@ -18,7 +18,7 @@ import logging
 from copy import deepcopy
 from urllib.parse import quote_plus
 
-import nlglib.features
+from nlglib.features import NON_COMPARABLE_FEATURES, TRANSFERABLE_FEATURES
 from nlglib.features import FeatureSet, discourse_function, category, element_type
 
 logger = logging.getLogger(__name__)
@@ -77,19 +77,6 @@ class Element(object):
             self.hash = hash(str(self))
         return self.hash
 
-    @classmethod
-    def from_dict(cls, dct):
-        o = cls(None, None, None)
-        o.__dict__.update(dct)
-        return o
-
-    @classmethod
-    def from_json(cls, s):
-        return json.loads(s, cls=ElementDecoder)
-
-    def to_json(self):
-        return json.dumps(self, cls=ElementEncoder)
-
     def __repr__(self):
         from . import visitors
         v = visitors.ReprVisitor()
@@ -136,6 +123,19 @@ class Element(object):
         if not other:
             return self
         return Coordination(self, other)
+
+    @classmethod
+    def from_dict(cls, dct):
+        o = cls(None, None, None)
+        o.__dict__.update(dct)
+        return o
+
+    @classmethod
+    def from_json(cls, s):
+        return json.loads(s, cls=ElementDecoder)
+
+    def to_json(self):
+        return json.dumps(self, cls=ElementEncoder)
 
     def to_xml(self, depth=0, headers=False):
         from . import visitors
@@ -643,7 +643,7 @@ class Phrase(Element):
         return rv
 
     def __iadd__(self, other):
-        if is_adj_mod_t(other) or is_adv_mod_t(other):
+        if is_adjective_type(other) or is_adverb_type(other):
             self.premodifiers.append(other)
         else:
             self.complements.append(other)
@@ -1015,10 +1015,10 @@ class Clause(Phrase):
         self_ = deepcopy(self)
         if isinstance(other, Clause):
             return Coordination(self_, other_)
-        if is_adj_mod_t(other):
+        if is_adjective_type(other):
             self_.subj += other_
             return self_
-        if is_adv_mod_t(other):
+        if is_adverb_type(other):
             self_.vp += other_
             return self_
         else:
@@ -1238,46 +1238,46 @@ def raise_to_vp(phrase):
     return phrase
 
 
-def is_element_t(o):
+def is_element_type(o):
     """Return True if `o` is an instance of `Element`."""
     return isinstance(o, Element)
 
 
-def is_phrase_t(o):
+def is_phrase_type(o):
     """Return True if `o` is a phrase. """
-    return (is_element_t(o) and
+    return (is_element_type(o) and
             (o.category in (category.PHRASE, category.NOUN_PHRASE, category.VERB_PHRASE,
                             category.ADJECTIVE_PHRASE, category.ADVERB_PHRASE,
                             category.PREPOSITION_PHRASE)))
 
 
-def is_clause_t(o):
+def is_clause_type(o):
     """An object is a clause type if it is a clause, subordination or
     a coordination of clauses.
 
     """
-    return is_element_t(o) and o.category == category.CLAUSE
+    return is_element_type(o) and o.category == category.CLAUSE
 
 
-def is_adj_mod_t(o):
+def is_adjective_type(o):
     """Return True if `o` is adjective modifier (adj or AdjP)"""
     return (isinstance(o, AdjectivePhrase) or
             isinstance(o, Word) and o.pos == category.ADJECTIVE or
-            isinstance(o, Coordination) and is_adj_mod_t(o.coords[0]))
+            isinstance(o, Coordination) and is_adjective_type(o.coords[0]))
 
 
-def is_adv_mod_t(o):
+def is_adverb_type(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     return (isinstance(o, AdverbPhrase) or
             isinstance(o, Word) and o.pos == category.ADVERB or
-            isinstance(o, Coordination) and is_adv_mod_t(o.coords[0]))
+            isinstance(o, Coordination) and is_adverb_type(o.coords[0]))
 
 
-def is_noun_t(o):
+def is_noun_type(o):
     """Return True if `o` is adverb modifier (adv or AdvP)"""
     return (isinstance(o, NounPhrase) or
             isinstance(o, Word) and o.pos == category.NOUN or
-            isinstance(o, Coordination) and is_noun_t(o.coords[0]))
+            isinstance(o, Coordination) and is_noun_type(o.coords[0]))
 
 
 def comparable_features(original_features):
@@ -1287,8 +1287,7 @@ def comparable_features(original_features):
     """
     rv = original_features.copy()
     # disregard discourse_function features
-    ignored = nlglib.features.NON_COMPARABLE_FEATURES
-    for f in ignored:
+    for f in NON_COMPARABLE_FEATURES:
         rv.discard(f)
     return rv
 
@@ -1297,16 +1296,16 @@ def transfer_features(source, target):
     """Copy transferable features from `source` to `target`."""
     if target is None:
         return
-    for f in nlglib.features.TRANSFERABLE_FEATURES:
+    for f in TRANSFERABLE_FEATURES:
         if f in source:
             target[f] = source[f]
 
 
 def promote_to_clause(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
-    if is_clause_t(e):
+    if is_clause_type(e):
         return e
-    if is_phrase_t(e):
+    if is_phrase_type(e):
         if e.category == category.NOUN_PHRASE: return Clause(subject=e)
         if e.category == category.VERB_PHRASE: return Clause(predicate=e)
     return Clause(e)
@@ -1314,8 +1313,8 @@ def promote_to_clause(e):
 
 def promote_to_phrase(e):
     """ Convert element into a clause. If it is a clause, return it as is. """
-    if is_clause_t(e): return e
-    if is_phrase_t(e): return e
+    if is_clause_type(e): return e
+    if is_phrase_type(e): return e
     if e.category == category.STRING: return NounPhrase(e, features=e.features)
     if e.category == category.VAR: return NounPhrase(e, features=e.features)
     if e.category == category.WORD:
