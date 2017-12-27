@@ -179,6 +179,7 @@ element_type = FeatureGroup(
     'element_type',
     'elided',
     'negated',
+    'inflected',
 )
 
 

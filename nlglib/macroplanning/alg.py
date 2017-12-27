@@ -5,14 +5,13 @@ import nltk
 from nltk.sem import *
 from nltk.sem.logic import *
 
-from nlglib.structures import RhetRel, PredicateMsg, StringMsg,Word, Var
-from nlglib.structures import NounPhrase, Document
+from .struct import RhetRel, PredicateMsg, StringMsg, Document
+
+from nlglib.microplanning import NounPhrase, Word, Var
 
 from nlglib.features import element_type
 
 expr = nltk.sem.Expression.fromstring
-
-logger = logging.getLogger(__name__)
 
 
 def preprocess_content(data, **_):
@@ -69,7 +68,6 @@ def formula_to_rst(f):
     """ Convert a FOL formula to an RST tree. """
     # TODO: handle inequality better
     # TODO: handle lambdas (use Var?)
-    logger.debug(str(f))
     if isinstance(f, AndExpression):
         first = formula_to_rst(f.first)
         second = formula_to_rst(f.second)
@@ -115,33 +113,26 @@ def formula_to_rst(f):
         m.marker = 'there exists'
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, ApplicationExpression):
-        logger.debug('negated predicate: ' + str(f))
         predicate = f.term
         m = PredicateMsg(predicate.pred.variable.name,
                          *[formula_to_rst(x) for x in predicate.args],
                          features=(element_type.negated, ))
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, IndividualVariableExpression):
-        logger.debug('negated variable: ' + str(f))
         arg = f.term
         m = NounPhrase(Var(arg.variable.name), Word('not', 'DETERMINER'))
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, Expression):
-        logger.debug('negated expression: ' + str(f))
         arg = formula_to_rst(f.term)
         m = RhetRel('Negation', arg)
         m.marker = 'it is not the case that'
         return m
     if isinstance(f, NegatedExpression):
-        logger.warning('negated formula: ' + str(f))
         raise NotImplementedError()
     if isinstance(f, ApplicationExpression):
-        logger.debug('predicate: ' + str(f))
         return PredicateMsg(f.pred.variable.name, *[formula_to_rst(x) for x in f.args])
     if isinstance(f, (IndividualVariableExpression, ConstantExpression)):
-        logger.debug('variable: ' + str(f))
         m = NounPhrase(Var(f.variable.name))
         return m
     else:
-        logger.warning('None: ' + repr(f))
         return StringMsg(str(f))

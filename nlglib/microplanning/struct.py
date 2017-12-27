@@ -7,8 +7,6 @@
 # TODO: set discourse_function features of elements \
 # (matrix clause, object, subject, head, spec, ...)
 # TODO: create module `element_algebra` and pud add/iadd into it
-# TODO: move current microplanning visitors into \
-# mod microplanning.visitors or struct.visitors
 # TODO: remove 'subj' and 'vp' from clause?
 
 
@@ -38,7 +36,7 @@ class Element(object):
 
     category = category.ELEMENT
 
-    def __init__(self, features=FeatureSet(), parent=None, id=None):
+    def __init__(self, features=None, parent=None, id=None):
         self.features = FeatureSet()
         self.features.update(features)
         self.parent = parent
@@ -93,14 +91,14 @@ class Element(object):
         return json.dumps(self, cls=ElementEncoder)
 
     def __repr__(self):
-        from nlglib.microplanning import ReprVisitor
-        v = ReprVisitor()
+        from . import visitors
+        v = visitors.ReprVisitor()
         self.accept(v)
         return str(v)
 
     def __str__(self):
-        from nlglib.microplanning import SimpleStrVisitor
-        v = SimpleStrVisitor()
+        from . import visitors
+        v = visitors.SimpleStrVisitor()
         self.accept(v)
         return str(v)
 
@@ -140,8 +138,8 @@ class Element(object):
         return Coordination(self, other)
 
     def to_xml(self, depth=0, headers=False):
-        from nlglib.microplanning import XmlVisitor
-        visitor = XmlVisitor(depth=depth)
+        from . import visitors
+        visitor = visitors.XmlVisitor(depth=depth)
         self.accept(visitor)
         if headers:
             return str(visitor)
@@ -1283,9 +1281,9 @@ def is_noun_t(o):
 
 
 def comparable_features(original_features):
-    """Return a dict of features limited to ones that can be used 
+    """Return a dict of features limited to ones that can be used
     for equality comparison.
-    
+
     """
     rv = original_features.copy()
     # disregard discourse_function features
@@ -1302,6 +1300,32 @@ def transfer_features(source, target):
     for f in nlglib.features.TRANSFERABLE_FEATURES:
         if f in source:
             target[f] = source[f]
+
+
+def promote_to_clause(e):
+    """ Convert element into a clause. If it is a clause, return it as is. """
+    if is_clause_t(e):
+        return e
+    if is_phrase_t(e):
+        if e.category == category.NOUN_PHRASE: return Clause(subject=e)
+        if e.category == category.VERB_PHRASE: return Clause(predicate=e)
+    return Clause(e)
+
+
+def promote_to_phrase(e):
+    """ Convert element into a clause. If it is a clause, return it as is. """
+    if is_clause_t(e): return e
+    if is_phrase_t(e): return e
+    if e.category == category.STRING: return NounPhrase(e, features=e.features)
+    if e.category == category.VAR: return NounPhrase(e, features=e.features)
+    if e.category == category.WORD:
+        if e.pos == category.VERB: return VerbPhrase(e, features=e.features)
+        if e.pos == category.ADVERB: return VerbPhrase(e, features=e.features)
+        return NounPhrase(e, features=e.features)
+    if e.category == category.COORDINATION:
+        return Coordination(*[promote_to_phrase(x) for x in e.coords],
+                            conj=e.conj, features=e.features)
+    return NounPhrase(e, features=e.features)
 
 
 class ElementEncoder(json.JSONEncoder):
@@ -1322,7 +1346,7 @@ class ElementDecoder(json.JSONDecoder):
 
     @staticmethod
     def from_json(json_object):
-        prefix = "<class 'nlglib.structures.microplanning."
+        prefix = "<class 'nlglib.microplanning."
         if '__class__' in json_object:
             cls = json_object['__class__']
             if cls == ("%sElement'>" % prefix):

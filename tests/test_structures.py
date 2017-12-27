@@ -1,6 +1,14 @@
 import unittest
 
-from nlglib.structures import *
+from nlglib.macroplanning import RhetRel, Document, Message, MsgSpec
+from nlglib.microplanning import *
+
+Paragraph = Document
+
+
+class Section(Document):
+    def __init__(self, title, *paragraphs):
+        super().__init__(*paragraphs, title=title)
 
 
 class TestRhetRel(unittest.TestCase):
@@ -35,11 +43,11 @@ class TestRhetRel(unittest.TestCase):
 """
 
     def test_init(self):
-        nucleus = SemRep('This is the nuclei')
-        satelite = SemRep('this is the satelite')
+        nucleus = 'This is the nucleus'
+        satelite = 'this is the satelite'
         r = RhetRel('elaboration', nucleus, satelite, marker='and')
         self.assertEqual(self.expected1, r.to_xml(1))
-        nucleus2 = SemRep('this is another nuclei')
+        nucleus2 = 'this is another nucleus'
         r2 = RhetRel('concession', nucleus2, satelite, marker='however')
         r = RhetRel('elaboration', nucleus, r2, marker='and')
         self.assertEqual(self.expected2, r.to_xml(1))
@@ -298,7 +306,7 @@ class TestElement(unittest.TestCase):
     def test_str_to_elt(self):
         """ Test converting strings to Strings. """
         expected = [String('late'), Word('evening', 'NOUN')]
-        actual = list(str_to_elt('late', Word('evening', 'NOUN')))
+        actual = [raise_to_element('late'), raise_to_element(Word('evening', 'NOUN'))]
         self.assertEqual(expected, actual)
 
     def test_adding_mods(self):

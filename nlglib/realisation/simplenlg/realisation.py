@@ -9,8 +9,8 @@ The input is a document where NLG Elements were already realised to strings.
 
 import logging
 
-from nlglib.structures import *
-from nlglib.microplanning import XmlVisitor
+from nlglib.microplanning import *
+from nlglib.macroplanning import *
 from nlglib.utils import flatten
 
 from . import SimplenlgClient

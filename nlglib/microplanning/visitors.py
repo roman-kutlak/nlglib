@@ -1,40 +1,10 @@
 import logging
 from urllib.parse import quote_plus
 
-from nlglib.structures import Element, Clause, Phrase, Coordination
-from nlglib.structures import NounPhrase, VerbPhrase
-from nlglib.structures import is_clause_t, is_phrase_t, STRING, WORD
-from nlglib.structures import NOUN_PHRASE, VERB_PHRASE, VAR, COORDINATION
-from nlglib.features.category import VERB, ADVERB
+from .struct import Element, Clause, Phrase, Coordination, NounPhrase
 
 
 logger = logging.getLogger(__name__)
-
-
-def promote_to_clause(e):
-    """ Convert element into a clause. If it is a clause, return it as is. """
-    if is_clause_t(e): return e
-    if is_phrase_t(e):
-        if e.type == NOUN_PHRASE: return Clause(e)
-        if e.type == VERB_PHRASE: return Clause(Element(), e)
-    return Clause(e)
-
-
-def promote_to_phrase(e):
-    """ Convert element into a clause. If it is a clause, return it as is. """
-    if is_clause_t(e): return e
-    if is_phrase_t(e): return e
-    if e.type == STRING: return NounPhrase(e, features=e.features)
-    if e.type == VAR: return NounPhrase(e, features=e.features)
-    if e.type == WORD:
-        if e.pos == VERB: return VerbPhrase(e, features=e.features)
-        if e.pos == ADVERB: return VerbPhrase(e, features=e.features)
-        return NounPhrase(e, features=e.features)
-    if e.type == COORDINATION:
-        return Coordination(*[promote_to_phrase(x) for x in e.coords],
-                            conj=e.conj, features=e.features)
-    return NounPhrase(e, features=e.features)
-
 
 # Visitors -- printing, xml, etc.
 
@@ -233,7 +203,6 @@ class ReprVisitor(PrintVisitor):
         if len(attr) == 0: return
         self.data += ',\n'
         if self.do_indent: self.data += self.indent
-        #        self.indent += ' ' * len(name + '=[')
         self.data += name + '=['
 
         def fn(x):
@@ -242,13 +211,10 @@ class ReprVisitor(PrintVisitor):
             x.accept(r)
             return str(r)
 
-        #        logger.debug('*' * 4 + repr(attr))
         tmp = map(fn, attr)
         tmp_no_whites = [' '.join(x.split()) for x in tmp if x is not None]
         self.data += ', '.join(tmp_no_whites)
         self.data += ']'
-        # restore the indent
-        # self.indent = self.indent[:-len(name + '=(')]
 
     def visit_msg_spec(self, node):
         if self.do_indent: self.data += self.indent

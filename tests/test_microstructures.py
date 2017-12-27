@@ -5,7 +5,7 @@ from copy import copy, deepcopy
 import xml.etree.ElementTree as ET
 
 from nlglib.structures import microplanning
-from nlglib.structures.microplanning import (
+from nlglib.microplanning import (
     Element, ElementList, Var, String, Word, Coordination,
     Phrase, NounPhrase, VerbPhrase,
     AdjectivePhrase, AdverbPhrase, PrepositionPhrase,
@@ -31,7 +31,7 @@ class TestElement(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.Element\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.Element\'>', s)
         self.assertIn('"foo": "bar"', s)
 
     def test_from_json(self):
@@ -90,7 +90,7 @@ class TestElementList(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.ElementList\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.ElementList\'>', s)
 
     def test_from_json(self):
         s = self.e.to_json()
@@ -116,7 +116,7 @@ class TestVar(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.Var\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.Var\'>', s)
         self.assertIn('"foo": "bar"', s)
         self.assertIn('"id": "x"', s)
 
@@ -144,7 +144,7 @@ class TestString(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.String\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.String\'>', s)
         self.assertIn('"foo": "bar"', s)
         self.assertIn('"value": "happiness"', s)
 
@@ -172,7 +172,7 @@ class TestWord(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.Word\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.Word\'>', s)
         self.assertIn('"cat": "NOUN"', s)
         self.assertIn('"foo": "bar"', s)
         self.assertIn('"word": "happiness"', s)
@@ -208,7 +208,7 @@ class TestCoordination(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.Coordination\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.Coordination\'>', s)
         self.assertIn('"conj": "and"', s)
 
     def test_from_json_basic(self):
@@ -325,7 +325,7 @@ class TestPhrase(unittest.TestCase):
 
     def test_to_json(self):
         s = self.phrase.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.Phrase\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.Phrase\'>', s)
         self.assertIn('please', s)
         self.assertIn('say', s)
         self.assertIn('hello', s)
@@ -373,7 +373,7 @@ class TestNounPhrase(unittest.TestCase):
 
     def test_to_json(self):
         s = self.phrase.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.NounPhrase\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.NounPhrase\'>', s)
         self.assertIn('the', s)
         self.assertIn('small', s)
         self.assertIn('man', s)
@@ -505,7 +505,7 @@ class TestClause(unittest.TestCase):
 
     def test_to_json(self):
         s = self.clause.to_json()
-        self.assertIn('<class \'nlglib.structures.microplanning.Clause\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.Clause\'>', s)
         self.assertIn('I', s)
         self.assertIn('write', s)
         self.assertIn('programs', s)

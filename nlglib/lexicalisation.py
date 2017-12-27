@@ -1,9 +1,7 @@
 import numbers
 
 from nlglib.microplanning import *
-from nlglib.structures.microplanning import *
-from nlglib.structures.macroplanning import *
-from nlglib.structures.factories import *
+from nlglib.macroplanning import *
 from nlglib.features import element_type
 
 default_logger = logging.getLogger(__name__)
@@ -87,7 +85,7 @@ class Lexicaliser(object):
                 return template
             else:
                 # allow nested templates
-                lexicalised_arg = self(template, **kwargs)
+                lexicalised_arg = self.__call__(template, **kwargs)
                 rv.replace(arg, lexicalised_arg)
         return rv
 
@@ -107,7 +105,6 @@ class Lexicaliser(object):
         if msg is None:
             return None
         template = None
-        # noinspection PyBroadException
         try:
             template = self.get_template(msg, **kwargs)
             args = template.arguments()
@@ -124,8 +121,8 @@ class Lexicaliser(object):
                 self.logger.info(log_msg.format(str(arg), repr(lex_val)))
                 template.replace(arg, lex_val)
             return template
-        except:
-            self.logger.exception('Error in lexicalising MsgSpec')
+        except Exception as e:
+            self.logger.exception('Error in lexicalising MsgSpec: %s', e)
             self.logger.info('\tmsg: ' + repr(msg))
             self.logger.info('\ttemplate: ' + repr(template))
         return String(msg)
@@ -161,25 +158,25 @@ class Lexicaliser(object):
                                   features=features)
         elif relation == 'imply':
             self.logger.debug('RST Implication: ' + repr(rel))
-            subj = self.promote_to_phrase(nucleus)
-            compl = self.promote_to_phrase(satellite)
+            subj = promote_to_phrase(nucleus)
+            compl = promote_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'then'
-            result = self.promote_to_clause(subj)
+            result = promote_to_clause(subj)
             result.complements.append(compl)
             result.front_modifiers.append('if')
         elif relation == 'equivalent':
-            result = self.promote_to_phrase(nucleus)
-            compl = self.promote_to_phrase(satellite)
+            result = promote_to_phrase(nucleus)
+            compl = promote_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'if and only if'
             result.complements.append(compl)
         elif relation == 'impliedBy':
-            result = self.promote_to_phrase(nucleus)
-            compl = self.promote_to_phrase(satellite)
+            result = promote_to_phrase(nucleus)
+            compl = promote_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'if'
             result.complements.append(compl)
         elif relation == 'unless':
-            result = self.promote_to_phrase(nucleus)
-            compl = self.promote_to_phrase(satellite)
+            result = promote_to_phrase(nucleus)
+            compl = promote_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'unless'
             result.complements.append(compl)
         elif relation == 'equality':
@@ -204,7 +201,7 @@ class Lexicaliser(object):
             else:
                 np['COMPLEMENTISER'] = String(',')
 
-            result = self.promote_to_phrase(satellite)
+            result = promote_to_phrase(satellite)
 
             front_mod = np
             # front_mod should go in front of existing front_mods
@@ -217,7 +214,7 @@ class Lexicaliser(object):
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
                                               features=(element_type.negated, )))
-            cl = self.promote_to_phrase(nucleus)
+            cl = promote_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.vp.complements.append(cl)
         else:
@@ -295,28 +292,3 @@ class Lexicaliser(object):
             else:
                 raise Exception('Unexpected type "{}".'.format(type(item)))
         return rv
-
-    @staticmethod
-    def promote_to_clause(e):
-        """Convert `e` to a clause. If it is a clause, return it."""
-        if is_clause_t(e): return e
-        if is_phrase_t(e):
-            if e.category == NOUN_PHRASE: return Clause(subject=e)
-            if e.category == VERB_PHRASE: return Clause(predicate=e)
-        return Clause(e)
-
-    @staticmethod
-    def promote_to_phrase(e):
-        """Convert `e` to a phrase. If it is a phrase, return it. """
-        if is_clause_t(e): return e
-        if is_phrase_t(e): return e
-        if e.category == STRING: return NounPhrase(e, features=e.features)
-        if e.category == VAR: return NounPhrase(e, features=e.features)
-        if e.category == WORD:
-            if e.pos == VERB: return VerbPhrase(e, features=e.features)
-            if e.pos == ADVERB: return VerbPhrase(e, features=e.features)
-            return NounPhrase(e, features=e.features)
-        if e.category == COORDINATION:
-            return Coordination(*[promote_to_phrase(x) for x in e.coords],
-                                conj=e.conj, features=e.features)
-        return NounPhrase(e, features=e.features)

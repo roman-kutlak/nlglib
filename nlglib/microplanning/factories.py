@@ -1,6 +1,6 @@
-from nlglib.structures import Word
 from nlglib.features import number, gender, noun_type
 from nlglib.features.category import *
+from .struct import *
 
 
 ###############################################################################
@@ -13,7 +13,6 @@ from nlglib.features.category import *
 # decorator
 def str_or_element(fn):
     def helper(word, features=None):
-        from nlglib.structures import Element
         if isinstance(word, str):
             return fn(word, features=features)
         elif isinstance(word, Element):
@@ -173,8 +172,6 @@ def NP(spec, *mods_and_head, features=None):
     NP('the', 'brown', 'wooden', 'table')
 
     """
-    from nlglib.structures import NounPhrase
-
     if len(mods_and_head) == 0:
         words = [spec]
         spec = None
@@ -189,26 +186,21 @@ def NP(spec, *mods_and_head, features=None):
 
 
 def VP(head, *complements, features=None):
-    from nlglib.structures import VerbPhrase
     return VerbPhrase(Verb(head), *complements, features=features)
 
 
 def PP(head, *complements, features=None):
-    from nlglib.structures import PrepositionPhrase
     return PrepositionPhrase(Preposition(head),
                              *complements, features=features)
 
 
 def AdjP(head, *complements, features=None):
-    from nlglib.structures import AdjectivePhrase
     return AdjectivePhrase(Adjective(head), *complements, features=features)
 
 
 def AdvP(head, *complements, features=None):
-    from nlglib.structures import AdverbPhrase
     return AdverbPhrase(Adverb(head), *complements, features=features)
 
 
 def CC(*coordinates, features=None):
-    from nlglib.structures import Coordination
     return Coordination(*coordinates, features=features)

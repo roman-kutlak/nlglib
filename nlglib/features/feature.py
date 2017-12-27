@@ -119,6 +119,71 @@ class FeatureSet(MutableSet):
     def __init__(self, seq=()):
         self.feature_set = set(seq)
 
+    def __repr__(self):
+        return '<FeatureSet {0}>'.format(str(self.feature_set))
+
+    def __str__(self):
+        features = sorted(self.feature_set, key=lambda f: (f.name, f.value))
+        return '{' + ', '.join('{k}: {v}'.format(k=repr(f.name), v=repr(f.value)) for f in features) + '}'
+
+    def __len__(self):
+        return len(self.feature_set)
+
+    def __iter__(self):
+        return iter(self.feature_set)
+
+    def __contains__(self, x):
+        """Return True if the feature set contains either given feature or given feature group
+
+        This function relies on the fact that FeatureGroup and Feature compare as equal
+        if their names match. This is to allow, for example, number.plural == number return True.
+
+        >>> number = FeatureGroup('number', 'singular', 'plural')
+        >>> fs = FeatureSet([number.plural])
+        >>> number in fs
+        True
+        >>> number.singular in fs
+        False
+        >>> number.plural in fs
+        True
+
+        """
+        if isinstance(x, str):
+            x = FeatureGroup(x)
+        return x in self.feature_set
+
+    def __getitem__(self, feature):
+        """Return the value of the corresponding feature group (eg number or tense) or None
+
+        >>> fs = FeatureSet([Feature('number', 'plural')])
+        >>> fs[FeatureGroup('number')]
+        <Feature number: plural>
+
+        """
+        name = feature if isinstance(feature, str) else feature.name
+        for f in self.feature_set:
+            if name == f.name:
+                return f
+        return None
+
+    def __setitem__(self, key, value):
+        """Add the given `value` using `self.replace`; `key` is used only if `value` is a string.
+
+        >>> number = FeatureGroup('number', 'singular', 'plural')
+        >>> fs = FeatureSet([number.singular])
+        >>> fs[number] = number.plural
+        >>> repr(fs)
+        '<FeatureSet {<Feature number: plural>}>'
+        >>> fs[number] = 'singular'
+
+        """
+        if isinstance(value, str):
+            value = Feature(str(key), value)
+        self.replace(value)
+
+    def __delitem__(self, item):
+        self.discard(item)
+
     def add(self, value):
         """Add a feature into the set
         >>> fs = FeatureSet([Feature('number', 'singular')])
@@ -160,64 +225,6 @@ class FeatureSet(MutableSet):
         self.feature_set -= set(to_del)
         return to_del
 
-    def __len__(self):
-        return len(self.feature_set)
-
-    def __iter__(self):
-        return iter(self.feature_set)
-
-    def __contains__(self, x):
-        """Return True if the feature set contains either given feature or given feature group
-
-        This function relies on the fact that FeatureGroup and Feature compare as equal
-        if their names match. This is to allow, for example, number.plural == number return True.
-
-        >>> number = FeatureGroup('number', 'singular', 'plural')
-        >>> fs = FeatureSet([number.plural])
-        >>> number in fs
-        True
-        >>> number.singular in fs
-        False
-        >>> number.plural in fs
-        True
-
-        """
-        if isinstance(x, str):
-            x = FeatureGroup(x)
-        return x in self.feature_set
-
-    def __getitem__(self, feature):
-        """Return the value of the corresponding feature group (eg number or tense) or None
-
-        >>> fs = FeatureSet([Feature('number', 'plural')])
-        >>> fs[FeatureGroup('number')]
-        <Feature number: plural>
-
-        """
-        for f in self.feature_set:
-            name = feature if isinstance(feature, str) else feature.name
-            if name == f.name:
-                return f
-        return None
-
-    def __setitem__(self, key, value):
-        """Add the given `value` using `self.replace`; `key` is used only if `value` is a string.
-
-        >>> number = FeatureGroup('number', 'singular', 'plural')
-        >>> fs = FeatureSet([number.singular])
-        >>> fs[number] = number.plural
-        >>> repr(fs)
-        '<FeatureSet {<Feature number: plural>}>'
-        >>> fs[number] = 'singular'
-
-        """
-        if isinstance(value, str):
-            value = Feature(str(key), value)
-        self.replace(value)
-
-    def __delitem__(self, item):
-        self.discard(item)
-
     def get(self, feature, default=None):
         """Get the value of a given feature group or return `default` if it is not present
 
@@ -229,13 +236,6 @@ class FeatureSet(MutableSet):
 
         """
         return self[feature] if self[feature] is not None else default
-
-    def __repr__(self):
-        return '<FeatureSet {0}>'.format(str(self.feature_set))
-
-    def __str__(self):
-        features = sorted(self.feature_set, key=lambda f: (f.name, f.value))
-        return '{' + ', '.join('{k}: {v}'.format(k=repr(f.name), v=repr(f.value)) for f in features) + '}'
 
     def as_dict(self):
         """Return given feature set as a dictionary;

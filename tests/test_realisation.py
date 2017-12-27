@@ -1,8 +1,8 @@
 import unittest
 
-import nlglib.realisation as realisation
-from nlglib.structures import *
-from nlglib.realisation import RealisationVisitor
+from nlglib.microplanning import *
+from nlglib.macroplanning import *
+from nlglib.realisation.basic import Realiser, RealisationVisitor
 
 
 def get_clause():
@@ -16,20 +16,22 @@ def get_test_doc():
     c = get_clause()
     c.features['FORM'] = "IMPERATIVE"
     m2 = Message('Elaboration', c)
-    para = Paragraph(m1, m2)
+    para = Document(m1, m2)
     return para
 
 
 class TestRealiser(unittest.TestCase):
+
     def test_simple(self):
-        text = realisation.realise(get_clause())
+        realiser = Realiser()
+        text = realiser(get_clause())
         expected = 'you say hello'
         self.assertEqual(expected, text)
 
     def test_complex(self):
         c = get_clause()
 
-        realiser = realisation.Realiser()
+        realiser = Realiser()
         text = realiser.realise(c)
         expected = 'You say hello.'
         self.assertEqual(expected, text)
@@ -41,7 +43,7 @@ class TestRealiser(unittest.TestCase):
         self.assertEqual(expected, text)
 
         text = realiser.realise(get_test_doc())
-        expected = Paragraph('Hello.', 'Say hello.')
+        expected = Document('Hello.', 'Say hello.')
         self.assertEqual(expected, text)
 
 
@@ -103,7 +105,7 @@ class TestStringRealisation(unittest.TestCase):
         s.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = RealisationVisitor()
         expected = 'truck, car and motorbike'
         s = Coordination(w1, w2, w3)
@@ -128,7 +130,7 @@ class TestStringRealisation(unittest.TestCase):
         c.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = RealisationVisitor()
         c = Clause(Word('Peter', 'NOUN'),
                    Word('run', 'VERB'),
@@ -138,7 +140,7 @@ class TestStringRealisation(unittest.TestCase):
         c.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = RealisationVisitor()
         c = Clause(Word('Peter', 'NOUN'),
                    Word('run', 'VERB'),
@@ -152,17 +154,17 @@ class TestStringRealisation(unittest.TestCase):
     def test_np(self):
         v = RealisationVisitor()
         c = NounPhrase(Word('house', 'NOUN'),
-               Word('this', 'DETERMINER'))
+                       Word('this', 'DETERMINER'))
         expected = 'this house'
         c.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = RealisationVisitor()
         c = NounPhrase(Word('house', 'NOUN'),
-               Word('this', 'DETERMINER'),
-               premodifiers=['tall', 'yellow'],
-               postmodifiers=['that we lived in'])
+                       Word('this', 'DETERMINER'),
+                       premodifiers=['tall', 'yellow'],
+                       postmodifiers=['that we lived in'])
         expected = 'this tall yellow house that we lived in'
         c.accept(v)
         actual = str(v)
@@ -171,17 +173,17 @@ class TestStringRealisation(unittest.TestCase):
     def test_vp(self):
         v = RealisationVisitor()
         c = VerbPhrase(Word('hit', 'VERB'),
-               String('the ball'),
-               String('with the bat'))
+                       String('the ball'),
+                       String('with the bat'))
         expected = 'hit the ball with the bat'
         c.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = RealisationVisitor()
         c = VerbPhrase(Word('hit', 'VERB'),
-               NounPhrase(Word('ball', 'NOUN'), 'the'),
-               String('with the bat'))
+                       NounPhrase(Word('ball', 'NOUN'), 'the'),
+                       String('with the bat'))
         expected = 'hit the ball with the bat'
         c.accept(v)
         actual = str(v)
@@ -190,15 +192,15 @@ class TestStringRealisation(unittest.TestCase):
     def test_pp(self):
         v = RealisationVisitor()
         c = PrepositionPhrase(Word('in', 'PREPOSITION'),
-               String('the house'))
+                              String('the house'))
         expected = 'in the house'
         c.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = RealisationVisitor()
         c = PrepositionPhrase(Word('in', 'PREPOSITION'),
-               NounPhrase(Word('house', 'NOUN'), Word('the', 'DETERMINER')))
+                              NounPhrase(Word('house', 'NOUN'), Word('the', 'DETERMINER')))
         expected = 'in the house'
         c.accept(v)
         actual = str(v)
@@ -230,14 +232,6 @@ class TestStringRealisation(unittest.TestCase):
         s.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-
-
-
-
-
-
-
-
 
 
 # main

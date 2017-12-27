@@ -1,9 +1,5 @@
 import os
-import sys
-import pkgutil
 import threading
-
-from threading import RLock
 
 # sentinel
 _missing = object()

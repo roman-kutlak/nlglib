@@ -1,18 +1,14 @@
 import unittest
 
-from logic.fol import expr, Expr
-from nlglib.macroplanning import formula_to_rst, PredicateMsg
-from nlglib.structures.macroplanning import (
-    Document, RhetRel, MsgSpec, StringMsgSpec
-)
-from nlglib.structures.microplanning import String
+from nlglib.macroplanning import expr, formula_to_rst, PredicateMsg, Document
+from nlglib.microplanning import String
 
 
 class TestPredicateMsg(unittest.TestCase):
     def test_simple_predicate(self):
         p = expr('Happy(john)')
         spec = formula_to_rst(p)
-        self.assertEqual(PredicateMsg(Expr('Happy', ['john'])), spec)
+        self.assertEqual(PredicateMsg('Happy', 'john'), spec)
 
 
 class TestDocument(unittest.TestCase):

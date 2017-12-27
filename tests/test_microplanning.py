@@ -1,7 +1,6 @@
 import unittest
 
-from nlglib.microplanning import XmlVisitor, ReprVisitor, ElementVisitor
-from nlglib.structures import *
+from nlglib.microplanning import *
 
 
 class TestXmlFormatting(unittest.TestCase):
@@ -91,7 +90,7 @@ class TestXmlFormatting(unittest.TestCase):
         s.accept(v)
         actual = v.xml
         self.assertEqual(expected, actual)
-    
+
     def test_adjp(self):
         v = XmlVisitor()
         s = AdjP(Adjective('large'), Noun('office'))
@@ -108,7 +107,7 @@ class TestXmlFormatting(unittest.TestCase):
         s.accept(v)
         actual = v.xml
         self.assertEqual(expected, actual)
-    
+
     def test_advp(self):
         v = XmlVisitor()
         s = AdvP(Adverb('quickly'), VP(Verb('run')))
@@ -131,7 +130,7 @@ class TestXmlFormatting(unittest.TestCase):
     def test_clause(self):
         v = XmlVisitor()
         s = Clause(NP(Noun('Arthur')), VP(Verb('smiled'),
-                   features={'TENSE': 'PAST'}))
+                                          features={'TENSE': 'PAST'}))
         expected = """\
 <child xsi:type="SPhraseSpec">
   <subj xsi:type="NPPhraseSpec">
@@ -173,7 +172,7 @@ class TestXmlFormatting(unittest.TestCase):
     def test_format(self):
         v = XmlVisitor(depth=1, indent='    ')
         s = Clause(NP(Noun('Arthur')), VP(Verb('smiled'),
-                   features={'TENSE': 'PAST'}))
+                                          features={'TENSE': 'PAST'}))
         expected = """\
     <child xsi:type="SPhraseSpec">
         <subj xsi:type="NPPhraseSpec">
@@ -191,10 +190,10 @@ class TestXmlFormatting(unittest.TestCase):
         s.accept(v)
         actual = v.xml
         self.assertEqual(expected, actual)
-        
+
         v = XmlVisitor(indent='', sep='')
         s = Clause(NP(Noun('Arthur')), VP(Verb('smiled'),
-                   features={'TENSE': 'PAST'}))
+                                          features={'TENSE': 'PAST'}))
         expected = ('<child xsi:type="SPhraseSpec">'
                     '<subj xsi:type="NPPhraseSpec">'
                     '<head xsi:type="WordElement" cat="NOUN">'
@@ -221,7 +220,7 @@ class TestRepresentation(unittest.TestCase):
         s.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
     def test_word(self):
         v = ReprVisitor()
         s = Noun('truck')
@@ -229,7 +228,7 @@ class TestRepresentation(unittest.TestCase):
         s.accept(v)
         actual = str(v)
         self.assertEqual(expected, actual)
-        
+
         v = ReprVisitor()
         s = Noun('truck')
         s.set_feature('NUMBER', 'PLURAL')
@@ -255,11 +254,11 @@ class TestRepresentation(unittest.TestCase):
         actual = str(v)
         self.assertEqual(expected, actual)
         self.assertEqual(s, eval(actual))
-        
+
         v = ReprVisitor()
         s = Clause(NP(Noun('Python')), VP(Verb('rocks')))
         s.premodifiers.append(Adverb('today'))
-        s.set_feature('foo', 'bar')
+        s['foo'] = 'bar'
         expected = ("Clause(NP(Word('Python', 'NOUN')),\n"
                     "       VP(Word('rocks', 'VERB')),\n"
                     "       {'foo': 'bar'},\n"
@@ -268,7 +267,7 @@ class TestRepresentation(unittest.TestCase):
         actual = str(v)
         self.assertEqual(expected, actual)
         self.assertEqual(s, eval(actual))
-        
+
     def test_vp(self):
         v = ReprVisitor()
         s = VP(Verb('put'), NP('the', 'bat'), PP('on', NP('the', 'mat')))
@@ -284,21 +283,21 @@ class TestRepresentation(unittest.TestCase):
     def test_NP(self):
         v = ReprVisitor()
         s = NP('the', 'war')
-        expected = ("NP(Word('war', 'NOUN'), Word('the', 'DETERMINER'))")
+        expected = "NP(Word('war', 'NOUN'), Word('the', 'DETERMINER'))"
         s.accept(v)
         actual = str(v)
         self.assertEqual(s, eval(actual))
         self.assertEqual(expected, actual)
-        
+
         v = ReprVisitor()
         s = NP('the', 'war')
         s.postmodifiers.append(PP('of',
-                                   NP('the', 'worlds',
-                                      features={'NUMBER': 'PLURAL'})))
+                                  NP('the', 'worlds',
+                                     features={'NUMBER': 'PLURAL'})))
         expected = ("NP(Word('war', 'NOUN'), Word('the', 'DETERMINER'),\n"
                     "   postmodifiers=[PP(String('of'),\n"
-                    "                      NP(Word('worlds', 'NOUN'), "\
-                    "Word('the', 'DETERMINER'), "\
+                    "                      NP(Word('worlds', 'NOUN'), "
+                    "Word('the', 'DETERMINER'), "
                     "features={'NUMBER': 'PLURAL'}))])")
         s.accept(v)
         actual = str(v)
@@ -314,7 +313,7 @@ class TestRepresentation(unittest.TestCase):
         actual = str(v)
         self.assertEqual(s, eval(actual))
         self.assertEqual(expected, actual)
-        
+
     def test_coordination(self):
         v = ReprVisitor()
         s = Coordination(Noun('truck'), Noun('bike'))
@@ -345,7 +344,7 @@ class TestElementVisitor(unittest.TestCase):
         s.accept(v)
         actual = v.elements
         self.assertEqual(expected, actual)
-    
+
     def test_var(self):
         v = ElementVisitor()
         s = Var(0, 'Arthur Dent')
@@ -391,7 +390,7 @@ class TestElementVisitor(unittest.TestCase):
         s.accept(v)
         actual = v.elements
         self.assertEqual(expected, actual)
-    
+
     def test_advp(self):
         v = ElementVisitor()
         s = AdvP(Adverb('gently'), Verb('run'))

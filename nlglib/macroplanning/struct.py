@@ -2,7 +2,7 @@ import inspect
 import logging
 
 from nlglib.features import element_type, category
-from .microplanning import String, Element
+from nlglib.microplanning import String, Element
 
 logger = logging.getLogger(__name__)
 

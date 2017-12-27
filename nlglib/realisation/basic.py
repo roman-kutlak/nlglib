@@ -1,7 +1,8 @@
 import logging
 import string
 
-from nlglib.structures import Document, is_clause_t
+from nlglib.macroplanning import Document
+from nlglib.microplanning import is_clause_t
 from nlglib.features import category, number, gender, case, tense, element_type, modal, FeatureGroup
 from nlglib.utils import flatten
 
