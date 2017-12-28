@@ -1,10 +1,10 @@
 import numbers
+import logging
 
 from nlglib.microplanning import *
 from nlglib.macroplanning import *
 from nlglib.features import element_type
 
-default_logger = logging.getLogger(__name__)
 
 # **************************************************************************** #
 
@@ -32,7 +32,7 @@ class Lexicaliser(object):
         :param templates: a dict with templates for lexicalising elements
         
         """
-        self.logger = kwargs.get('logger', default_logger)
+        self.logger = kwargs.get('logger', logging.getLogger(__name__))
         self.templates = self.default_templates.copy()
         self.templates.update(kwargs.get('templates', {}))
 
@@ -187,9 +187,9 @@ class Lexicaliser(object):
         elif relation == 'inequality':
             result = Clause()
             result.subject(nucleus)
-            objekt = satellite
+            direct_object = satellite
             features[element_type] = element_type.negated
-            result.predicate(VP('is', objekt, features=features))
+            result.predicate(VP('is', direct_object, features=features))
         elif relation == 'quantifier':
             # quantifiers have multiple nuclei (variables)
             quant = rel.marker
@@ -216,7 +216,7 @@ class Lexicaliser(object):
                                               features=(element_type.negated, )))
             cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
-            result.vp.complements.append(cl)
+            result.predicate.complements.append(cl)
         else:
             result = rel.__class__(relation,
                                    *nuclei,

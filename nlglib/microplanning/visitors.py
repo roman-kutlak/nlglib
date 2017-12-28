@@ -1,5 +1,6 @@
 from urllib.parse import quote_plus
 
+from nlglib.features import discourse_function, element_type, aspect
 from .struct import Element, Clause, Phrase, Coordination, NounPhrase
 
 
@@ -83,13 +84,13 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml = xml
         self.ancestors.append('child')
 
-    def element(self):
+    def element(self, _):
         pass
 
     def string(self, node):
         # neg = 'not ' if node.negated == 'true' else ''
         neg = ''
-        features = node.features_to_xml_attributes()
+        features = self.features_to_xml_attributes(node)
         text = ('{outer}<{tag} xsi:type="WordElement" '
                 'canned="true" {f}>{sep}'
                 '{inner}<base>{neg}{word}</base>{sep}'
@@ -104,11 +105,11 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         # but change it to 'be' for simplenlg
         word = node.word
         if word == 'is': word = 'be'
-        features = node.features_to_xml_attributes()
+        features = self.features_to_xml_attributes(node)
         id = ' id="{}"'.format(node.id) if node.id else ''
-        text = ('{outer}<{tag} xsi:type="WordElement"{f}{id}>{sep}'
+        text = ('{outer}<{tag} xsi:type="WordElement"{f}{id} cat="{cat}">{sep}'
                 '{inner}<base>{word}</base>{sep}'
-                '{outer}</{tag}>{sep}').format(word=quote_plus(word), id=id,
+                '{outer}</{tag}>{sep}').format(word=quote_plus(word), id=id, cat=node.pos,
                                                **self._get_args(f=features))
         self.xml += text
 
@@ -116,7 +117,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         node.value.accept(self)
 
     def clause(self, node):
-        features = node.features_to_xml_attributes()
+        features = self.features_to_xml_attributes(node)
         self.xml += '{outer}<{tag} xsi:type="SPhraseSpec"{f}>{sep}' \
             .format(**self._get_args(f=features))
         self._process_elements(node, 'front_modifiers', name='frontMod')
@@ -128,10 +129,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
     def noun_phrase(self, node):
-        features = node.features_to_xml_attributes()
+        features = self.features_to_xml_attributes(node)
         self.xml += '{outer}<{tag} xsi:type="NPPhraseSpec"{f}>{sep}' \
             .format(**self._get_args(f=features))
-        self._process_element(node, 'spec')
+        self._process_element(node, 'specifier', 'spec')
         self._process_elements(node, 'premodifiers', 'preMod')
         self._process_element(node, 'head')
         self._process_elements(node, 'complements', 'compl')
@@ -139,7 +140,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
     def phrase(self, node, typ):
-        features = node.features_to_xml_attributes()
+        features = self.features_to_xml_attributes(node)
         self.xml += '{outer}<{tag} xsi:type="{type}"{f}>{sep}' \
             .format(type=typ, **self._get_args(f=features))
         self._process_elements(node, 'premodifiers', 'preMod')
@@ -161,9 +162,9 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.phrase(node, 'AdvPhraseSpec')
 
     def coordination(self, node):
-        features = node.features_to_xml_attributes()
-        self.xml += '{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f}>{sep}' \
-            .format(**self._get_args(f=features))
+        features = self.features_to_xml_attributes(node)
+        self.xml += '{outer}<{tag} xsi:type="CoordinatedPhraseElement"{f} conj="{conj}">{sep}' \
+            .format(conj=str(node.conj), **self._get_args(f=features))
         self._process_elements(node, 'coords', 'coord')
         self.xml += '{outer}</{tag}>{sep}'.format(**self._get_args())
 
@@ -178,6 +179,41 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
     def __repr__(self):
         return 'XmlVisitor({0})'.format(self.xml)
+
+    @staticmethod
+    def features_to_xml_attributes(element):
+        features = ""
+        features_dict = {}
+        for f in element.features:
+            if f == discourse_function:
+                continue
+            if f == element_type.negated:
+                features_dict['NEGATED'] = 'true'
+                continue
+            if f == element_type.elided:
+                features_dict['ELIDED'] = 'true'
+                continue
+            if f == aspect.progressive:
+                features_dict['PROGRESSIVE'] = 'true'
+                continue
+            if f == aspect.perfect:
+                features_dict['PERFECT'] = 'true'
+                continue
+            if f == aspect.perfect_progressive:
+                features_dict['PERFECT'] = 'true'
+                features_dict['PROGRESSIVE'] = 'true'
+                continue
+            v = str(f.value)
+            if v.lower() in ('true', 'false'):
+                v = v.lower()
+            elif f.name not in ('conj', 'COMPLEMENTISER'):
+                v = v.upper()
+            features_dict[f.name] = v
+        if features_dict:
+            for k, v in features_dict.items():
+                features += '%s="%s" ' % (quote_plus(str(k).upper()), quote_plus(str(v)))
+            return ' ' + features.strip()
+        return ''
 
 
 class ReprVisitor(PrintVisitor):
@@ -248,9 +284,9 @@ class ReprVisitor(PrintVisitor):
         self.indent += ' ' * len('NounPhrase(')
         self.do_indent = False
         node.head.accept(self)
-        if node.spec != Element():
+        if node.specifier != Element():
             self.data += ', '
-            node.spec.accept(self)
+            node.specifier.accept(self)
         if node.features != dict():
             self.data += ', features=' + str(node.features)
         self.do_indent = True
@@ -301,11 +337,11 @@ class ReprVisitor(PrintVisitor):
         if self.do_indent: self.data += self.indent
         self.data += 'Clause('
         self.do_indent = False
-        node.subj.accept(self)
+        node.subject.accept(self)
         self.do_indent = True
         self.data += ',\n'
         self.indent += ' ' * len('Clause(')
-        node.vp.accept(self)
+        node.predicate.accept(self)
         if node.features != dict():
             self.data += ',\n'
             self.data += self.indent + 'features=' + str(node.features)
@@ -388,9 +424,9 @@ class StrVisitor(PrintVisitor):
         self.indent += ' ' * len('NounPhrase(')
         self.do_indent = False
         node.head.accept(self)
-        if node.spec != Element():
+        if node.specifier != Element():
             self.data += ', '
-            node.spec.accept(self)
+            node.specifier.accept(self)
         self.data += ')'
         self.do_indent = True
         self.indent = self.indent[:-len('NounPhrase(')]
@@ -431,11 +467,11 @@ class StrVisitor(PrintVisitor):
         self.data += self.indent
         self.data += 'Clause('
         self.do_indent = False
-        node.subj.accept(self)
+        node.subject.accept(self)
         self.do_indent = True
         self.data += ',\n'
         self.indent += ' ' * len('Clause(')
-        node.vp.accept(self)
+        node.predicate.accept(self)
         self.data += ')'
         self.indent = self.indent[:-len('Clause(')]
 
@@ -496,8 +532,8 @@ class SimpleStrVisitor(PrintVisitor):
             self.data = ' '.join((self.data, str(node.value)))
 
     def noun_phrase(self, node):
-        if node.spec != Element():
-            node.spec.accept(self)
+        if node.specifier != Element():
+            node.specifier.accept(self)
         for mod in node.premodifiers:
             mod.accept(self)
         node.head.accept(self)
@@ -530,12 +566,12 @@ class SimpleStrVisitor(PrintVisitor):
     def clause(self, node):
         for mod in node.front_modifiers:
             mod.accept(self)
-        if node.subj:
-            node.subj.accept(self)
+        if node.subject:
+            node.subject.accept(self)
         for mod in node.premodifiers:
             mod.accept(self)
-        if node.vp:
-            node.vp.accept(self)
+        if node.predicate:
+            node.predicate.accept(self)
         for mod in node.complements:
             mod.accept(self)
         for mod in node.postmodifiers:
@@ -590,7 +626,7 @@ class ElementVisitor:
         self.elements.append(node)
 
     def noun_phrase(self, node):
-        self._process_element(node, 'spec')
+        self._process_element(node, 'specifier')
         self._process_elements(node, 'premodifiers')
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
@@ -647,7 +683,7 @@ class ConstituentVisitor:
 
     def noun_phrase(self, node):
         self.elements.append(self)
-        self._process_element(node, 'spec')
+        self._process_element(node, 'specifier')
         self._process_elements(node, 'premodifiers')
         self._process_element(node, 'head')
         self._process_elements(node, 'complements')
@@ -679,10 +715,10 @@ class ConstituentVisitor:
 
 def sentence_iterator(sent):
     if isinstance(sent, Clause):
-        for x in sentence_iterator(sent.vp):
+        for x in sentence_iterator(sent.predicate):
             yield x
-        yield sent.vp
-        yield sent.subj
+        yield sent.predicate
+        yield sent.subject
         return
 
     if isinstance(sent, Phrase):
@@ -703,7 +739,7 @@ def sentence_iterator(sent):
                 yield x
 
         if isinstance(sent, NounPhrase):
-            for x in sentence_iterator(sent.spec):
+            for x in sentence_iterator(sent.specifier):
                 yield x
 
     if isinstance(sent, Coordination):
@@ -716,7 +752,7 @@ def sentence_iterator(sent):
 
 def aggregation_sentence_iterator(sent):
     if isinstance(sent, Clause):
-        for x in sentence_iterator(sent.vp):
+        for x in sentence_iterator(sent.predicate):
             yield x
         return
 
@@ -744,19 +780,19 @@ def replace_element(sent, elt, replacement=None):
         return True
 
     if isinstance(sent, Clause):
-        if sent.subj == elt:
-            sent.subj = replacement
+        if sent.subject == elt:
+            sent.subject = replacement
             return True
         else:
-            if replace_element(sent.subj, elt, replacement):
+            if replace_element(sent.subject, elt, replacement):
                 return True
 
-        if sent.vp == elt:
-            sent.vp = replacement
+        if sent.predicate == elt:
+            sent.predicate = replacement
             return True
 
         else:
-            if replace_element(sent.vp, elt, replacement):
+            if replace_element(sent.predicate, elt, replacement):
                 return True
 
     if isinstance(sent, Coordination):
@@ -807,8 +843,8 @@ def replace_element(sent, elt, replacement=None):
                     return True
 
         if isinstance(sent, NounPhrase):
-            if sent.spec == elt:
-                sent.spec = replacement
+            if sent.specifier == elt:
+                sent.specifier = replacement
                 return True
 
     return False
@@ -845,19 +881,19 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                 if replace_element_with_id(o, elt_id, replacement):
                     return True
 
-        if id(sent.subj) == elt_id:
-            sent.subj = replacement or Element()
+        if id(sent.subject) == elt_id:
+            sent.subject = replacement or Element()
             return True
         else:
-            if replace_element_with_id(sent.subj, elt_id, replacement):
+            if replace_element_with_id(sent.subject, elt_id, replacement):
                 return True
 
-        if id(sent.vp) == elt_id:
-            sent.vp = replacement
+        if id(sent.predicate) == elt_id:
+            sent.predicate = replacement
             return True
 
         else:
-            if replace_element_with_id(sent.vp, elt_id, replacement):
+            if replace_element_with_id(sent.predicate, elt_id, replacement):
                 return True
 
         for i, o in reversed(list(enumerate(sent.complements))):
@@ -918,8 +954,8 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                     return True
 
         if isinstance(sent, NounPhrase):
-            if sent.spec == elt_id:
-                sent.spec = replacement
+            if sent.specifier == elt_id:
+                sent.specifier = replacement
                 return True
     return False
 

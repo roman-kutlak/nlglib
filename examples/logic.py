@@ -4,7 +4,6 @@ from nlglib.realisation.simplenlg.realisation import Realiser
 from nlglib.lexicalisation import Lexicaliser
 from nlglib.macroplanning import *
 from nlglib.microplanning import *
-from nlglib.structures.factories import *
 
 
 def run():

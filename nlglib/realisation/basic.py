@@ -22,7 +22,7 @@ class Realiser(object):
     def realise(self, msg, **kwargs):
         if msg is None:
             return ''
-        elif msg.category in category.element:
+        elif msg.category in category.element_category:
             return self.element(msg, **kwargs)
         elif msg.category == category.MSG:
             return self.message_spec(msg, **kwargs)
@@ -120,15 +120,15 @@ class RealisationVisitor:
 
     def clause(self, node):
         # do a bit of coordination
-        node.vp.features.update(node.features)
-        node.vp.features.replace(node.subj[number])
-        node.vp.features.replace(node.subj[gender])
-        node.vp.features.replace(node.subj[case])
-        node.vp.features.replace(node[element_type])
+        node.predicate.features.update(node.features)
+        node.predicate.features.replace(node.subject[number])
+        node.predicate.features.replace(node.subject[gender])
+        node.predicate.features.replace(node.subject[case])
+        node.predicate.features.replace(node[element_type])
         for o in node.front_modifiers: o.accept(self)
-        node.subj.accept(self)
+        node.subject.accept(self)
         for o in node.premodifiers: o.accept(self)
-        node.vp.accept(self)
+        node.predicate.accept(self)
         if len(node.complements) > 0:
             if complementiser in node.complements[0]:
                 self.text += node.complements[0][complementiser]
@@ -143,7 +143,7 @@ class RealisationVisitor:
             return
         for i, x in enumerate(node.coords):
             x.accept(self)
-            conjunction = node.conj if 'conj' in node else ''
+            conjunction = str(node.conj)
             if conjunction == 'and' and i < len(node.coords) - 2:
                 self.text += ', '
             elif i < len(node.coords) - 1:
@@ -152,7 +152,7 @@ class RealisationVisitor:
                 self.text += ' ' + conj + ' '
 
     def noun_phrase(self, node):
-        node.spec.accept(self)
+        node.specifier.accept(self)
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
         if len(node.complements) > 0:

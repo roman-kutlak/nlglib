@@ -1,6 +1,7 @@
+import logging
+
 from nlglib.realisation.simplenlg.realisation import Realiser
-from nlglib.structures import *
-from nlglib.structures.factories import *
+from nlglib.microplanning import *
 
 
 realise = Realiser(host='roman.kutlak.info')

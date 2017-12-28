@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from nlglib.structures import *
+from nlglib.microplanning import *
 from nlglib.realisation import basic
 
 

@@ -3,9 +3,7 @@
 # FIXME: more unit tests with coverage
 # TODO: check serialisation of phrases/clause
 # TODO: check deepcopy
-# TODO: raise_to_xxx should use category?
 # TODO: create module `element_algebra` and pud add/iadd into it
-# TODO: remove 'subj' and 'vp' from clause?
 
 
 import collections
@@ -151,30 +149,6 @@ class Element(object):
             raise ValueError(msg % visitor_method_name)
         # and finally call the callback
         return m(self, **kwargs)
-
-    def features_to_xml_attributes(self):
-        features = ""
-        features_dict = {}
-        for f in self.features:
-            if f == discourse_function:
-                continue
-            if f == element_type.negated:
-                features_dict['NEGATED'] = 'true'
-                continue
-            if f == element_type.elided:
-                features_dict['ELIDED'] = 'true'
-                continue
-            v = str(f.value)
-            if v.lower() in ('true', 'false'):
-                v = v.lower()
-            elif f.name not in ('conj', 'COMPLEMENTISER'):
-                v = v.upper()
-            features_dict[f.name] = v
-        if features_dict:
-            for k, v in features_dict.items():
-                features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(v)))
-            return ' ' + features.strip()
-        return ''
 
     def elements(self, recursive=False, itself=None):
         """Return a generator yielding elements contained in the element
@@ -484,7 +458,10 @@ class Coordination(Element):
         self.coords = ElementList(parent=self)
         self.add_coordinates(*coords)
         self.coordinate_category = self.coords[0].category if self.coords else None
-        self.conj = conj if conj is not None else Word('and', category.CONJUNCTION)
+        if conj is not None:
+            self.conj = raise_to_element(conj)
+        else:
+            self.conj = String('and')
 
     def __len__(self):
         return len(self.coords)
@@ -498,7 +475,7 @@ class Coordination(Element):
         return self.hash
 
     def __copy__(self):
-        return self.__class__(*self.coords, features=self.features,
+        return self.__class__(*self.coords, conj=self.conj, features=self.features,
                               parent=self.parent, id=self.id)
 
     # noinspection PyArgumentList
@@ -506,6 +483,7 @@ class Coordination(Element):
         # pos is in features
         rv = self.__class__(features=None, parent=None, id=self.id)
         memo[id(self)] = rv
+        rv.conj = deepcopy(self.conj, memo=memo)
         rv.features = deepcopy(self.features, memo=memo)
         rv.coords = deepcopy(self.coords, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -801,12 +779,12 @@ class NounPhrase(Phrase):
     def __init__(self, head=None, spec=None, features=None,
                  parent=None, id=None, **kwargs):
         super().__init__(features, parent, id, **kwargs)
-        self.spec = spec
+        self.specifier = spec
         self.head = head
 
     def __eq__(self, other):
         return (super().__eq__(other) and
-                self.spec == other.spec and
+                self.specifier == other.specifier and
                 self.head == other.head)
 
     def __hash__(self):
@@ -815,7 +793,7 @@ class NounPhrase(Phrase):
         return self.hash
 
     def __copy__(self):
-        rv = self.__class__(self.head, self.spec, features=self.features,
+        rv = self.__class__(self.head, self.specifier, features=self.features,
                             parent=self.parent, id=self.id)
         rv.premodifiers = self.premodifiers[:]
         rv.complements = self.complements[:]
@@ -825,7 +803,7 @@ class NounPhrase(Phrase):
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         rv = super().__deepcopy__(memo=memo)
-        rv.spec = deepcopy(self.spec, memo=memo)
+        rv.specifier = deepcopy(self.specifier, memo=memo)
         return rv
 
     @property
@@ -877,13 +855,13 @@ class NounPhrase(Phrase):
         one = raise_to_element(one)
         another = raise_to_element(another)
 
-        if key(self.spec) == key(one):
-            self.spec.parent = None
+        if key(self.specifier) == key(one):
+            self.specifier.parent = None
             another.parent = self
-            transfer_features(self.spec, another)
-            self.spec = another
+            transfer_features(self.specifier, another)
+            self.specifier = another
             return True
-        if self.spec.replace(one, another, key):
+        if self.specifier.replace(one, another, key):
             return True
         return super().replace(one, another, key)
 

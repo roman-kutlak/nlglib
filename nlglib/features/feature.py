@@ -266,7 +266,7 @@ class FeatureSet(MutableSet):
         elif isinstance(other, FeatureSet):
             for f in other.feature_set:
                 self.replace(f)
-        elif isinstance(other, (list, tuple)):
+        elif isinstance(other, (list, tuple, set)):
             for x in other:
                 if isinstance(x, Feature):
                     self.replace(x)

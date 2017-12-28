@@ -157,7 +157,7 @@ def nlglib_to_pynlg(element, lexicon):
         return p
     if element.type == structures.NOUN_PHRASE:
         p = NounPhraseElement(lexicon=lexicon)
-        p.specifier = nlglib_to_pynlg(element.spec, lexicon)
+        p.specifier = nlglib_to_pynlg(element.specifier, lexicon)
         p.head = nlglib_to_pynlg(element.head, lexicon)
         for m in element.premodifiers:
             p.add_pre_modifier(nlglib_to_pynlg(m, lexicon))

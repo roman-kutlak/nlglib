@@ -8,8 +8,7 @@ of the spanish version running on port 50007
 import logging
 
 from nlglib.realisation.simplenlg.realisation import SimplenlgClient, Realiser
-from nlglib.structures import *
-from nlglib.structures.factories import *
+from nlglib.microplanning import *
 
 english_client = SimplenlgClient('roman.kutlak.info', 40000)
 spanish_client = SimplenlgClient('roman.kutlak.info', 40001)

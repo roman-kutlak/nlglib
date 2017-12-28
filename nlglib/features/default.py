@@ -75,7 +75,7 @@ aspect = FeatureGroup(
     'simple',
     'perfect',
     'progressive',
-    'perfect progressive',
+    'perfect_progressive',
     transform='lower'
 )
 

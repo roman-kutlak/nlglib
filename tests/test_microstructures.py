@@ -344,7 +344,7 @@ class TestNounPhrase(unittest.TestCase):
                                  premodifiers=['small', 'happy'])
 
     def test_init(self):
-        self.assertEqual(String('the'), self.phrase.spec)
+        self.assertEqual(String('the'), self.phrase.specifier)
         self.assertEqual(microplanning.NOUN_PHRASE, self.phrase.category)
         self.assertEqual(microplanning.NOUN_PHRASE, self.phrase.cat)
 
@@ -358,12 +358,12 @@ class TestNounPhrase(unittest.TestCase):
         p2 = deepcopy(p)
         self.assertEqual(p, p2)
         self.assertNotEqual(id(p), id(p2))
-        self.assertNotEqual(id(p.spec), id(p2.spec))
+        self.assertNotEqual(id(p.specifier), id(p2.specifier))
 
     def test_replace(self):
         """Test replacing specifier."""
         self.phrase.replace('the', 'a')
-        self.assertEqual(String('a'), self.phrase.spec)
+        self.assertEqual(String('a'), self.phrase.specifier)
 
     def test_replace2(self):
         """Test replacing an element."""
@@ -383,7 +383,7 @@ class TestNounPhrase(unittest.TestCase):
         p2 = json.loads(s, cls=microplanning.ElementDecoder)
         self.assertEqual(self.phrase, p2)
         self.assertEqual(p2, p2.head.parent)
-        self.assertEqual(p2, p2.spec.parent)
+        self.assertEqual(p2, p2.specifier.parent)
 
 
 class TestVerbPhrase(unittest.TestCase):

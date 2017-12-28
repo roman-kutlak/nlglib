@@ -77,7 +77,7 @@ RST = "RST"
 MSG = 'MSG'
 
 # Part of speech tags
-pos = FeatureGroup(
+pos_category = FeatureGroup(
     'POS',
     ANY,
     ADJECTIVE,
@@ -98,8 +98,8 @@ pos = FeatureGroup(
     transform='lower'
 )
 
-element = FeatureGroup(
-    'element',
+element_category = FeatureGroup(
+    'element_category',
     ELEMENT, ELEMENT_LIST,
     STRING, WORD, VAR,
     COORDINATION,
