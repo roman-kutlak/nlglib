@@ -71,6 +71,8 @@ VERB_PHRASE = "VERB_PHRASE"
 
 # Full document
 DOCUMENT = "DOCUMENT"
+# List of sentences
+PARAGRAPH = "PARAGRAPH"
 # RST relation
 RST = "RST"
 # Message Specification

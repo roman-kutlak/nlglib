@@ -1,7 +1,7 @@
 from urllib.parse import quote_plus
 
-from nlglib.features import discourse_function, element_type, aspect
-from .struct import Element, Clause, Phrase, Coordination, NounPhrase
+from nlglib.features import discourse_function, element_type, aspect, category, FeatureGroup
+from .struct import Element, Word, String, Clause, Phrase, Coordination, NounPhrase
 
 
 class PrintVisitor:
@@ -107,9 +107,9 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         if word == 'is': word = 'be'
         features = self.features_to_xml_attributes(node)
         id = ' id="{}"'.format(node.id) if node.id else ''
-        text = ('{outer}<{tag} xsi:type="WordElement"{f}{id} cat="{cat}">{sep}'
+        text = ('{outer}<{tag} xsi:type="WordElement"{f}{id}>{sep}'
                 '{inner}<base>{word}</base>{sep}'
-                '{outer}</{tag}>{sep}').format(word=quote_plus(word), id=id, cat=node.pos,
+                '{outer}</{tag}>{sep}').format(word=quote_plus(word), id=id,
                                                **self._get_args(f=features))
         self.xml += text
 
@@ -183,37 +183,43 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
     @staticmethod
     def features_to_xml_attributes(element):
         features = ""
-        features_dict = {}
+        if isinstance(element, Word):
+            cat = element.pos
+        elif isinstance(element, String):
+            cat = category.ANY
+        else:
+            cat = element.category
+        features_dict = {
+            'cat': cat
+        }
         for f in element.features:
-            if f == discourse_function:
-                continue
-            if f == element_type.negated:
-                features_dict['NEGATED'] = 'true'
-                continue
-            if f == element_type.elided:
-                features_dict['ELIDED'] = 'true'
-                continue
-            if f == aspect.progressive:
-                features_dict['PROGRESSIVE'] = 'true'
-                continue
-            if f == aspect.perfect:
-                features_dict['PERFECT'] = 'true'
-                continue
-            if f == aspect.perfect_progressive:
-                features_dict['PERFECT'] = 'true'
-                features_dict['PROGRESSIVE'] = 'true'
-                continue
-            v = str(f.value)
-            if v.lower() in ('true', 'false'):
-                v = v.lower()
-            elif f.name not in ('conj', 'COMPLEMENTISER'):
-                v = v.upper()
-            features_dict[f.name] = v
+            # if feature or feature group is not in dict, just return a dict with K:V
+            converted = simplenlg_features.get(f, {f.name.upper(): f.value.upper()})
+            # returned value is either a dict or a lambda taking `f`
+            if hasattr(converted, '__call__'):
+                converted = converted(f)
+            features_dict.update(converted)
         if features_dict:
-            for k, v in features_dict.items():
-                features += '%s="%s" ' % (quote_plus(str(k).upper()), quote_plus(str(v)))
+            for k in sorted(features_dict.keys()):
+                features += '%s="%s" ' % (quote_plus(str(k)), quote_plus(str(features_dict[k])))
             return ' ' + features.strip()
         return ''
+
+
+# either a dict or a lambda taking Feature and returning a dict
+simplenlg_features = {
+    discourse_function: lambda f: {'discourseFunction': f.value},
+    element_type.elided: {'ELIDED': 'true'},
+    element_type.negated: {'NEGATED': 'true'},
+    element_type.inflected: {'INFLECTED': 'true'},
+    aspect.progressive: {'PROGRESSIVE': 'true'},
+    aspect.perfect: {'PERFECT': 'true'},
+    aspect.perfect_progressive: {'PERFECT': 'true',
+                                 'PROGRESSIVE': 'true'},
+    FeatureGroup('conj'): lambda f: {f.name: f.value},
+    FeatureGroup('complementiser'): lambda f: {f.name.upper(): f.value},
+    FeatureGroup('COMPLEMENTISER'): lambda f: {f.name: f.value},
+}
 
 
 class ReprVisitor(PrintVisitor):

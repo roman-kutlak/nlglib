@@ -43,6 +43,7 @@ class Feature(object):
 
 class FeatureGroup(object):
     """Represents a group of features such as number or tense. """
+    # TODO: consider using metaclasses and __slots__
 
     def __init__(self, name, *values, transform=None):
         """Create a feature group with given values as Feature instances.
@@ -115,22 +116,23 @@ class FeatureGroup(object):
 
 class FeatureSet(MutableSet):
     """Represents a set of features"""
-
+    __slots__ = ['__s']
+    
     def __init__(self, seq=()):
-        self.feature_set = set(seq)
+        self.__s = set(seq)
 
     def __repr__(self):
-        return '<FeatureSet {0}>'.format(str(self.feature_set))
+        return '<FeatureSet {0}>'.format(str(self.__s))
 
     def __str__(self):
-        features = sorted(self.feature_set, key=lambda f: (f.name, f.value))
+        features = sorted(self.__s, key=lambda f: (f.name, f.value))
         return '{' + ', '.join('{k}: {v}'.format(k=repr(f.name), v=repr(f.value)) for f in features) + '}'
 
     def __len__(self):
-        return len(self.feature_set)
+        return len(self.__s)
 
     def __iter__(self):
-        return iter(self.feature_set)
+        return iter(self.__s)
 
     def __contains__(self, x):
         """Return True if the feature set contains either given feature or given feature group
@@ -150,7 +152,7 @@ class FeatureSet(MutableSet):
         """
         if isinstance(x, str):
             x = FeatureGroup(x)
-        return x in self.feature_set
+        return x in self.__s
 
     def __getitem__(self, feature):
         """Return the value of the corresponding feature group (eg number or tense) or None
@@ -161,7 +163,7 @@ class FeatureSet(MutableSet):
 
         """
         name = feature if isinstance(feature, str) else feature.name
-        for f in self.feature_set:
+        for f in self.__s:
             if name == f.name:
                 return f
         return None
@@ -192,7 +194,7 @@ class FeatureSet(MutableSet):
         '<FeatureSet {<Feature number: plural>, <Feature number: singular>}>'
 
         """
-        self.feature_set.add(value)
+        self.__s.add(value)
 
     def replace(self, value):
         """Add a feature into the set, replacing other feature(s) of the same group
@@ -221,8 +223,8 @@ class FeatureSet(MutableSet):
 
         """
         feature = value if isinstance(value, str) else value.name
-        to_del = (x for x in self.feature_set if x.name == feature)
-        self.feature_set -= set(to_del)
+        to_del = (x for x in self.__s if x.name == feature)
+        self.__s -= set(to_del)
         return to_del
 
     def get(self, feature, default=None):
@@ -243,18 +245,18 @@ class FeatureSet(MutableSet):
         The method is assuming that each feature belongs to a different group.
 
         """
-        return {f.name: f.value for f in self.feature_set}
+        return {f.name: f.value for f in self.__s}
 
     def keys(self):
-        for f in self.feature_set:
+        for f in self.__s:
             yield f.name
 
     def values(self):
-        for f in self.feature_set:
+        for f in self.__s:
             yield f.value
 
     def items(self):
-        for f in self.feature_set:
+        for f in self.__s:
             yield (f.name, f.value)
 
     def update(self, other):
@@ -264,7 +266,7 @@ class FeatureSet(MutableSet):
             for k, v in other.items():
                 self.replace(Feature(k, v))
         elif isinstance(other, FeatureSet):
-            for f in other.feature_set:
+            for f in other.__s:
                 self.replace(f)
         elif isinstance(other, (list, tuple, set)):
             for x in other:
@@ -278,4 +280,6 @@ class FeatureSet(MutableSet):
             raise TypeError(msg.format(type(other)))
 
     def copy(self):
-        return copy.copy(self)
+        rv = FeatureSet()
+        rv.__s = copy.copy(self.__s)
+        return rv

@@ -1,6 +1,6 @@
 import unittest
 
-from nlglib.macroplanning import MsgSpec, Message, Document, StringMsg
+from nlglib.macroplanning import MsgSpec, RhetRel, Document, StringMsg
 from nlglib.microplanning import Var, Clause, NounPhrase
 
 from nlglib.lexicalisation import Lexicaliser
@@ -12,7 +12,8 @@ class DummyMsg(MsgSpec):
     def __init__(self):
         super().__init__('dummy')
 
-    def arg_subject(self):
+    @staticmethod
+    def arg_subject():
         return NounPhrase('Boris')
 
 
@@ -27,7 +28,7 @@ class TestLexicalisation(unittest.TestCase):
     """ Tests for converting a MsgSpec into an NLG Element. """
 
     def test_string_msg(self):
-        """ Test lexicalising a message with "canned text". """
+        """ Test lexicalising a rhetRel with "canned text". """
         msg = StringMsg('this is some text')
         result = lex.msg_spec(msg)
         expected = Clause(subject='this is some text')
@@ -37,22 +38,22 @@ class TestLexicalisation(unittest.TestCase):
         """ Test lexicalisation of MsgSpec. """
         msg = DummyMsg()
         res = lex.msg_spec(msg)
-        expected = list(Clause('Boris', 'is', 'fast').constituents())
-        self.assertEqual(expected, list(res.constituents()))
+        expected = list(Clause('Boris', 'is', 'fast').elements(recursive=True))
+        self.assertEqual(expected, list(res.elements(recursive=True)))
 
-    def test_lexicalise_msg(self):
-        """ Test lexicalisation of Message. """
-        # a message with 1 nuclei and 2 satellites
-        m = Message('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
+    def test_lexicalise_rhet_rel(self):
+        """ Test lexicalisation of RhetRel. """
+        # a rhet relation with 3 nuclei
+        m = RhetRel('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
         lexicalised = lex.rhet_rel(m)
-        tmp = list(lex.msg_spec(DummyMsg()).constituents())
+        tmp = list(lex.msg_spec(DummyMsg()).elements(recursive=True))
         expected = tmp + tmp + tmp
-        self.assertEqual(expected, list(lexicalised.constituents()))
+        self.assertEqual(expected, list(lexicalised.elements(recursive=True)))
 
     def test_lexicalise_document(self):
         """ Test lexicalisation of Document. """
-        m1 = Message('Leaf', DummyMsg())
-        m2 = Message('Elaboration', DummyMsg(), DummyMsg())
+        m1 = RhetRel('Leaf', DummyMsg())
+        m2 = RhetRel('Elaboration', DummyMsg(), DummyMsg())
         s1 = Document(m1, title='Section One')
         s2 = Document(m2, title='Section Two')
         d = Document(s1, s2, title='Doc Title')

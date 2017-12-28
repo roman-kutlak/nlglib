@@ -36,10 +36,12 @@ class Realiser(object):
             return self.message_spec(msg, **kwargs)
         elif isinstance(msg, (list, tuple)):
             return self.list(msg, **kwargs)
-        elif isinstance(msg, Message):
+        elif isinstance(msg, RhetRel):
             return self.message(msg, **kwargs)
         elif isinstance(msg, Document):
             return self.document(msg, **kwargs)
+        elif isinstance(msg, Paragraph):
+            return self.paragraph(msg, **kwargs)
         else:
             raise TypeError('"%s" is neither a Message nor a MsgInstance' % type(msg))
 
@@ -84,3 +86,11 @@ class Realiser(object):
             title = title[:-1]
         sections = [self.realise(x, **kwargs) for x in msg.sections]
         return Document(*sections, title=title)
+
+    def paragraph(self, msg, **kwargs):
+        """ Return a copy of a Paragraph with strings. """
+        self.logger.debug('Realising paragraph.')
+        if msg is None:
+            return None
+        sentences = [self.realise(x, **kwargs) for x in msg.sentences]
+        return Paragraph(*sentences)

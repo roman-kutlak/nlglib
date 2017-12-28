@@ -9,13 +9,13 @@ from nlglib import logger
 from nlglib.features import category as lex_cat
 from nlglib import structures
 
-from nlglib.structures import Element, MsgSpec, Message, Document
+from nlglib.structures import Element, MsgSpec, RhetRel, Document
 
 DEFAULT_LEXICON = EnglishLexicon()
 
 
 def realise(msg, **kwargs):
-    """ Perform lexicalisation on the message depending on the type. """
+    """ Perform lexicalisation on the RhetRel depending on the type. """
     if msg is None:
         return None
     elif isinstance(msg, str):
@@ -26,12 +26,12 @@ def realise(msg, **kwargs):
         return message_spec(msg, **kwargs)
     elif isinstance(msg, (list, tuple)):
         return list(msg, **kwargs)
-    elif isinstance(msg, Message):
-        return message(msg, **kwargs)
+    elif isinstance(msg, RhetRel):
+        return RhetRel(msg, **kwargs)
     elif isinstance(msg, Document):
         return document(msg, **kwargs)
     else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance' %
+        raise TypeError('"%s" is neither a RhetRel nor a MsgInstance' %
                         type(msg))
 
 
@@ -45,8 +45,8 @@ def element(elt, **kwargs):
 
 
 def message_spec(msg, **kwargs):
-    """ Realise message specification - this should not happen """
-    logger.debug('Realising message spec:\n{0}'.format(repr(msg)))
+    """ Realise RhetRel specification - this should not happen """
+    logger.debug('Realising RhetRel spec:\n{0}'.format(repr(msg)))
     return element(StringElement(str(msg).strip()), **kwargs)
 
 
@@ -56,9 +56,9 @@ def list(elt, **kwargs):
     return ' '.join(realise(x, **kwargs) for x in elt)
 
 
-def message(msg, **kwargs):
-    """ Return a copy of Message with strings. """
-    logger.debug('Realising message:\n{0}'.format(repr(msg)))
+def RhetRel(msg, **kwargs):
+    """ Return a copy of RhetRel with strings. """
+    logger.debug('Realising RhetRel:\n{0}'.format(repr(msg)))
     if msg is None: return None
     sat = realise(msg.satellite, **kwargs)
     nuclei = [realise(x, **kwargs) for x in msg.nuclei if x is not None]

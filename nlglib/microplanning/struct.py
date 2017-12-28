@@ -248,7 +248,7 @@ class ElementList(collections.UserList):
 
     def __contains__(self, item):
         raised_item = raise_to_element(item)
-        super().__contains__(raised_item)
+        return super().__contains__(raised_item)
 
     def __iadd__(self, other):
         if isinstance(other, (ElementList, list, tuple)):
@@ -257,6 +257,11 @@ class ElementList(collections.UserList):
         else:
             self.append(other)
         return self
+
+    def __add__(self, other):
+        rv = ElementList(self, parent=self.parent, features=self.features)
+        rv += other
+        return rv
 
     def __setitem__(self, i, value):
         value = raise_to_element(value)
@@ -776,10 +781,10 @@ class NounPhrase(Phrase):
     _spec = Element()
     category = category.NOUN_PHRASE
 
-    def __init__(self, head=None, spec=None, features=None,
+    def __init__(self, head=None, specifier=None, features=None,
                  parent=None, id=None, **kwargs):
         super().__init__(features, parent, id, **kwargs)
-        self.specifier = spec
+        self.specifier = specifier
         self.head = head
 
     def __eq__(self, other):
@@ -892,8 +897,6 @@ class VerbPhrase(Phrase):
         self.complements += compl
         if 'object' in kwargs:
             self.object = kwargs.pop('object')
-        if 'direct_object' in kwargs:
-            self.object = kwargs.pop('direct_object')
         if 'indirect_object' in kwargs:
             self.indirect_object = kwargs.pop('indirect_object')
 
@@ -1115,7 +1118,7 @@ class Clause(Phrase):
     @object.setter
     def object(self, value):
         if not self.predicate:
-            self.predicate = VerbPhrase()
+            self.predicate = VerbPhrase(parent=self)
         self.predicate.object = value
 
     @property
@@ -1126,7 +1129,7 @@ class Clause(Phrase):
     @indirect_object.setter
     def indirect_object(self, value):
         if not self.predicate:
-            self.predicate = VerbPhrase()
+            self.predicate = VerbPhrase(parent=self)
         self.predicate.indirect_object = value
 
     def elements(self, recursive=False, itself=None):
@@ -1350,12 +1353,15 @@ def transfer_features(source, target):
 
 class ElementEncoder(json.JSONEncoder):
     def default(self, python_object):
-        dct = python_object.__dict__
-        if 'parent' in dct:
-            dct['parent'] = None
         if isinstance(python_object, (Element, ElementList)):
+            dct = python_object.__dict__
+            if 'parent' in dct:
+                dct['parent'] = None
             return {'__class__': str(type(python_object)),
                     '__value__': dct}
+        elif isinstance(python_object, FeatureSet):
+            return {'__class__': str(type(python_object)),
+                    '__value__': python_object.as_dict()}
         return super(ElementEncoder, self).default(python_object)
 
 
@@ -1366,7 +1372,7 @@ class ElementDecoder(json.JSONDecoder):
 
     @staticmethod
     def from_json(json_object):
-        prefix = "<class 'nlglib.microplanning."
+        prefix = "<class 'nlglib.microplanning.struct."
         if '__class__' in json_object:
             cls = json_object['__class__']
             if cls == ("%sElement'>" % prefix):
@@ -1395,8 +1401,12 @@ class ElementDecoder(json.JSONDecoder):
                 rv = Coordination.from_dict(json_object['__value__'])
             elif cls == ("%sClause'>" % prefix):
                 rv = Clause.from_dict(json_object['__value__'])
+            elif cls == "<class 'nlglib.features.feature.FeatureSet'>":
+                rv = FeatureSet()
+                rv.update(json_object['__value__'])
             else:
                 raise TypeError('Unknown class "{}"'.format(cls))
-            rv.update_parents()
+            if hasattr(rv, 'update_parents'):
+                rv.update_parents()
             return rv
         return json_object

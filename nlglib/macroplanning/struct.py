@@ -32,7 +32,8 @@ class Document:
         self._sections = [promote_to_string(s) for s in sections]
 
     def __eq__(self, other):
-        return (other.category == self.category and
+        return (isinstance(other, Document) and
+                other.category == self.category and
                 self.title == other.title and
                 self.sections == other.sections)
 
@@ -66,12 +67,18 @@ class Document:
     def sections(self, *sections):
         self._sections = [promote_to_string(s) for s in sections]
 
-    def constituents(self):
+    def elements(self, recursive=False, itself=None):
         """ Return a generator to iterate through the elements. """
         if self.title is not None:
-            yield self.title
+            if recursive:
+                yield from self.title.elements(recursive, itself)
+            else:
+                yield self.title
         for s in self.sections:
-            yield s
+            if recursive:
+                yield from s.elements(recursive, itself)
+            else:
+                yield s
 
     # TODO: use visitor and match with simplenlg?
     def to_xml(self, depth=0, indent='  '):
@@ -90,6 +97,71 @@ class Document:
             result += s.to_xml(depth=depth + 1)
         result += offset + indent + '</sections>\n'
         result += offset + '</document>\n'
+        return result
+
+
+class Paragraph:
+    """Paragraph represents a container holding sentences.
+
+    For convenience, if you pass in `str`, it will be promoted to `String`.
+    Any other types are left as they are.
+
+    """
+
+    category = category.PARAGRAPH
+
+    def __init__(self, *sentences):
+        """Create a new `Paragraph` with zero or more `sentences`.
+
+        :param sentences: document sections (`RhetRel` or `Element` type)
+
+        """
+        self._sentences = [promote_to_string(s) for s in sentences]
+
+    def __eq__(self, other):
+        return (isinstance(other, Paragraph) and
+                other.category == self.category and
+                self.sentences == other.sentences)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __repr__(self):
+        return '<Paragraph: ({})>'.format(len(self.sentences))
+
+    def __str__(self):
+        return ' '.join([str(s) for s in self.sentences])
+
+    @property
+    def sentences(self):
+        return self._sentences
+
+    @sentences.setter
+    def sentences(self, *sentences):
+        self._sentences = [promote_to_string(s) for s in sentences]
+
+    def elements(self, recursive=False, itself=None):
+        """ Return a generator to iterate through the elements. """
+        for s in self.sentences:
+            if recursive:
+                yield from s.elements(recursive, itself)
+            else:
+                yield s
+
+    # TODO: use visitor and match with simplenlg?
+    def to_xml(self, depth=0, indent='  '):
+        """Return an XML representation of the document"
+
+        :param depth: the initial indentation offset (depth * indent)
+        :param indent: the indent for nested elements.
+        """
+        offset = indent * depth
+        result = offset + '<paragraph>\n'
+        result += offset + indent + '<sentences>\n'
+        for s in self.sentences:
+            result += s.to_xml(depth=depth + 1)
+        result += offset + indent + '</sentences>\n'
+        result += offset + '</paragraph>\n'
         return result
 
 
@@ -153,9 +225,9 @@ class RhetRel:
     def nucleus(self):
         return self.nuclei[0]
 
-    def constituents(self):
+    def elements(self, recursive=False, itself=None):
         for x in self.order:
-            yield from x.constituents()
+            yield from x.elements(recursive, itself)
 
     def to_xml(self, lvl=0, indent='  '):
         spaces = indent * lvl
@@ -187,10 +259,6 @@ class RhetRel:
                            self.order[1].to_str()])
         rv = rv.replace(' , ', ', ').replace('  ', ' ')
         return rv
-
-
-# FIXME: replace in code --  partial backwards compatibility
-Message = RhetRel
 
 
 class MsgSpec:
@@ -254,8 +322,9 @@ class MsgSpec:
         if len(sig.parameters) == 2:
             return m(self, element)
 
-    def constituents(self):
-        return [self]
+    def elements(self, recursive=False, itself=None):
+        if recursive or itself:
+            yield self
 
 
 class StringMsg(MsgSpec):

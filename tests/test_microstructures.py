@@ -2,27 +2,24 @@ import json
 import unittest
 
 from copy import copy, deepcopy
-import xml.etree.ElementTree as ET
 
-from nlglib.structures import microplanning
-from nlglib.microplanning import (
-    Element, ElementList, Var, String, Word, Coordination,
-    Phrase, NounPhrase, VerbPhrase,
-    AdjectivePhrase, AdverbPhrase, PrepositionPhrase,
-    Clause
-)
+from nlglib.microplanning import *
 
-from nlglib.features import discourse
+from nlglib.features import discourse_function, category
 
 
 class TestElement(unittest.TestCase):
     def setUp(self):
         self.e = Element(features={'foo': 'bar'})
 
+    def test_basics(self):
+        """ Test ctor. """
+        e = Element()
+        self.assertFalse(bool(e))
+
     def test_copy(self):
         e2 = copy(self.e)
         self.assertEqual(self.e, e2)
-        self.assertEqual(id(self.e.features), id(e2.features))
 
     def test_deepcopy(self):
         e2 = deepcopy(self.e)
@@ -31,7 +28,7 @@ class TestElement(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.microplanning.Element\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.Element\'>', s)
         self.assertIn('"foo": "bar"', s)
 
     def test_from_json(self):
@@ -40,7 +37,7 @@ class TestElement(unittest.TestCase):
         self.assertEqual(self.e, e2)
 
     def test_feature_lookup(self):
-        self.assertEqual('bar', self.e.foo)
+        self.assertEqual('bar', self.e['foo'].value)
 
     def test_feature_del(self):
         del self.e['foo']
@@ -49,10 +46,51 @@ class TestElement(unittest.TestCase):
     def test_feature_set(self):
         self.e['zzz'] = 'baz'
         self.assertIn('zzz', self.e.features)
-        self.assertEqual('baz', self.e.zzz)
+        self.assertEqual('baz', self.e['zzz'].value)
 
     def test_add(self):
         self.assertEqual(Element(), Element() + Element())
+
+    def test_arguments(self):
+        """ Test retrieving arguments from an Element. """
+        e = Element()
+        args = list(e.arguments())
+        self.assertEqual([], args)
+
+    def test_set_argument(self):
+        """ Test replacing an argument with a value (Element). """
+        # does nothing on Element
+
+    def test_features_to_xml_attributes(self):
+        """ Test formatting features so that they can be put into XML. """
+        e = Element()
+        expected = ' TENSE="past"'
+        e['tense'] = 'past'
+        data = XmlVisitor.features_to_xml_attributes(e)
+        self.assertEqual(expected, data)
+
+        expected = ' TENSE="PAST" PROGRESSIVE="true"'
+        e['aspect'] = 'progressive'
+        data = XmlVisitor.features_to_xml_attributes(e)
+        self.assertEqual(True, 'TENSE="PAST"' in data)
+        self.assertEqual(True, 'PROGRESSIVE="true"' in data)
+        self.assertEqual(expected, data)
+
+    def test_eq(self):
+        """ Test the test of equality :-) """
+        e1 = Element()
+        e2 = Element()
+        self.assertEqual(e1, e2)
+
+        e1['tense'] = 'future'
+        self.assertNotEqual(e1, e2)
+
+        e2['aspect'] = 'progressive'
+        self.assertNotEqual(e1, e2)
+
+        e1['aspect'] = 'progressive'
+        e2['tense'] = 'future'
+        self.assertEqual(e1, e2)
 
 
 class TestElementList(unittest.TestCase):
@@ -90,12 +128,35 @@ class TestElementList(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.microplanning.ElementList\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.ElementList\'>', s)
 
     def test_from_json(self):
         s = self.e.to_json()
         e2 = ElementList.from_json(s)
         self.assertEqual(self.e, e2)
+
+    # noinspection PyTypeChecker
+    def test_adding_elements(self):
+        """ Test adding modifiers. """
+        tmp = ElementList()
+        tmp.append('yesterday')
+        expected = [String('yesterday')]
+        self.assertEqual(expected, tmp)
+
+        tmp += ['late', Word('evening', 'NOUN')]
+        expected.append(String('late'))
+        expected.append(Word('evening', 'NOUN'))
+        self.assertEqual(expected, tmp)
+
+    def test_deleting_elements(self):
+        """ Test deleting modifiers. """
+        tmp = ElementList(['to', 'the', 'little', 'shop'])
+        expected = [String(x) for x in ('to', 'the', 'little', 'shop')]
+        self.assertEqual(expected, tmp)
+        self.assertIn('little', tmp)
+        tmp.remove('little')
+        expected = expected[:3] + expected[4:]
+        self.assertEqual(expected, tmp)
 
 
 class TestVar(unittest.TestCase):
@@ -106,7 +167,6 @@ class TestVar(unittest.TestCase):
         e2 = copy(self.e)
         self.assertEqual(self.e, e2)
         self.assertEqual(self.e.value, e2.value)
-        self.assertEqual(id(self.e.features), id(e2.features))
 
     def test_deepcopy(self):
         e2 = deepcopy(self.e)
@@ -116,7 +176,7 @@ class TestVar(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.microplanning.Var\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.Var\'>', s)
         self.assertIn('"foo": "bar"', s)
         self.assertIn('"id": "x"', s)
 
@@ -125,16 +185,72 @@ class TestVar(unittest.TestCase):
         e2 = Element.from_json(s)
         self.assertEqual(self.e, e2)
 
+    def test_eq(self):
+        """ Test equality. """
+        self.assertEqual(Var(), Var())
+
+        p1 = Var('arg1')
+        p2 = Var('arg2')
+        self.assertNotEqual(p1, p2)
+
+        p2 = Var('arg1')
+        self.assertEqual(p1, p2)
+
+        p1['countable'] = 'no'
+        self.assertNotEqual(p1, p2)
+
+        p2['countable'] = 'no'
+        self.assertEqual(p1, p2)
+
+        p1 = Var('arg1', 'drum')
+        p1['countable'] = 'no'
+        self.assertNotEqual(p1, p2)
+
+        p2.set_value('drum')
+        self.assertEqual(p1, p2)
+
+    def test_repr(self):
+        """ Test debug printing. """
+        expected = "Var: id='obj1' value=None {}"
+        p = Var('obj1')
+        self.assertEqual(expected, repr(p))
+
+        expected = "Var: id='obj1' value=None {'countable': 'yes'}"
+        p['countable'] = 'yes'
+        self.assertEqual(expected, repr(p))
+
 
 class TestString(unittest.TestCase):
     def setUp(self):
         self.e = String('happiness', features={'foo': 'bar'})
 
+    def test_eq(self):
+        """ Test equality. """
+        s1 = String()
+        s2 = String()
+        self.assertEqual(s1, s2)
+
+        s1 = String('hello')
+        s2 = String('word')
+        self.assertNotEqual(s1, s2)
+
+        s1['type'] = 'greeting'
+        s2 = String('hello')
+        self.assertNotEqual(s1, s2)
+
+        s2['type'] = 'greeting'
+        self.assertEqual(s1, s2)
+
+        self.assertEqual(String('please'), raise_to_element('please'))
+
+        np = NP('my', 'house')
+        expected = [String('my'), String('house')]
+        self.assertEqual(expected, np.elements())
+
     def test_copy(self):
         e2 = copy(self.e)
         self.assertEqual(self.e, e2)
         self.assertEqual(self.e.value, e2.value)
-        self.assertEqual(id(self.e.features), id(e2.features))
 
     def test_deepcopy(self):
         e2 = deepcopy(self.e)
@@ -144,7 +260,7 @@ class TestString(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.microplanning.String\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.String\'>', s)
         self.assertIn('"foo": "bar"', s)
         self.assertIn('"value": "happiness"', s)
 
@@ -162,7 +278,6 @@ class TestWord(unittest.TestCase):
         e2 = copy(self.e)
         self.assertEqual(self.e, e2)
         self.assertEqual(self.e.word, e2.word)
-        self.assertEqual(id(self.e.features), id(e2.features))
 
     def test_deepcopy(self):
         e2 = deepcopy(self.e)
@@ -172,8 +287,8 @@ class TestWord(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.microplanning.Word\'>', s)
-        self.assertIn('"cat": "NOUN"', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.Word\'>', s)
+        self.assertIn('"pos": "NOUN"', s)
         self.assertIn('"foo": "bar"', s)
         self.assertIn('"word": "happiness"', s)
 
@@ -181,6 +296,48 @@ class TestWord(unittest.TestCase):
         s = self.e.to_json()
         e2 = Element.from_json(s)
         self.assertEqual(self.e, e2)
+
+    def test_str(self):
+        """ Test basic printing. """
+        w = Word('foo', 'NOUN')
+        expected = 'foo'
+        self.assertEqual(expected, str(w))
+
+        w['countable'] = 'yes'
+        self.assertEqual(expected, str(w))
+
+    def test_repr(self):
+        """ Test debug printing. """
+
+        w = Word('foo', 'NOUN')
+        expected = "Word('foo', 'NOUN')"
+        self.assertEqual(expected, repr(w))
+
+        expected = "Word('foo', 'NOUN', {'countable': 'yes'})"
+        w['countable'] = 'yes'
+        self.assertEqual(expected, repr(w))
+
+    def test_eq(self):
+        """ Test equality. """
+        w1 = Word('foo', 'NOUN')
+        w2 = Word('foo', 'VERB')
+        self.assertNotEqual(w1, w2)
+
+        w2.pos = 'NOUN'
+        self.assertEqual(w1, w2)
+
+        w2['role'] = 'subject'
+        self.assertNotEqual(w1, w2)
+
+        del w2['role']
+        self.assertEqual(w1, w2)
+
+        w1['role'] = 'subject'
+        w2['role'] = 'object'
+        self.assertNotEqual(w1, w2)
+
+        w2['role'] = 'subject'
+        self.assertEqual(w1, w2)
 
 
 class TestCoordination(unittest.TestCase):
@@ -191,7 +348,6 @@ class TestCoordination(unittest.TestCase):
         e2 = copy(self.e)
         self.assertEqual(self.e, e2)
         self.assertEqual(self.e.coords, e2.coords)
-        self.assertEqual(id(self.e.features), id(e2.features))
 
     def test_deepcopy(self):
         e2 = deepcopy(self.e)
@@ -199,8 +355,8 @@ class TestCoordination(unittest.TestCase):
         self.assertEqual(self.e.coords, e2.coords)
         self.assertNotEqual(id(self.e.features), id(e2.features))
         self.assertNotEqual(id(self.e.coords), id(e2.coords))
-        cs = list(self.e.constituents())
-        cs2 = list(e2.constituents())
+        cs = list(self.e.elements())
+        cs2 = list(e2.elements())
         self.assertEqual(cs, cs2)
         for c1, c2 in zip(cs, cs2):
             with self.subTest(actual=(c1, c2)):
@@ -208,8 +364,8 @@ class TestCoordination(unittest.TestCase):
 
     def test_to_json(self):
         s = self.e.to_json()
-        self.assertIn('<class \'nlglib.microplanning.Coordination\'>', s)
-        self.assertIn('"conj": "and"', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.Coordination\'>', s)
+        self.assertIn('"conj":', s)
 
     def test_from_json_basic(self):
         s = self.e.to_json()
@@ -226,9 +382,24 @@ class TestCoordination(unittest.TestCase):
         self.assertEqual(c3.coords[1].parent, c3)
 
     def test_replace(self):
+        """ Test replacing an element. """
         self.assertTrue(self.e.replace('fat', 'fluffy'))
         self.assertFalse(self.e.replace('fat', 'fluffy'))
         self.assertEqual(['big', 'fluffy'], [x.string for x in self.e.coords])
+
+        p = Coordination('apple', 'banana', 'pear', conj='')
+        expected = [String('apple'), String('banana'), String('pear')]
+        self.assertEqual(expected, list(p.elements()))
+
+        p.replace(String('banana'), String('potato'))
+        expected = [String('apple'), String('potato'), String('pear')]
+        self.assertEqual(expected, list(p.elements()))
+
+    def test_elements(self):
+        """ Test iterating through constituents. """
+        p = Coordination('apple', 'banana', 'pear')
+        expected = [String('apple'), String('banana'), String('and'), String('pear')]
+        self.assertEqual(expected, list(p.elements()))
 
 
 class TestPhrase(unittest.TestCase):
@@ -271,24 +442,24 @@ class TestPhrase(unittest.TestCase):
 
     def test_modifier_addition(self):
         """Test that adjective is added as a premodifier."""
-        mod = Word('happy', pos=microplanning.ADJECTIVE)
+        mod = Word('happy', pos=category.ADJECTIVE)
         self.phrase += mod
         self.assertIn(mod, self.phrase.premodifiers)
 
     def test_modifier_addition2(self):
         """Test that adverb is added as a premodifier."""
-        mod = Word('happily', pos=microplanning.ADVERB)
+        mod = Word('happily', pos=category.ADVERB)
         self.phrase += mod
         self.assertIn(mod, self.phrase.premodifiers)
 
     def test_modifier_addition3(self):
         """Test that preposition is added as a complement."""
-        mod = Word('over', pos=microplanning.PREPOSITION)
+        mod = Word('over', pos=category.PREPOSITION)
         self.phrase += mod
         self.assertIn(mod, self.phrase.complements)
 
     def test_set_head(self):
-        head = Word('shout', pos=microplanning.VERB)
+        head = Word('shout', pos=category.VERB)
         self.phrase.head = head
         self.assertEqual(head, self.phrase.head)
 
@@ -296,12 +467,12 @@ class TestPhrase(unittest.TestCase):
         self.phrase.head = None
         self.assertEqual(Element(), self.phrase.head)
 
-    def test_constituents(self):
+    def test_elements(self):
         p = self.phrase
-        for c in p.constituents():
+        for c in p.elements():
             with self.subTest(actual=c):
                 self.assertTrue(isinstance(c, (Phrase, String)))
-        self.assertEqual(p, list(p.constituents())[0])
+        self.assertEqual(p, list(p.elements(itself='first'))[0])
 
     def test_replace(self):
         p = self.phrase
@@ -325,28 +496,173 @@ class TestPhrase(unittest.TestCase):
 
     def test_to_json(self):
         s = self.phrase.to_json()
-        self.assertIn('<class \'nlglib.microplanning.Phrase\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.Phrase\'>', s)
         self.assertIn('please', s)
         self.assertIn('say', s)
         self.assertIn('hello', s)
 
     def test_from_json(self):
         s = self.phrase.to_json()
-        p2 = json.loads(s, cls=microplanning.ElementDecoder)
+        p2 = json.loads(s, cls=ElementDecoder)
         self.assertEqual(self.phrase, p2)
         self.assertEqual(p2, p2.head.parent)
+
+    def test_str(self):
+        """ Test basic printing. """
+        p = Phrase()
+        expected = ''
+        self.assertEqual(expected, str(p))
+
+        p.head = 'went'
+        expected = 'went'
+        self.assertEqual(expected, str(p))
+
+        p.premodifiers.append('Peter')
+        expected = 'Peter went'
+        self.assertEqual(expected, str(p))
+
+        p.complements.append('to')
+        expected = 'Peter went to'
+        self.assertEqual(expected, str(p))
+
+        p.postmodifiers.append('Russia')
+        expected = 'Peter went to Russia'
+        self.assertEqual(expected, str(p))
+
+        p['tense'] = 'past'
+        expected = 'Peter went to Russia'
+        self.assertEqual(expected, str(p))
+
+    def test_repr(self):
+        """ Test debug printing. """
+        p = Phrase()
+        expected = '(Phrase None None: "" {})'
+        self.assertEqual(expected, repr(p))
+
+        p.head = 'went'
+        expected = '(Phrase None None: "went" {})'
+        self.assertEqual(expected, repr(p))
+
+        p.premodifiers.append('Peter')
+        expected = '(Phrase None None: "Peter went" {})'
+        self.assertEqual(expected, repr(p))
+
+        p.complements.append('to')
+        expected = '(Phrase None None: "Peter went to" {})'
+        self.assertEqual(expected, repr(p))
+
+        p.postmodifiers.append('Russia')
+        expected = '(Phrase None None: "Peter went to Russia" {})'
+        self.assertEqual(expected, repr(p))
+
+        p['tense'] = 'past'
+        expected = '(Phrase None None: ' \
+                   '"Peter went to Russia" {\'tense\': \'past\'})'
+        self.assertEqual(expected, repr(p))
+
+    def test_eq(self):
+        """ Test equality. """
+        p1 = Phrase()
+        p2 = Phrase()
+        self.assertEqual(p1, p2)
+
+        p1.head = Word('went', 'VERB', {'TENSE': 'PAST'})
+        self.assertNotEqual(p1, p2)
+
+        p2.head = Word('went', 'VERB', {'TENSE': 'PAST'})
+        self.assertEqual(p1, p2)
+
+        p1.premodifiers.append('Peter')
+        self.assertNotEqual(p1, p2)
+
+        p2.premodifiers.append('Peter')
+        self.assertEqual(p1, p2)
+
+        p1.complements.append('to')
+        self.assertNotEqual(p1, p2)
+
+        p2.complements.append('to')
+        self.assertEqual(p1, p2)
+
+        p1.postmodifiers.append('Russia')
+        self.assertNotEqual(p1, p2)
+
+        p2.postmodifiers.append('Russia')
+        self.assertEqual(p1, p2)
+
+        p1['tense'] = 'past'
+        self.assertNotEqual(p1, p2)
+
+        p2['tense'] = 'past'
+        self.assertEqual(p1, p2)
+
+        p1.type = PHRASE
+        self.assertNotEqual(p1, p2)
+
+        p2.type = PHRASE
+        self.assertEqual(p1, p2)
+
+    def test_elements(self):
+        """ Test iterating through elements. """
+        p = Phrase()
+        self.assertEqual([], list(p.elements()))
+
+        p.head = Word('head', 'NOUN')
+        self.assertEqual([Word('head', 'NOUN')], list(p.elements()))
+
+        p2 = Phrase()
+        p2.head = Word('forward', 'ADVERB')
+        p.complements.append(p2)
+        expected = [Word('head', 'NOUN'), Word('forward', 'ADVERB')]
+        self.assertEqual(expected, list(p.elements()))
+
+    def test_arguments(self):
+        """ Test getting arguments. """
+        p = Phrase()
+        self.assertEqual([], list(p.arguments()))
+        ph = Var('arg_name')
+        p.head = Word('ask', 'VERB')
+        p.complements.append(ph)
+        self.assertEqual([ph], list(p.arguments()))
+
+        ph2 = Var('arg_place')
+        p2 = Phrase()
+        p2.head = ph2
+        p.postmodifiers.append(p2)
+        args = list(p.arguments())
+        self.assertEqual(ph, args[0])
+        self.assertEqual(ph2, args[1])
+
+    def test_replace(self):
+        """ Test replacing a constituent. """
+        p = Phrase()
+        hi = Word('hi', 'EXCLAMATION')
+        hello = Word('hello', 'EXCLAMATION')
+        self.assertEqual(False, p.replace(hi, hello))
+        ph = Var('arg_name')
+        p.head = hi
+        p.complements.append(ph)
+        self.assertEqual(True, p.replace(hi, hello))
+        self.assertEqual(hello, p.head)
+
+        ph2 = Var('arg_place')
+        p2 = Phrase()
+        p2.head = ph2
+        p.postmodifiers.append(p2)
+
+        p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
+        self.assertEqual(False, Var('arg_place') in list(p.elements()))
 
 
 class TestNounPhrase(unittest.TestCase):
 
     def setUp(self):
-        self.phrase = NounPhrase(head='man', spec='the',
+        self.phrase = NounPhrase(head='man', specifier='the',
                                  premodifiers=['small', 'happy'])
 
     def test_init(self):
         self.assertEqual(String('the'), self.phrase.specifier)
-        self.assertEqual(microplanning.NOUN_PHRASE, self.phrase.category)
-        self.assertEqual(microplanning.NOUN_PHRASE, self.phrase.cat)
+        self.assertEqual(category.NOUN_PHRASE, self.phrase.category)
 
     def test_copy(self):
         p = self.phrase
@@ -373,17 +689,30 @@ class TestNounPhrase(unittest.TestCase):
 
     def test_to_json(self):
         s = self.phrase.to_json()
-        self.assertIn('<class \'nlglib.microplanning.NounPhrase\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.NounPhrase\'>', s)
         self.assertIn('the', s)
         self.assertIn('small', s)
         self.assertIn('man', s)
 
     def test_from_json(self):
         s = self.phrase.to_json()
-        p2 = json.loads(s, cls=microplanning.ElementDecoder)
+        p2 = json.loads(s, cls=ElementDecoder)
         self.assertEqual(self.phrase, p2)
         self.assertEqual(p2, p2.head.parent)
         self.assertEqual(p2, p2.specifier.parent)
+
+    def test_elements(self):
+        """ Test iterating through constituents. """
+        p = NounPhrase(specifier='the', head='Simpsons')
+        expected = [String('the'), String('Simpsons')]
+        self.assertEqual(expected, list(p.elements()))
+
+    def test_replace(self):
+        """ Test replacing an element. """
+        p = NounPhrase(specifier='', head='Simpsons')
+        expected = [String('the'), String('Simpsons')]
+        p.replace(String(''), String('the'))
+        self.assertEqual(expected, list(p.elements()))
 
 
 class TestVerbPhrase(unittest.TestCase):
@@ -397,20 +726,44 @@ class TestVerbPhrase(unittest.TestCase):
     def test_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', object='it')
         obj = String('it')
-        obj['discourseFunction'] = discourse.OBJECT
+        obj[discourse_function] = discourse_function.object
         self.assertEqual(obj, phrase.object)
-
-    def test_direct_object_property(self):
-        phrase = VerbPhrase('give', indirect_object='me', direct_object='it')
-        obj = String('it')
-        obj['discourseFunction'] = discourse.OBJECT
-        self.assertEqual(obj, phrase.direct_object)
 
     def test_indirect_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', object='it')
         obj = String('me')
-        obj['discourseFunction'] = discourse.INDIRECT_OBJECT
+        obj[discourse_function] = discourse_function.indirect_object
         self.assertEqual(obj, phrase.indirect_object)
+
+    def test_elements(self):
+        """ Test iterating through constituents. """
+        p = VerbPhrase('give', 'the book', 'to the cook')
+        expected = [String('give'), String('the book'), String('to the cook')]
+        self.assertEqual(expected, list(p.elements()))
+
+    def test_replace(self):
+        """ Test replacing an element. """
+        p = VerbPhrase('give', 'the book', 'to the cook')
+        expected = [String('give'), String('the book'), String('to the cook')]
+        self.assertEqual(expected, list(p.elements(recursive=True)))
+        p.replace(String('to the cook'), String('to the chef'))
+        expected = [String('give'), String('the book'), String('to the chef')]
+        self.assertEqual(expected, list(p.elements(recursive=True)))
+
+    def test_arguments(self):
+        """ Test replacing arguments. """
+        p = VerbPhrase('give', Var('arg_obj'),
+                       PrepositionPhrase('to', Var('arg_rec')))
+        expected = [Var('arg_obj'), Var('arg_rec')]
+        self.assertEqual(expected, list(p.arguments()))
+
+        obj = NounPhrase(specifier='the', head='candy')
+        rec = NounPhrase(head='Roman')
+        p.replace_arguments(arg_obj=obj, arg_rec=rec)
+        self.assertEqual([], list(p.arguments()))
+        expected = [String('give'), String('the'), String('candy'),
+                    String('to'), NounPhrase('Roman')]
+        self.assertEqual(expected, p.elements())
 
 
 class TestClause(unittest.TestCase):
@@ -419,7 +772,7 @@ class TestClause(unittest.TestCase):
         self.clause = Clause('I', 'write', 'programs')
 
     def test_init(self):
-        self.assertEqual(microplanning.CLAUSE, self.clause.category)
+        self.assertEqual(category.CLAUSE, self.clause.category)
         self.assertEqual('I', self.clause.subject.string)
         self.assertEqual('I', self.clause.subject.head.string)
         self.assertEqual('write', self.clause.predicate.string)
@@ -444,43 +797,21 @@ class TestClause(unittest.TestCase):
     def test_constituents(self):
         self.clause.front_modifiers.append('luckily')
         expected = ['luckily', 'I', 'write', 'programs']
-        cs = list(self.clause.constituents())
+        cs = list(self.clause.elements())
         for c in cs:
             with self.subTest(actual=c):
                 if isinstance(c, String):
                     self.assertIn(c.string, expected)
 
-    def test_object_raises(self):
-        """Test that setting an object on a clause without VP 
-        raises a KeyError.
-        
-        """
-        clause = Clause('I')
-
-        def fn():
-            clause.object = 'you'
-        self.assertRaises(KeyError, fn)
-
-    def test_indirect_object_raises(self):
-        """Test that setting an indirect object on a clause 
-        without VP raises a KeyError.
-        
-        """
-        clause = Clause('I')
-
-        def fn():
-            clause.indirect_object = 'you'
-        self.assertRaises(KeyError, fn)
-
     def test_replace_subject(self):
         self.assertTrue(self.clause.replace('I', 'you'))
         self.assertEqual('you', self.clause.subject.string)
-        self.assertEqual(microplanning.NOUN_PHRASE, self.clause.subject.cat)
+        self.assertEqual(category.NOUN_PHRASE, self.clause.subject.category)
 
     def test_replace_subject2(self):
         self.assertTrue(self.clause.replace(NounPhrase(head='I'), 'you'))
         self.assertEqual('you', self.clause.subject.string)
-        self.assertEqual(microplanning.NOUN_PHRASE, self.clause.subject.cat)
+        self.assertEqual(category.NOUN_PHRASE, self.clause.subject.category)
 
     def test_replace_predicate(self):
         self.assertTrue(self.clause.replace('write', 'compose'))
@@ -505,14 +836,14 @@ class TestClause(unittest.TestCase):
 
     def test_to_json(self):
         s = self.clause.to_json()
-        self.assertIn('<class \'nlglib.microplanning.Clause\'>', s)
+        self.assertIn('<class \'nlglib.microplanning.struct.Clause\'>', s)
         self.assertIn('I', s)
         self.assertIn('write', s)
         self.assertIn('programs', s)
 
     def test_from_json(self):
         s = self.clause.to_json()
-        c2 = json.loads(s, cls=microplanning.ElementDecoder)
+        c2 = json.loads(s, cls=ElementDecoder)
         self.assertEqual(self.clause, c2)
         self.assertEqual(c2, c2.subject.parent)
         self.assertEqual(c2, c2.predicate.parent)
@@ -527,7 +858,7 @@ class TestClause(unittest.TestCase):
 
     def test_xml(self):
         s = self.clause.to_xml(headers=True)
-        expected = '''\
+        expected = '''
 <?xml version="1.0" encoding="utf-8"?>
 <nlg:NLGSpec xmlns="http://simplenlg.googlecode.com/svn/trunk/res/xml"
 xmlns:nlg="http://simplenlg.googlecode.com/svn/trunk/res/xml"
@@ -542,7 +873,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
       <base>I</base>
     </head>
   </subj>
-  <vp xsi:type="VPPhraseSpec" cat="VERB_PHRASE" discourseFunction="verb_phrase">
+  <vp xsi:type="VPPhraseSpec" cat="VERB_PHRASE" discourseFunction="predicate">
     <head xsi:type="WordElement" canned="true"  cat="ANY" discourseFunction="head">
       <base>write</base>
     </head>
@@ -554,12 +885,12 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
 </Document>
 </nlg:Request>
-</nlg:NLGSpec>\
+</nlg:NLGSpec>
 '''
-        self.assertEqual(expected, s)
+        self.assertEqual(expected.strip(), s)
 
     def test_to_str(self):
-        s = self.clause.to_str()
+        s = str(self.clause)
         self.assertEqual('I write programs', s)
 
     def test_replace_vars(self):
@@ -570,6 +901,61 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         self.assertEqual(c.subject.string, 'I')
         self.assertEqual(c.predicate.string, 'am')
         self.assertEqual(c.predicate.complements[0].string, 'happy')
+
+    def test_str(self):
+        """ Test printing. """
+        c = Clause()
+        expected = ''
+        self.assertEqual(expected, str(c))
+
+        c = Clause('Roman')
+        expected = 'Roman'
+        self.assertEqual(expected, str(c))
+
+        c = Clause('Roman', 'is slow!')
+        expected = 'Roman is slow!'
+        self.assertEqual(expected, str(c))
+
+    def test_elements(self):
+        """ Test iterating through constituents. """
+        c = Clause('Roman', 'is slow!')
+        expected = [String('Roman'), String('is slow!')]
+        actual = list(c.elements())
+        self.assertEqual(expected, actual)
+
+        c.premodifiers.append('Alas!')
+        expected = [String('Alas!'), String('Roman'), String('is slow!')]
+        actual = list(c.elements())
+        self.assertEqual(expected, actual)
+
+    def test_replace(self):
+        """ Test replacing elements. """
+        p = Clause()
+        hi = Word('hi', 'EXCLAMATION')
+        hello = Word('hello', 'EXCLAMATION')
+        self.assertEqual(False, p.replace(hi, hello))
+        ph = Var('arg_name')
+        p.subj = hi
+        p.postmodifiers.append(ph)
+        self.assertEqual(True, p.replace(hi, hello))
+        self.assertEqual(hello, p.subj)
+
+        ph2 = Var('arg_place')
+        p2 = Phrase()
+        p2.head = ph2
+        p.vp = p2
+
+        p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
+        self.assertEqual(False, Var('arg_place') in list(p.elements()))
+
+
+class TestUtils(unittest.TestCase):
+
+    def test_raise_to_element(self):
+        """ Test converting strings to Strings. """
+        expected = [String('late'), Word('evening', 'NOUN')]
+        actual = [raise_to_element('late'), raise_to_element(Word('evening', 'NOUN'))]
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':
