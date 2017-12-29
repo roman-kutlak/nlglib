@@ -3,17 +3,18 @@ import logging
 
 from nlglib.microplanning import *
 from nlglib.macroplanning import *
-from nlglib.features import element_type
+from nlglib.features import category, element_type
 
+__all__ = ['Lexicaliser']
 
-# **************************************************************************** #
+log = logging.getLogger(__name__)
 
 
 class Lexicaliser(object):
     """Lexicaliser performs lexicalisation of objects.
     
     The default implementation can lexicalise `Element`, `MsgSpec`, 
-    `RhetRel` and `Document` instances.
+    `RhetRel`, `Document` and `Paragraph` instances.
     
     Lexical templates are (partially) lexicalised syntactic trees (LST)
     or callable objects that return LST.
@@ -24,44 +25,52 @@ class Lexicaliser(object):
         'string_message_spec': Clause(subject=Var('val'))
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, templates=None):
         """Create a new lexicaliser.
         
-        :param logger: a custom logger to use, otherwise the default module
-        logger is used
         :param templates: a dict with templates for lexicalising elements
         
         """
-        self.logger = kwargs.get('logger', logging.getLogger(__name__))
         self.templates = self.default_templates.copy()
-        self.templates.update(kwargs.get('templates', {}))
+        if templates:
+            self.templates.update(templates)
 
     def __call__(self, msg, **kwargs):
-        """ Perform lexicalisation on the message depending on the type. """
+        return self.lexicalise(msg, **kwargs)
+
+    def lexicalise(self, msg, **kwargs):
+        """Perform lexicalisation on the message depending on its category.
+
+        If the `message.category` doesn't match any condition,
+        call `msg.lexicalise(self, **kwargs)`
+
+        """
+        cat = msg.category if hasattr(msg, 'category') else type(msg)
+        log.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
+
         if msg is None:
             return None
         elif isinstance(msg, numbers.Number):
             return Numeral(msg)
         elif isinstance(msg, str):
             return String(msg)
-        elif isinstance(msg, (list, tuple)):
-            return [self(x, **kwargs) for x in msg]
-        elif isinstance(msg, Element):
+        elif msg.category in category.element_category:
             return self.element(msg, **kwargs)
-        elif isinstance(msg, MsgSpec):
-            return self.msg_spec(msg, **kwargs)
-        elif isinstance(msg, RhetRel):
-            return self.rhet_rel(msg, **kwargs)
-        elif isinstance(msg, Document):
+        elif isinstance(msg, (list, set, tuple)) or msg.category == category.ELEMENT_LIST:
+            return self.element_list(msg, **kwargs)
+        elif msg.category == category.MSG:
+            return self.message_specification(msg, **kwargs)
+        elif msg.category == category.RST:
+            return self.rst_relation(msg, **kwargs)
+        elif msg.category == category.DOCUMENT:
             return self.document(msg, **kwargs)
-        elif isinstance(msg, Paragraph):
+        elif msg.category == category.PARAGRAPH:
             return self.paragraph(msg, **kwargs)
         else:
-            raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
+            return msg.lexicalise(self, **kwargs)
 
     def element_list(self, element, **kwargs):
-        self.logger.warning('This should not be called???')
-        self.logger.debug('Lexicalising ElementList: {0}'.format(repr(element)))
+        log.warning('This should not be called???')
         return ElementList([self(x, **kwargs) for x in element])
 
     def element(self, element, **kwargs):
@@ -71,7 +80,6 @@ class Lexicaliser(object):
         using the `key` of the argument (`Var` instance).
         
         """
-        self.logger.debug('Lexicalising Element: {0}'.format(repr(element)))
         rv = deepcopy(element)
         # find arguments
         args = rv.arguments()
@@ -80,18 +88,17 @@ class Lexicaliser(object):
             template = self.get_template(arg, **kwargs)
             if template is None:
                 continue
-            self.logger.info('Replacing\n{0} in \n{1} by \n{2}.'
-                             .format(repr(arg), repr(rv), repr(template)))
+            log.info('Replacing\n{0} in \n{1} by \n{2}.'.format(repr(arg), repr(rv), repr(template)))
             # avoid infinite recursion of lexicalising args (Var instances)?
             if rv == arg:
                 return template
             else:
                 # allow nested templates
-                lexicalised_arg = self.__call__(template, **kwargs)
+                lexicalised_arg = self.lexicalise(template, **kwargs)
                 rv.replace(arg, lexicalised_arg)
         return rv
 
-    def msg_spec(self, msg, **kwargs):
+    def message_specification(self, msg, **kwargs):
         """Return Element corresponding to given message specification.
     
         If the lexicaliser can not find correct lexicalisation, it returns 
@@ -103,7 +110,6 @@ class Lexicaliser(object):
         :rtype: Element
 
         """
-        self.logger.debug('Lexicalising message specs: {0}'.format(repr(msg)))
         if msg is None:
             return None
         template = None
@@ -112,7 +118,7 @@ class Lexicaliser(object):
             args = template.arguments()
             # if there are any arguments, replace them by values from the msg
             for arg in args:
-                self.logger.info('Replacing argument\n{0} in \n{1}.'
+                log.info('Replacing argument\n{0} in \n{1}.'
                                  .format(str(arg), repr(template)))
                 val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
@@ -120,16 +126,16 @@ class Lexicaliser(object):
                     val = self.get_template(String(val), **kwargs)
                 lex_val = self(val, **kwargs)
                 log_msg = 'Replacement value for {0}: {1}'
-                self.logger.info(log_msg.format(str(arg), repr(lex_val)))
+                log.info(log_msg.format(str(arg), repr(lex_val)))
                 template.replace(arg, lex_val)
             return template
         except Exception as e:
-            self.logger.exception('Error in lexicalising MsgSpec: %s', e)
-            self.logger.info('\tmsg: ' + repr(msg))
-            self.logger.info('\ttemplate: ' + repr(template))
+            log.exception('Error in lexicalising MsgSpec: %s', e)
+            log.info('\tmsg: ' + repr(msg))
+            log.info('\ttemplate: ' + repr(template))
         return String(msg)
 
-    def rhet_rel(self, rel, **kwargs):
+    def rst_relation(self, rel, **kwargs):
         """Convert `rel` to Elements. 
         
         This method should convert any concrete rhetorical relations
@@ -145,10 +151,6 @@ class Lexicaliser(object):
         :rtype: ElementList
         
         """
-        self.logger.debug('Lexicalising RhetRel {0}'.format(rel))
-        if rel is None:
-            return None
-
         features = deepcopy(getattr(rel, 'features'))
         nuclei = [self(x, **kwargs) for x in rel.nuclei]
         nucleus = nuclei[0]
@@ -159,7 +161,7 @@ class Lexicaliser(object):
             result = Coordination(*nuclei, conj=rel.marker,
                                   features=features)
         elif relation == 'imply':
-            self.logger.debug('RST Implication: ' + repr(rel))
+            log.debug('RST Implication: ' + repr(rel))
             subj = raise_to_phrase(nucleus)
             compl = raise_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'then'
@@ -212,7 +214,7 @@ class Lexicaliser(object):
                 result.coords[0].add_front_modifier(String(front_mod), pos=0)
             else:
                 result.premodifiers.insert(0, String(front_mod))
-            self.logger.debug('Result:\n' + repr(result))
+            log.debug('Result:\n' + repr(result))
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
                                               features=(element_type.negated, )))
@@ -231,7 +233,6 @@ class Lexicaliser(object):
         return result
 
     def document(self, doc, **kwargs):
-        self.logger.debug('Lexicalising document.')
         if doc is None:
             return None
         title = self(doc.title, **kwargs)
@@ -239,13 +240,12 @@ class Lexicaliser(object):
         return Document(title, *sections)
 
     def paragraph(self, para, **kwargs):
-        self.logger.debug('Lexicalising paragraph.')
         if para is None:
             return None
         sentences = [self(x, **kwargs) for x in para.sentences]
         return Paragraph(*sentences)
 
-    def get_template(self, item, **kwargs):
+    def get_template(self, item, templates=None, **kwargs):
         """Return the template for given `element`.
         
         The looked templates are `self.templates` and `kwargs['templates']`.
@@ -259,21 +259,18 @@ class Lexicaliser(object):
         :rtype: Element
         
         """
-        # TODO: maybe do this in call and call dispatch everywhere else?
-        available_templates = self.templates.copy()
-        available_templates.update(kwargs.get('templates', {}))
-
+        available_templates = templates or self.templates
         key = item if isinstance(item, str) else item.id
         template = deepcopy(available_templates.get(key))
         if template is None:
-            self.logger.warning('No template for "%s"' % key)
+            log.warning('No template for "%s"' % key)
             rv = String(item)
         elif hasattr(template, '__call__'):  # callable passed -- invoke
             # noinspection PyCallingNonCallable
-            template = template(item, **kwargs)
+            template = template(item, templates=templates, **kwargs)
             if template is None:
                 msg = 'Function for template "%s" returned None'
-                self.logger.warning(msg % key)
+                log.warning(msg % key)
                 rv = String(item)
             else:
                 rv = template

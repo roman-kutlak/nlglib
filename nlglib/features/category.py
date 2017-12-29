@@ -74,9 +74,9 @@ DOCUMENT = "DOCUMENT"
 # List of sentences
 PARAGRAPH = "PARAGRAPH"
 # RST relation
-RST = "RST"
+RST = "RST_RELATION"
 # Message Specification
-MSG = 'MSG'
+MSG = 'MESSAGE_SPECIFICATION'
 
 # Part of speech tags
 pos_category = FeatureGroup(

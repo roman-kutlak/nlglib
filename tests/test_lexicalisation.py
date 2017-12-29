@@ -30,23 +30,23 @@ class TestLexicalisation(unittest.TestCase):
     def test_string_msg(self):
         """ Test lexicalising a rhetRel with "canned text". """
         msg = StringMsg('this is some text')
-        result = lex.msg_spec(msg)
+        result = lex.message_specification(msg)
         expected = Clause(subject='this is some text')
         self.assertEqual(expected, result)
 
-    def test_lexicalise_msg_spec(self):
+    def test_lexicalise_message_specification(self):
         """ Test lexicalisation of MsgSpec. """
         msg = DummyMsg()
-        res = lex.msg_spec(msg)
+        res = lex.message_specification(msg)
         expected = list(Clause('Boris', 'is', 'fast').elements(recursive=True))
         self.assertEqual(expected, list(res.elements(recursive=True)))
 
-    def test_lexicalise_rhet_rel(self):
+    def test_lexicalise_rst_relation(self):
         """ Test lexicalisation of RhetRel. """
         # a rhet relation with 3 nuclei
         m = RhetRel('Elaboration', DummyMsg(), DummyMsg(), DummyMsg())
-        lexicalised = lex.rhet_rel(m)
-        tmp = list(lex.msg_spec(DummyMsg()).elements(recursive=True))
+        lexicalised = lex.rst_relation(m)
+        tmp = list(lex.message_specification(DummyMsg()).elements(recursive=True))
         expected = tmp + tmp + tmp
         self.assertEqual(expected, list(lexicalised.elements(recursive=True)))
 
