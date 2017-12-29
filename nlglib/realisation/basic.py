@@ -2,7 +2,7 @@ import logging
 
 from nlglib.macroplanning import Document, Paragraph
 from nlglib.microplanning import is_clause_type
-from nlglib.features import category, number, gender, case, tense, element_type, modal, FeatureGroup
+from nlglib.features import category, NUMBER, GENDER, CASE, TENSE, NEGATED, MODAL, FeatureGroup
 from nlglib.utils import flatten
 
 
@@ -110,7 +110,7 @@ class RealisationVisitor:
         pass
 
     def string(self, node):
-        if element_type.negated in node:
+        if NEGATED.true in node:
             self.text += 'not '
         self.text += node.value + ' '
 
@@ -118,7 +118,7 @@ class RealisationVisitor:
         word = node.word
         # if (node.has_feature('NUMBER', 'PLURAL') and node.pos == 'NOUN'):
         #     word = lexicon.pluralise_noun(node.word)
-        if element_type.negated in node:
+        if NEGATED.true in node:
             self.text += 'not '
         self.text += word + ' '
 
@@ -132,10 +132,10 @@ class RealisationVisitor:
     def clause(self, node):
         # do a bit of coordination
         node.predicate.features.update(node.features)
-        node.predicate.features.replace(node.subject[number])
-        node.predicate.features.replace(node.subject[gender])
-        node.predicate.features.replace(node.subject[case])
-        node.predicate.features.replace(node[element_type])
+        node.predicate.features.replace(node.subject[NUMBER])
+        node.predicate.features.replace(node.subject[GENDER])
+        node.predicate.features.replace(node.subject[CASE])
+        node.predicate.features.replace(node[NEGATED])
         for o in node.front_modifiers: o.accept(self)
         node.subject.accept(self)
         for o in node.premodifiers: o.accept(self)
@@ -178,43 +178,43 @@ class RealisationVisitor:
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
-        if modal in node:
-            self.text += ' ' + node[modal] + ' '
-            if element_type.negated in node:
+        if MODAL in node:
+            self.text += ' ' + node[MODAL] + ' '
+            if NEGATED.true in node:
                 self.text += 'not '
             node.head.accept(self)
         # hs the head a modal verb?
-        elif head in modal:
+        elif head in MODAL:
             self.text += ' '
             node.head.accept(self)
             self.text += ' '
-            if element_type.negated in node:
+            if NEGATED.true in node:
                 self.text += 'not '
         elif head == 'have':
-            if element_type.negated in node:
+            if NEGATED.true in node:
                 self.text += 'do not have '
             else:
                 self.text += 'have '
         elif head == 'has':
-            if element_type.negated in node:
+            if NEGATED.true in node:
                 self.text += 'does not have '
             else:
                 self.text += 'has '
         elif head == 'be' or head == 'is':
-            if number.plural in node:
-                if tense.past in node:
+            if NUMBER.plural in node:
+                if TENSE.past in node:
                     self.text += 'were '
                 else:
                     self.text += 'are '
             else:
-                if tense.past in node:
+                if TENSE.past in node:
                     self.text += 'was '
                 else:
                     self.text += 'is '
-            if element_type.negated in node:
+            if NEGATED.true in node:
                 self.text += 'not '
         else:
-            if element_type.negated in node:
+            if NEGATED.true in node:
                 self.text += 'does not '
             node.head.accept(self)
         if len(node.complements) > 0:

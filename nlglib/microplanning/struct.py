@@ -1,6 +1,5 @@
 """Data structures used by other packages. """
 
-# FIXME: more unit tests with coverage
 # TODO: check serialisation of phrases/clause
 # TODO: check deepcopy
 # TODO: create module `element_algebra` and pud add/iadd into it
@@ -11,10 +10,9 @@ import json
 
 from copy import deepcopy
 from functools import wraps
-from urllib.parse import quote_plus
 
 from nlglib.features import NON_COMPARABLE_FEATURES, TRANSFERABLE_FEATURES
-from nlglib.features import FeatureSet, discourse_function, category, element_type
+from nlglib.features import FeatureSet, DISCOURSE_FUNCTION, category
 
 
 _sentinel = object()
@@ -507,7 +505,7 @@ class Coordination(Element):
         return rv
 
     def __iadd__(self, other):
-        other.features.discard(discourse_function)
+        other.features.discard(DISCOURSE_FUNCTION)
         self.coords.append(other)
         return self
 
@@ -685,7 +683,7 @@ class Phrase(Element):
             self._head = new_value
         else:
             self._head = Element()
-        self._head[discourse_function] = discourse_function.head
+        self._head[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.head
 
     def elements(self, recursive=False, itself=None):
         """Return a generator yielding elements contained in the element
@@ -826,7 +824,7 @@ class NounPhrase(Phrase):
             self._spec = new_value
         else:
             self._spec = Element()
-        self._spec[discourse_function] = discourse_function.specifier
+        self._spec[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.specifier
 
     def elements(self, recursive=False, itself=None):
         """Return a generator yielding elements contained in the element
@@ -905,41 +903,41 @@ class VerbPhrase(Phrase):
     @property
     def object(self):
         for c in self.complements:
-            if c[discourse_function] == discourse_function.object:
+            if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.object:
                 return c
         return None
 
     @object.setter
     def object(self, value):
         to_remove = [c for c in self.complements
-                     if c[discourse_function] == discourse_function.object]
+                     if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.object]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value[discourse_function] = discourse_function.object
+        new_value[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.object
         self.complements.append(new_value)
 
     @property
     def indirect_object(self):
         for c in self.complements:
-            if c[discourse_function] == discourse_function.indirect_object:
+            if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.indirect_object:
                 return c
         return None
 
     @indirect_object.setter
     def indirect_object(self, value):
         to_remove = [c for c in self.complements
-                     if c[discourse_function] == discourse_function.indirect_object]
+                     if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.indirect_object]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value[discourse_function] = discourse_function.indirect_object
+        new_value[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.indirect_object
         self.complements.insert(0, new_value)
 
 
@@ -1066,14 +1064,14 @@ class Clause(Phrase):
     def subject(self, value):
         if self._subject:
             self._subject.parent = None
-            del self._subject[discourse_function]
+            del self._subject[DISCOURSE_FUNCTION]
         if value is not None:
             new_value = raise_to_np(value)
             new_value.parent = self
             self._subject = new_value
         else:
             self._subject = Element()
-        self._subject[discourse_function] = discourse_function.subject
+        self._subject[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.subject
 
     @property
     def predicate(self):
@@ -1083,14 +1081,14 @@ class Clause(Phrase):
     def predicate(self, value):
         if self._predicate:
             self._predicate.parent = None
-            del self._predicate[discourse_function]
+            del self._predicate[DISCOURSE_FUNCTION]
         if value is not None:
             new_value = raise_to_vp(value)
             new_value.parent = self
             self._predicate = new_value
         else:
             self._predicate = Element()
-        self._predicate[discourse_function] = discourse_function.predicate
+        self._predicate[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.predicate
 
     @property
     def head(self):
@@ -1344,7 +1342,7 @@ def comparable_features(original_features):
 
     """
     rv = original_features.copy()
-    # disregard discourse_function features
+    # disregard DISCOURSE_FUNCTION features
     for f in NON_COMPARABLE_FEATURES:
         rv.discard(f)
     return rv

@@ -1,6 +1,6 @@
 from urllib.parse import quote_plus
 
-from nlglib.features import discourse_function, element_type, aspect, category, FeatureGroup
+from nlglib.features import DISCOURSE_FUNCTION, ASPECT, category, FeatureGroup
 from nlglib.features import NON_COMPARABLE_FEATURES
 from .struct import Element, Word, String, Clause, Phrase, Coordination, NounPhrase
 
@@ -182,8 +182,9 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         return 'XmlVisitor({0})'.format(self.xml)
 
     @staticmethod
-    def features_to_xml_attributes(element):
+    def features_to_xml_attributes(element, feature_map=None):
         features = ""
+        feature_map = simplenlg_features if feature_map is None else feature_map
         if isinstance(element, Word):
             cat = element.pos
         elif isinstance(element, String):
@@ -195,8 +196,9 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         }
         for f in element.features:
             # if feature or feature group is not in dict, just return a dict with K:V
-            default_value = f.value.lower() if f.value.lower() in ('true', 'false') else f.value.upper()
-            converted = simplenlg_features.get(f, {
+            value = f.value.lower()
+            default_value = value if value in ('true', 'false') else f.value.upper()
+            converted = feature_map.get(f, {
                 f.name.upper(): default_value
             })
             # returned value is either a dict or a lambda taking `f`
@@ -212,13 +214,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
 # either a dict or a lambda taking Feature and returning a dict
 simplenlg_features = {
-    discourse_function: lambda f: {'discourseFunction': f.value},
-    element_type.elided: {'ELIDED': 'true'},
-    element_type.negated: {'NEGATED': 'true'},
-    element_type.inflected: {'INFLECTED': 'true'},
-    aspect.progressive: {'PROGRESSIVE': 'true'},
-    aspect.perfect: {'PERFECT': 'true'},
-    aspect.perfect_progressive: {'PERFECT': 'true',
+    DISCOURSE_FUNCTION: lambda f: {'discourseFunction': f.value},
+    ASPECT.progressive: {'PROGRESSIVE': 'true'},
+    ASPECT.perfect: {'PERFECT': 'true'},
+    ASPECT.perfect_progressive: {'PERFECT': 'true',
                                  'PROGRESSIVE': 'true'},
     FeatureGroup('conj'): lambda f: {f.name: f.value},
     FeatureGroup('complementiser'): lambda f: {f.name.upper(): f.value},

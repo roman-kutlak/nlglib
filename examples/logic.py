@@ -4,7 +4,7 @@ from nlglib.realisation.simplenlg.realisation import Realiser
 from nlglib.lexicalisation import Lexicaliser
 from nlglib.macroplanning import *
 from nlglib.microplanning import *
-from nlglib.features import tense
+from nlglib.features import TENSE
 
 
 def run():
@@ -13,7 +13,7 @@ def run():
     lex = Lexicaliser(templates={
         'x': String('X'),
         'arthur': Male('Arthur'),
-        'shrubbery': Clause(Var(0), VP('find', NP('a', 'shrubbery'), features=[tense.future])),
+        'shrubbery': Clause(Var(0), VP('find', NP('a', 'shrubbery'), features=[TENSE.future])),
         'knight': Clause(Var(0), VP('is', NP('a', 'knight'))),
         'say_ni': Clause(Var(0), VP('say', Interjection('"Ni!"'))),
     })

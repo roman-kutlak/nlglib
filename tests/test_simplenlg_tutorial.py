@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from nlglib.features import category, number, gender, tense, aspect, element_type
+from nlglib.features import category, NUMBER, GENDER, TENSE, ASPECT, NEGATED
 from nlglib.microplanning import *
 from nlglib.macroplanning import Document, Paragraph
 from nlglib.realisation.simplenlg import Realiser
@@ -18,18 +18,18 @@ class TestSimplenlgTutorial(unittest.TestCase):
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
         expected = 'Mary chased the monkey.'
-        c[tense] = tense.past
+        c[TENSE] = TENSE.past
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
         expected = 'Mary will chase the monkey.'
-        c[tense] = tense.future
+        c[TENSE] = TENSE.future
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
 
     def test_negation(self):
         expected = 'Mary does not chase the monkey.'
         c = Clause('Mary', 'chase', 'the monkey')
-        c[element_type] = element_type.negated
+        c[NEGATED] = NEGATED.true
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
 
@@ -107,8 +107,8 @@ class TestSimplenlgTutorial(unittest.TestCase):
     def test_coordinated_clause(self):
         expected = 'My cat liked fish.'
         s1 = Clause('my cat', 'like', 'fish', features={'TENSE': 'PAST'})
-        s2 = Clause('my dog', 'like', 'big bones', features=[tense.present])
-        s3 = Clause('my horse', 'like', 'grass', features=[tense.future])
+        s2 = Clause('my dog', 'like', 'big bones', features=[TENSE.present])
+        s3 = Clause('my horse', 'like', 'grass', features=[TENSE.future])
         actual = self.realiser(s1)
         self.assertEqual(expected, actual)
         expected = 'My dog likes big bones.'

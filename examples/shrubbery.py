@@ -2,7 +2,6 @@ import logging
 import sys
 
 from nlglib.microplanning import *
-from nlglib.features import tense
 from nlglib.realisation import basic, simplenlg
 
 
@@ -13,7 +12,7 @@ def run():
         Clause('you', 'must return', PP('here', PP('with', NP('a', 'shrubbery'))),
                features={'complementiser': 'that'}),
         Clause('you', VP('pass', PP('through', NP('this', 'wood', complements=[Adjective('alive')]))),
-               features={'tense': 'future', 'complementiser': 'or'}, premodifiers=['never']),
+               features={'TENSE': 'future', 'complementiser': 'or'}, premodifiers=['never']),
     ]
     for c in clauses:
         realisation = r.realise(c)

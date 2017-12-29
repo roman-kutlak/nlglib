@@ -8,7 +8,7 @@ from .struct import RhetRel, PredicateMsg, StringMsg, Document
 
 from nlglib.microplanning import NounPhrase, Word, Var
 
-from nlglib.features import element_type
+from nlglib.features import NEGATED
 
 expr = nltk.sem.Expression.fromstring
 
@@ -115,7 +115,7 @@ def formula_to_rst(f):
         predicate = f.term
         m = PredicateMsg(predicate.pred.variable.name,
                          *[formula_to_rst(x) for x in predicate.args],
-                         features=(element_type.negated, ))
+                         features=(NEGATED.true, ))
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, IndividualVariableExpression):
         arg = f.term
