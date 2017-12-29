@@ -11,11 +11,11 @@ setup(
     description='Natural Language Generation library for Python',
     long_description=long_description(),
     author=["Roman Kutlak"],
-    author_email=['roman@kutlak.net'],
+    author_email=['kutlak.roman@gmail.com'],
     url='http://github.com/roman-kutlak/nlglib',
     license='MIT',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Natural Language :: English',
@@ -30,11 +30,10 @@ setup(
     packages=find_packages(exclude=['tests/*']),
     keywords=['natural language generation', 'NLG', 'text generation', 'nlglib', 'library'],
     install_requires=[
-        'rdflib',
-        'flask'
+        'nltk'
     ],
     include_package_data=True,
     package_dir={'nlglib': 'nlglib'},
-    package_data={'nlglib': ['resources/*']},
-    zip_safe=False,
+    # package_data={'nlglib': ['resources/*']},
+    zip_safe=True,
 )

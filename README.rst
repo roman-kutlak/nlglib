@@ -1,3 +1,13 @@
+Current Status
+==============
+This is just a starting point - an alpha version - mainly a wrapper
+around _SimpleNLG.
+
+Although it is possible to go from first order logic to text,
+there is no sophistication in how things are processed.
+The library is still missing basics like aggregation or referring expression generation.
+
+
 Intro
 =====
 
@@ -11,9 +21,10 @@ to add a bit of text generation to their capabilities.
 Audience
 ========
 
-The library should be useable by programmers with as little linguistic knowledge
-as possible. Given that the aim of the library is language generation,
-some linguistic knowledge is necessary.
+The library should be usable by programmers with no prior linguistic knowledge.
+Given that the aim of the library is language generation,
+some linguistic knowledge is necessary but you should be able to pick it up
+from the examples.
 
 
 Scope
@@ -22,9 +33,7 @@ Scope
 The aim of the library is to create a base for NLG system starting from content
 selection all the way to realisation. The library will cover document structuring
 tools, lexicalisation, referring expression generation and aggregation.
-Realisation will be done using other realisation libraries (SimpleNLG or pynlg).
-At the moment, the input to the library is a list of First Order Logic formulas
-and the output is English text.
+Realisation will be done using other realisation libraries (_SimpleNLG or pynlg).
 
 
 History
@@ -34,3 +43,6 @@ NLGlib started as a part of the EPSRC project
 Scrutable Autonomous Systems (SAsSy): www.scrutable-systems.org
 When the project finished, the code was moved to this repository to create
 a stand-alone re-usable library.
+
+
+.. _SimpleNLG: https://github.com/simplenlg/simplenlg
