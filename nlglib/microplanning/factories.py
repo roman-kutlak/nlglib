@@ -150,7 +150,7 @@ def Female(name, features=None):
 # phrases
 
 
-def NP(spec, *mods_and_head, features=None):
+def NP(spec, *mods_and_head, features=None, **kwargs):
     """ Create a complex noun phrase where the first arg is determiner, then
     modifiers and head is last. Determiner can be None.
     The determiner can be omitted if the NP consists of the head noun only.
@@ -164,28 +164,28 @@ def NP(spec, *mods_and_head, features=None):
         words = list(mods_and_head)
     if spec is None:
         return NounPhrase(Noun(words[-1]), features=features,
-                          premodifiers=[Adjective(x) for x in words[:-1]])
+                          premodifiers=[Adjective(x) for x in words[:-1]], **kwargs)
     else:
         return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
-                          premodifiers=[Adjective(x) for x in words[:-1]])
+                          premodifiers=[Adjective(x) for x in words[:-1]], **kwargs)
 
 
-def VP(head, *complements, features=None):
-    return VerbPhrase(Verb(head), *complements, features=features)
+def VP(head, *complements, features=None, **kwargs):
+    return VerbPhrase(Verb(head), *complements, features=features, **kwargs)
 
 
-def PP(head, *complements, features=None):
+def PP(head, *complements, features=None, **kwargs):
     return PrepositionPhrase(Preposition(head),
-                             *complements, features=features)
+                             *complements, features=features, **kwargs)
 
 
-def AdjP(head, *complements, features=None):
-    return AdjectivePhrase(Adjective(head), *complements, features=features)
+def AdjP(head, *complements, features=None, **kwargs):
+    return AdjectivePhrase(Adjective(head), *complements, features=features, **kwargs)
 
 
-def AdvP(head, *complements, features=None):
-    return AdverbPhrase(Adverb(head), *complements, features=features)
+def AdvP(head, *complements, features=None, **kwargs):
+    return AdverbPhrase(Adverb(head), *complements, features=features, **kwargs)
 
 
-def CC(*coordinates, features=None):
-    return Coordination(*coordinates, features=features)
+def CC(*coordinates, features=None, **kwargs):
+    return Coordination(*coordinates, features=features, **kwargs)
