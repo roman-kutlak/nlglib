@@ -23,18 +23,18 @@ class Realiser(object):
             return ''
         elif msg.category in category.element_category:
             return self.element(msg, **kwargs)
+        elif isinstance(msg, (list, set, tuple)) or msg.category == category.ELEMENT_LIST:
+            return self.element_list(msg, **kwargs)
         elif msg.category == category.MSG:
-            return self.message_spec(msg, **kwargs)
-        elif msg.category == category.ELEMENT_LIST:
-            return self.list(msg, **kwargs)
+            return self.message_specification(msg, **kwargs)
         elif msg.category == category.RST:
-            return self.message(msg, **kwargs)
+            return self.rst_relation(msg, **kwargs)
         elif msg.category == category.DOCUMENT:
             return self.document(msg, **kwargs)
         elif msg.category == category.PARAGRAPH:
             return self.paragraph(msg, **kwargs)
         else:
-            return str(msg)
+            return msg.realise(self, **kwargs) if hasattr(msg, 'realise') else str(msg)
 
     # noinspection PyUnusedLocal
     def element(self, elt, **kwargs):
@@ -49,17 +49,17 @@ class Realiser(object):
             return ''
 
     # noinspection PyUnusedLocal
-    def message_spec(self, msg, **kwargs):
+    def message_specification(self, msg, **kwargs):
         """ Realise message specification - this should not happen """
         self.logger.error('Realising message spec:\n{0}'.format(repr(msg)))
         return str(msg).strip()
 
-    def list(self, elt, **kwargs):
+    def element_list(self, elt, **kwargs):
         """ Realise a list. """
         self.logger.debug('Realising list of elements:\n{0}'.format(repr(elt)))
         return ' '.join(self.realise(x, **kwargs) for x in elt)
 
-    def message(self, msg, **kwargs):
+    def rst_relation(self, msg, **kwargs):
         """ Return a copy of Message with strings. """
         self.logger.debug('Realising message:\n{0}'.format(repr(msg)))
         if msg is None: return None

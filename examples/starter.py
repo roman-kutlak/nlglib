@@ -7,8 +7,6 @@ from nlglib.macroplanning import expr, formula_to_rst
 
 import logging
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
-
 realise = Realiser(host='roman.kutlak.info')
 # realise = str
 
@@ -59,7 +57,7 @@ def run_pipeline():
     }
 
     lex = Lexicaliser(templates=templates)
-    # FIXME: embedded coordination doesn't work
+    # FIXME: embedded coordination doesn't work; flatten or fix in simplenlg?
     input_str = 'Play(john, guitar) & Play(paul, guitar) & ' \
                 'Play(george, bass) & Play(ringo, drums)'
     sentence = lex(formula_to_rst(expr(input_str)))
@@ -71,6 +69,7 @@ def run_pipeline():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
     print('starting')
     run_simple_examples()
     print('*' * 80)
