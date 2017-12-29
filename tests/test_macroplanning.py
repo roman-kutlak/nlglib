@@ -36,11 +36,17 @@ class TestDocument(unittest.TestCase):
         self.assertEqual(expected, str(self.doc))
 
     def test_repr(self):
-        expected = '<Document: (Title)>'
+        expected = """<Document: (Title)
+<Document: (Section 1)
+String('para 1')
+String('para 2')>
+<Document: (Section 2)
+String('para 3')
+String('para 4')>>"""
         self.assertEqual(expected, repr(self.doc))
 
     def test_elements(self):
-        expected = [String('Title', {'cat': 'ANY'}),
+        expected = [String('Title'),
                     Document('Section 1', 'para 1', 'para 2'),
                     Document('Section 2', 'para 3', 'para 4')]
         self.assertEqual(expected, list(self.doc.elements()))

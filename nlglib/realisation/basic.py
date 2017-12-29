@@ -1,7 +1,6 @@
 import logging
-import string
 
-from nlglib.macroplanning import Document
+from nlglib.macroplanning import Document, Paragraph
 from nlglib.microplanning import is_clause_type
 from nlglib.features import category, number, gender, case, tense, element_type, modal, FeatureGroup
 from nlglib.utils import flatten
@@ -32,9 +31,12 @@ class Realiser(object):
             return self.message(msg, **kwargs)
         elif msg.category == category.DOCUMENT:
             return self.document(msg, **kwargs)
+        elif msg.category == category.PARAGRAPH:
+            return self.paragraph(msg, **kwargs)
         else:
             return str(msg)
 
+    # noinspection PyUnusedLocal
     def element(self, elt, **kwargs):
         """ Realise NLG element. """
         self.logger.debug('Realising element (simple realisation):\n{0}'.format(repr(elt)))
@@ -46,6 +48,7 @@ class Realiser(object):
         else:
             return ''
 
+    # noinspection PyUnusedLocal
     def message_spec(self, msg, **kwargs):
         """ Realise message specification - this should not happen """
         self.logger.error('Realising message spec:\n{0}'.format(repr(msg)))
@@ -76,6 +79,14 @@ class Realiser(object):
             title = title[:-1]
         sections = [self.realise(x, **kwargs) for x in msg.sections]
         return Document(title, *sections)
+
+    def paragraph(self, msg, **kwargs):
+        """ Return a copy of a Paragraph with strings. """
+        self.logger.debug('Realising paragraph.')
+        if msg is None:
+            return None
+        sentences = [self.realise(x, **kwargs) for x in msg.sentences]
+        return Paragraph(*sentences)
 
 
 # **************************************************************************** #
@@ -219,11 +230,10 @@ class RealisationVisitor:
     def adjective_phrase(self, node):
         self.phrase(node)
 
-    def advp(self, node):
+    def adverb_phrase(self, node):
         self.phrase(node)
 
     def phrase(self, node):
-        for c in node.front_modifiers: c.accept(self)
         for c in node.premodifiers: c.accept(self)
         node.head.accept(self)
         if complementiser in node:

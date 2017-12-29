@@ -1,6 +1,7 @@
 from urllib.parse import quote_plus
 
 from nlglib.features import discourse_function, element_type, aspect, category, FeatureGroup
+from nlglib.features import NON_COMPARABLE_FEATURES
 from .struct import Element, Word, String, Clause, Phrase, Coordination, NounPhrase
 
 
@@ -158,7 +159,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
     def adjective_phrase(self, node):
         self.phrase(node, 'AdjPhraseSpec')
 
-    def advp(self, node):
+    def adverb_phrase(self, node):
         self.phrase(node, 'AdvPhraseSpec')
 
     def coordination(self, node):
@@ -194,7 +195,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         }
         for f in element.features:
             # if feature or feature group is not in dict, just return a dict with K:V
-            converted = simplenlg_features.get(f, {f.name.upper(): f.value.upper()})
+            default_value = f.value.lower() if f.value.lower() in ('true', 'false') else f.value.upper()
+            converted = simplenlg_features.get(f, {
+                f.name.upper(): default_value
+            })
             # returned value is either a dict or a lambda taking `f`
             if hasattr(converted, '__call__'):
                 converted = converted(f)
@@ -252,6 +256,13 @@ class ReprVisitor(PrintVisitor):
         self.data += ', '.join(tmp_no_whites)
         self.data += ']'
 
+    def add_features(self, node):
+        features = node.features.copy()
+        for f in NON_COMPARABLE_FEATURES:
+            features.discard(f)
+        if features:
+            self.data += ', features=' + str(features)
+
     def msg_spec(self, node):
         if self.do_indent: self.data += self.indent
         self.data += '{0}'.format(repr(node))
@@ -263,15 +274,13 @@ class ReprVisitor(PrintVisitor):
     def string(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'String({0}'.format(repr(node.value))
-        if node.features != dict():
-            self.data += ', ' + str(node.features)
+        self.add_features(node)
         self.data += ')'
 
     def word(self, node):
         if self.do_indent: self.data += self.indent
         self.data += 'Word({0}, {1}'.format(repr(node.word), repr(node.pos))
-        if node.features:
-            self.data += ', ' + str(node.features)
+        self.add_features(node)
         self.data += ')'
 
     def var(self, node):
@@ -280,8 +289,8 @@ class ReprVisitor(PrintVisitor):
             self.data += 'Var({0}'.format(repr(node.id))
         else:
             self.data += 'Var({0}, {1}'.format(repr(node.id), repr(node.value))
-        if node.features:
-            self.data += ', ' + str(node.features)
+        self.add_features(node)
+
         self.data += ')'
 
     def noun_phrase(self, node):
@@ -293,8 +302,7 @@ class ReprVisitor(PrintVisitor):
         if node.specifier != Element():
             self.data += ', '
             node.specifier.accept(self)
-        if node.features != dict():
-            self.data += ', features=' + str(node.features)
+        self.add_features(node)
         self.do_indent = True
         self._process_elements(node, 'premodifiers')
         self._process_elements(node, 'complements')
@@ -302,7 +310,7 @@ class ReprVisitor(PrintVisitor):
         self.data += ')'
         self.indent = self.indent[:-len('NounPhrase(')]
 
-    def phrase(self, node, name=''):
+    def phrase(self, node, name='Phrase'):
         if self.do_indent: self.data += self.indent
         self.indent += ' ' * len(name + '(')
         self.data += name + '('
@@ -319,7 +327,10 @@ class ReprVisitor(PrintVisitor):
             i -= 1
             c.accept(self)
             self.do_indent = True
-        if node.features != dict():
+        features = node.features.copy()
+        for f in NON_COMPARABLE_FEATURES:
+            features.discard(f)
+        if features:
             self.data += ',\n'
             self.data += self.indent + 'features=' + str(node.features)
         self._process_elements(node, 'premodifiers')
@@ -348,7 +359,7 @@ class ReprVisitor(PrintVisitor):
         self.data += ',\n'
         self.indent += ' ' * len('Clause(')
         node.predicate.accept(self)
-        if node.features != dict():
+        if node.features:
             self.data += ',\n'
             self.data += self.indent + 'features=' + str(node.features)
         self._process_elements(node, 'front_modifiers')
@@ -370,7 +381,7 @@ class ReprVisitor(PrintVisitor):
             self.data += ',\n'
             self.do_indent = True
         self.data += self.indent + 'conj={0}'.format(repr(node.conj))
-        if node.features != dict():
+        if node.features:
             self.data += ',\n' + self.indent
             self.data += 'features=' + str(node.features)
         self.do_indent = True

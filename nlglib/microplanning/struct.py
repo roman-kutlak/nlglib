@@ -157,7 +157,7 @@ class Element(object):
         :param str itself: yield `self` as one of the elements; values in (None, 'first', 'last')
 
         """
-        if itself or recursive:
+        if itself or recursive and self.category != category.ELEMENT:
             yield self
 
     def arguments(self):
@@ -568,7 +568,8 @@ class Coordination(Element):
                 if recursive:
                     yield from self.conj.elements(recursive, itself)
                 else:
-                    yield self.conj
+                    if self.conj:
+                        yield self.conj
             if recursive:
                 yield from e.elements(recursive, itself)
             else:
@@ -700,7 +701,8 @@ class Phrase(Element):
         if recursive:
             yield from self.head.elements(recursive, itself)
         else:
-            yield self.head
+            if self.head != Element():
+                yield self.head
         yield from self.complements.elements(recursive, itself)
         yield from self.postmodifiers.elements(recursive, itself)
 
@@ -840,12 +842,14 @@ class NounPhrase(Phrase):
         if recursive:
             yield from self.specifier.elements(recursive, itself)
         else:
-            yield self.specifier
+            if self.specifier != Element():
+                yield self.specifier
         yield from self.premodifiers.elements(recursive, itself)
         if recursive:
             yield from self.head.elements(recursive, itself)
         else:
-            yield self.head
+            if self.head != Element():
+                yield self.head
         yield from self.complements.elements(recursive, itself)
         yield from self.postmodifiers.elements(recursive, itself)
 
@@ -1146,12 +1150,14 @@ class Clause(Phrase):
         if recursive:
             yield from self.subject.elements(recursive, itself)
         else:
-            yield self.subject
+            if self.subject != NounPhrase(parent=self):
+                yield self.subject
         yield from self.premodifiers.elements(recursive, itself)
         if recursive:
             yield from self.predicate.elements(recursive, itself)
         else:
-            yield self.predicate
+            if self.predicate != VerbPhrase(parent=self):
+                yield self.predicate
         yield from self.complements.elements(recursive, itself)
         yield from self.postmodifiers.elements(recursive, itself)
 

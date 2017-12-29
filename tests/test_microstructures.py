@@ -64,12 +64,12 @@ class TestElement(unittest.TestCase):
     def test_features_to_xml_attributes(self):
         """ Test formatting features so that they can be put into XML. """
         e = Element()
-        expected = ' TENSE="past"'
+        expected = ' TENSE="PAST" cat="ELEMENT"'
         e['tense'] = 'past'
         data = XmlVisitor.features_to_xml_attributes(e)
         self.assertEqual(expected, data)
 
-        expected = ' TENSE="PAST" PROGRESSIVE="true"'
+        expected = ' PROGRESSIVE="true" TENSE="PAST" cat="ELEMENT"'
         e['aspect'] = 'progressive'
         data = XmlVisitor.features_to_xml_attributes(e)
         self.assertEqual(True, 'TENSE="PAST"' in data)
@@ -155,7 +155,7 @@ class TestElementList(unittest.TestCase):
         self.assertEqual(expected, tmp)
         self.assertIn('little', tmp)
         tmp.remove('little')
-        expected = expected[:3] + expected[4:]
+        expected = expected[:2] + expected[3:]
         self.assertEqual(expected, tmp)
 
 
@@ -215,7 +215,7 @@ class TestVar(unittest.TestCase):
         p = Var('obj1')
         self.assertEqual(expected, repr(p))
 
-        expected = "Var('obj1', Word('obj1', 'NOUN'), {'countable': 'yes'})"
+        expected = "Var('obj1', Word('obj1', 'NOUN'), features={'countable': 'yes'})"
         p['countable'] = 'yes'
         self.assertEqual(expected, repr(p))
 
@@ -244,8 +244,8 @@ class TestString(unittest.TestCase):
         self.assertEqual(String('please'), raise_to_element('please'))
 
         np = NP('my', 'house')
-        expected = [String('my'), String('house')]
-        self.assertEqual(expected, np.elements())
+        expected = [Word('my', 'DETERMINER'), Word('house', 'NOUN')]
+        self.assertEqual(expected, list(np.elements()))
 
     def test_copy(self):
         e2 = copy(self.e)
@@ -313,7 +313,7 @@ class TestWord(unittest.TestCase):
         expected = "Word('foo', 'NOUN')"
         self.assertEqual(expected, repr(w))
 
-        expected = "Word('foo', 'NOUN', {'countable': 'yes'})"
+        expected = "Word('foo', 'NOUN', features={'countable': 'yes'})"
         w['countable'] = 'yes'
         self.assertEqual(expected, repr(w))
 
@@ -474,12 +474,48 @@ class TestPhrase(unittest.TestCase):
                 self.assertTrue(isinstance(c, (Phrase, String)))
         self.assertEqual(p, list(p.elements(itself='first'))[0])
 
+    def test_elements2(self):
+        """ Test iterating through elements. """
+        p = Phrase()
+        self.assertEqual([], list(p.elements()))
+
+        p.head = Word('head', 'NOUN')
+        self.assertEqual([Word('head', 'NOUN')], list(p.elements()))
+
+        p2 = Phrase()
+        p2.head = Word('forward', 'ADVERB')
+        p.complements.append(p2)
+        expected = [Word('head', 'NOUN'), Phrase(head=Word('forward', 'ADVERB'))]
+        self.assertEqual(expected, list(p.elements()))
+        expected = [Word('head', 'NOUN'), Word('forward', 'ADVERB')]
+        self.assertEqual(expected, list(p.elements(recursive=True)))
+
     def test_replace(self):
         p = self.phrase
         self.assertFalse(p.replace('worlds', 'universe'))
         self.assertTrue(p.replace('world', 'universe'))
         self.assertNotIn(String('world'), p.complements)
         self.assertIn(String('universe'), p.complements)
+
+    def test_replace2(self):
+        """ Test replacing a constituent. """
+        p = Phrase()
+        hi = Word('hi', 'EXCLAMATION')
+        hello = Word('hello', 'EXCLAMATION')
+        self.assertEqual(False, p.replace(hi, hello))
+        ph = Var('arg_name')
+        p.head = hi
+        p.complements.append(ph)
+        self.assertEqual(True, p.replace(hi, hello))
+        self.assertEqual(hello, p.head)
+
+        ph2 = Var('arg_place')
+        p2 = Phrase()
+        p2.head = ph2
+        p.postmodifiers.append(p2)
+
+        p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
+        self.assertEqual(False, Var('arg_place') in list(p.elements()))
 
     def test_replace_using_key(self):
         p = Phrase(features={'foo': 'bar'},
@@ -536,28 +572,39 @@ class TestPhrase(unittest.TestCase):
     def test_repr(self):
         """ Test debug printing. """
         p = Phrase()
-        expected = '(Phrase None None: "" {})'
+        expected = 'Phrase()'
         self.assertEqual(expected, repr(p))
 
         p.head = 'went'
-        expected = '(Phrase None None: "went" {})'
+        expected = "Phrase(String('went'))"
         self.assertEqual(expected, repr(p))
 
         p.premodifiers.append('Peter')
-        expected = '(Phrase None None: "Peter went" {})'
+        expected = "Phrase(String('went'),\n       premodifiers=[String('Peter')])"
         self.assertEqual(expected, repr(p))
 
         p.complements.append('to')
-        expected = '(Phrase None None: "Peter went to" {})'
+        expected = """\
+Phrase(String('went'),
+       String('to'),
+       premodifiers=[String('Peter')])"""
         self.assertEqual(expected, repr(p))
 
         p.postmodifiers.append('Russia')
-        expected = '(Phrase None None: "Peter went to Russia" {})'
+        expected = """\
+Phrase(String('went'),
+       String('to'),
+       premodifiers=[String('Peter')],
+       postmodifiers=[String('Russia')])"""
         self.assertEqual(expected, repr(p))
 
         p['tense'] = 'past'
-        expected = '(Phrase None None: ' \
-                   '"Peter went to Russia" {\'tense\': \'past\'})'
+        expected = """\
+Phrase(String('went'),
+       String('to'),
+       features={'tense': 'past'},
+       premodifiers=[String('Peter')],
+       postmodifiers=[String('Russia')])"""
         self.assertEqual(expected, repr(p))
 
     def test_eq(self):
@@ -596,25 +643,6 @@ class TestPhrase(unittest.TestCase):
         p2['tense'] = 'past'
         self.assertEqual(p1, p2)
 
-        p1.type = PHRASE
-        self.assertNotEqual(p1, p2)
-
-        p2.type = PHRASE
-        self.assertEqual(p1, p2)
-
-    def test_elements(self):
-        """ Test iterating through elements. """
-        p = Phrase()
-        self.assertEqual([], list(p.elements()))
-
-        p.head = Word('head', 'NOUN')
-        self.assertEqual([Word('head', 'NOUN')], list(p.elements()))
-
-        p2 = Phrase()
-        p2.head = Word('forward', 'ADVERB')
-        p.complements.append(p2)
-        expected = [Word('head', 'NOUN'), Word('forward', 'ADVERB')]
-        self.assertEqual(expected, list(p.elements()))
 
     def test_arguments(self):
         """ Test getting arguments. """
@@ -632,26 +660,6 @@ class TestPhrase(unittest.TestCase):
         args = list(p.arguments())
         self.assertEqual(ph, args[0])
         self.assertEqual(ph2, args[1])
-
-    def test_replace(self):
-        """ Test replacing a constituent. """
-        p = Phrase()
-        hi = Word('hi', 'EXCLAMATION')
-        hello = Word('hello', 'EXCLAMATION')
-        self.assertEqual(False, p.replace(hi, hello))
-        ph = Var('arg_name')
-        p.head = hi
-        p.complements.append(ph)
-        self.assertEqual(True, p.replace(hi, hello))
-        self.assertEqual(hello, p.head)
-
-        ph2 = Var('arg_place')
-        p2 = Phrase()
-        p2.head = ph2
-        p.postmodifiers.append(p2)
-
-        p.replace(Var('arg_place'), Word('Aberdeen', 'NOUN'))
-        self.assertEqual(False, Var('arg_place') in list(p.elements()))
 
 
 class TestNounPhrase(unittest.TestCase):
@@ -687,6 +695,13 @@ class TestNounPhrase(unittest.TestCase):
         self.assertNotIn(String('small'), self.phrase.premodifiers)
         self.assertIn(String('big'), self.phrase.premodifiers)
 
+    def test_replace3(self):
+        """ Test replacing an element. """
+        p = NounPhrase(specifier=String('my'), head='Simpsons')
+        expected = [String('the'), String('Simpsons')]
+        p.replace(String('my'), String('the'))
+        self.assertEqual(expected, list(p.elements()))
+
     def test_to_json(self):
         s = self.phrase.to_json()
         self.assertIn('<class \'nlglib.microplanning.struct.NounPhrase\'>', s)
@@ -705,13 +720,6 @@ class TestNounPhrase(unittest.TestCase):
         """ Test iterating through constituents. """
         p = NounPhrase(specifier='the', head='Simpsons')
         expected = [String('the'), String('Simpsons')]
-        self.assertEqual(expected, list(p.elements()))
-
-    def test_replace(self):
-        """ Test replacing an element. """
-        p = NounPhrase(specifier='', head='Simpsons')
-        expected = [String('the'), String('Simpsons')]
-        p.replace(String(''), String('the'))
         self.assertEqual(expected, list(p.elements()))
 
 
@@ -761,9 +769,11 @@ class TestVerbPhrase(unittest.TestCase):
         rec = NounPhrase(head='Roman')
         p.replace_arguments(arg_obj=obj, arg_rec=rec)
         self.assertEqual([], list(p.arguments()))
-        expected = [String('give'), String('the'), String('candy'),
-                    String('to'), NounPhrase('Roman')]
-        self.assertEqual(expected, p.elements())
+        expected = [String('give'),
+                     NounPhrase(String('candy'), String('the')),
+                     PrepositionPhrase(String('to'),
+                                       NounPhrase(String('Roman')))]
+        self.assertEqual(expected, list(p.elements()))
 
 
 class TestClause(unittest.TestCase):
@@ -853,8 +863,8 @@ class TestClause(unittest.TestCase):
     def test_repr(self):
         s = repr(self.clause)
         self.assertIn('Clause(', s)
-        self.assertIn('NounPhrase(String(\'I\',', s)
-        self.assertIn('VerbPhrase(String(\'write\',', s)
+        self.assertIn('NounPhrase(String(\'I\'', s)
+        self.assertIn('VerbPhrase(String(\'write\'', s)
 
     def test_xml(self):
         s = self.clause.to_xml(headers=True)
@@ -919,13 +929,13 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
     def test_elements(self):
         """ Test iterating through constituents. """
         c = Clause('Roman', 'is slow!')
-        expected = [String('Roman'), String('is slow!')]
+        expected = [NounPhrase(String('Roman')), VerbPhrase(String('is slow!'))]
         actual = list(c.elements())
         self.assertEqual(expected, actual)
 
-        c.premodifiers.append('Alas!')
+        c.front_modifiers.append('Alas!')
         expected = [String('Alas!'), String('Roman'), String('is slow!')]
-        actual = list(c.elements())
+        actual = list(c.elements(recursive=True))
         self.assertEqual(expected, actual)
 
     def test_replace(self):
@@ -935,10 +945,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         hello = Word('hello', 'EXCLAMATION')
         self.assertEqual(False, p.replace(hi, hello))
         ph = Var('arg_name')
-        p.subj = hi
+        p.subject = hi
         p.postmodifiers.append(ph)
         self.assertEqual(True, p.replace(hi, hello))
-        self.assertEqual(hello, p.subj)
+        self.assertEqual(hello, p.subject.head)
 
         ph2 = Var('arg_place')
         p2 = Phrase()

@@ -1,6 +1,6 @@
 import unittest
 
-from nlglib.macroplanning import MsgSpec, RhetRel, Document, StringMsg
+from nlglib.macroplanning import MsgSpec, RhetRel, Document, StringMsg, Paragraph
 from nlglib.microplanning import Var, Clause, NounPhrase
 
 from nlglib.lexicalisation import Lexicaliser
@@ -50,6 +50,16 @@ class TestLexicalisation(unittest.TestCase):
         expected = tmp + tmp + tmp
         self.assertEqual(expected, list(lexicalised.elements(recursive=True)))
 
+    def test_lexicalise_paragraph(self):
+        """ Test lexicalisation of Document. """
+        m1 = RhetRel('Leaf', DummyMsg())
+        m2 = RhetRel('Elaboration', DummyMsg(), DummyMsg())
+        p = Paragraph(m1, m2)
+        tmp = lex.paragraph(p)
+        expected = 'Boris is fast. Boris is fast. Boris is fast.'
+        actual = realiser(tmp)
+        self.assertEqual(expected, str(actual))
+
     def test_lexicalise_document(self):
         """ Test lexicalisation of Document. """
         m1 = RhetRel('Leaf', DummyMsg())
@@ -64,8 +74,6 @@ class TestLexicalisation(unittest.TestCase):
             '\n\nSection Two' + \
             '\n\nBoris is fast. Boris is fast.'
         actual = realiser(tmp)
-        print(str(actual))
-        print(repr(actual))
         self.assertEqual(expected, str(actual))
 
 

@@ -54,6 +54,8 @@ class Lexicaliser(object):
             return self.rhet_rel(msg, **kwargs)
         elif isinstance(msg, Document):
             return self.document(msg, **kwargs)
+        elif isinstance(msg, Paragraph):
+            return self.paragraph(msg, **kwargs)
         else:
             raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
 
@@ -235,6 +237,13 @@ class Lexicaliser(object):
         title = self(doc.title, **kwargs)
         sections = [self(x, **kwargs) for x in doc.sections]
         return Document(title, *sections)
+
+    def paragraph(self, para, **kwargs):
+        self.logger.debug('Lexicalising paragraph.')
+        if para is None:
+            return None
+        sentences = [self(x, **kwargs) for x in para.sentences]
+        return Paragraph(*sentences)
 
     def get_template(self, item, **kwargs):
         """Return the template for given `element`.

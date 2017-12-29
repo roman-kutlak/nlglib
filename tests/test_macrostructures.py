@@ -103,14 +103,14 @@ class TestRhetRel(unittest.TestCase):
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = "<RhetRel (Elaboration): String('foo', {}) String('bar', {}) String('baz', {})>"
+        expected = "<RhetRel (Elaboration): String('foo') String('bar') String('baz')>"
         m = RhetRel('Elaboration', 'foo', 'bar', 'baz')
         descr = repr(m)
         self.assertEqual(expected, descr)
 
         expected = "<RhetRel (Contrast): <RhetRel (Elaboration): " \
-                   "String('foo', {}) String('bar', {}) String('baz', {})> " \
-                   "String('bar', {}) String('baz', {})>"
+                   "String('foo') String('bar') String('baz')> " \
+                   "String('bar') String('baz')>"
         m2 = RhetRel('Contrast', m, 'bar', 'baz')
         descr = repr(m2)
         self.assertEqual(expected, descr)
@@ -138,7 +138,7 @@ class TestParagraph(unittest.TestCase):
 
     def test_repr(self):
         expected = "<Paragraph (1):\n\t" \
-                   "<RhetRel (Elaboration): String('foo', {}) String('bar', {})>>"
+                   "<RhetRel (Elaboration): String('foo') String('bar')>>"
         m = RhetRel('Elaboration', 'foo', 'bar')
         p = Paragraph(m)
         descr = repr(p)
@@ -146,8 +146,8 @@ class TestParagraph(unittest.TestCase):
 
         expected = "<Paragraph (1):\n\t" \
                    "<RhetRel (Contrast): " \
-                   "<RhetRel (Elaboration): String('foo', {}) String('bar', {})> " \
-                   "String('bar', {}) String('baz', {})>>"
+                   "<RhetRel (Elaboration): String('foo') String('bar')> " \
+                   "String('bar') String('baz')>>"
         m2 = RhetRel('Contrast', m, 'bar', 'baz')
         p = Paragraph(m2)
         descr = repr(p)
@@ -155,9 +155,9 @@ class TestParagraph(unittest.TestCase):
 
         expected = "<Paragraph (2):\n\t" \
                    "<RhetRel (Contrast): " \
-                   "<RhetRel (Elaboration): String('foo', {}) String('bar', {})> " \
-                   "String('bar', {}) String('baz', {})>" \
-                   "\n\t<RhetRel (Leaf): String('foobar', {}) String('', {})>>"
+                   "<RhetRel (Elaboration): String('foo') String('bar')> " \
+                   "String('bar') String('baz')>" \
+                   "\n\t<RhetRel (Leaf): String('foobar') String('')>>"
         m3 = RhetRel('Leaf', 'foobar')
         p = Paragraph(m2, m3)
         descr = repr(p)
@@ -184,7 +184,7 @@ class TestDocument(unittest.TestCase):
         expected = """\
 <Document: (MyDoc)
 <Document: (One)
-String('foo bar', {})>>"""
+String('foo bar')>>"""
         m = RhetRel('Elaboration', 'foo', 'bar')
         one = Document('One', Paragraph(m))
         d = Document('MyDoc', one)
@@ -193,9 +193,9 @@ String('foo bar', {})>>"""
         expected = """\
 <Document: (MyDoc)
 <Document: (One)
-String('foo bar', {})>
+String('foo bar')>
 <Document: (Two)
-String('baz bar', {})>>"""
+String('baz bar')>>"""
         m2 = RhetRel('Contrast', 'baz', 'bar')
         two = Document('Two', Paragraph(m2))
         d = Document('MyDoc', one, two)
