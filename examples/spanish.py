@@ -1,8 +1,5 @@
 """
-This example shows the use of nlglib with simplenlg-es.
-
-For this to work, you have to have the simplengl server
-of the spanish version running on port 50007
+This example shows the use of nlglib with multiple simplenlg realisers.
 
 """
 import logging
