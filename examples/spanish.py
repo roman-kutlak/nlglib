@@ -25,8 +25,8 @@ def main():
     p.object = objekt
     # expected = 'La rápida corredora persigue un mono.'
     print(realise_es(p))
-    p = Clause(NP('this', 'example'), VP('show', 'how cool is simplenlg'))
-    # expected = This example shows how cool is simplenlg.
+    p = Clause(NP('this', 'example'), VP('show', 'how cool simplenlg is'))
+    # expected = This example shows how cool simplenlg is.
     print(realise_en(p))
 
 
