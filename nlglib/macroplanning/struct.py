@@ -21,11 +21,11 @@ class Document:
 
     category = category.DOCUMENT
 
-    def __init__(self, *sections, title=None):
+    def __init__(self, title, *sections):
         """Create a new `Document` with `title` and zero or more `sections`.
 
-        :param sections: document sections (`Document` or `Element` type)
         :param title: the tile of the document (`Document` or `Element` type)
+        :param sections: document sections (`Document` or `Element` type)
 
         """
         self._title = promote_to_string(title)
@@ -42,14 +42,15 @@ class Document:
 
     def __repr__(self):
         title = self.title if self.title is not None else 'No title'
-        return '<Document: ({})>'.format(title)
+        sections = '\n'.join(repr(s) for s in self.sections)
+        return '<Document: ({})\n{}>'.format(title, sections)
 
     def __str__(self):
         if self.title:
             return (str(self.title) + '\n\n' +
                     '\n\n'.join([str(s) for s in self.sections]))
         else:
-            return '\n\t'.join([str(s) for s in self.sections])
+            return '\n\n'.join([str(s) for s in self.sections])
 
     @property
     def title(self):
@@ -127,10 +128,11 @@ class Paragraph:
         return hash(str(self))
 
     def __repr__(self):
-        return '<Paragraph: ({})>'.format(len(self.sentences))
+        sentences = '\n\t'.join(repr(s) for s in self.sentences)
+        return '<Paragraph ({}):\n\t{}>'.format(len(self.sentences), sentences)
 
     def __str__(self):
-        return ' '.join([str(s) for s in self.sentences])
+        return ' '.join([str(s) for s in self.sentences]).strip()
 
     @property
     def sentences(self):
@@ -202,14 +204,11 @@ class RhetRel:
             self.order = [getattr(self, attr) for attr in self.element_order]
 
     def __repr__(self):
-        return '<RhetRel {}>'.format(self.relation)
+        elements = ' '.join(repr(x) for x in self.order)
+        return '<RhetRel ({}): {}>'.format(self.relation, elements)
 
     def __str__(self):
-        if self.is_multinuclear:
-            return '{}({})'.format(self.relation, self.order)
-        else:
-            return '{}({} {} {})'.format(self.relation, self.nucleus,
-                                         self.marker, self.satellite)
+        return ' '.join(str(x) for x in self.order)
 
     def __eq__(self, other):
         return (other.category == self.category and
@@ -236,10 +235,10 @@ class RhetRel:
         data += indent + spaces + '<nuclei>\n'
         data += indent * 2 + spaces + '<nucleus>\n'
         for n in self.nuclei:
-            data += n.to_xml(lvl + 2) + '\n'
+            data += n.to_xml(lvl + 3) + '\n'
         data += indent * 2 + spaces + '</nucleus>\n'
         data += indent * 2 + spaces + '<satellite>\n'
-        data += self.satellite.to_xml(lvl + 2)
+        data += self.satellite.to_xml(lvl + 3)
         data += indent * 2 + spaces + '</satellite>\n'
         data += spaces + '</RhetRel>\n'
         return data

@@ -57,9 +57,9 @@ def aggregate_content(items, **_):
 
 def structure_content(items, **_):
     if isinstance(items, (list, tuple)):
-        rv = Document(*items)
+        rv = Document(None, *items)
     else:
-        rv = Document(items)
+        rv = Document(None, items)
     return rv
 
 

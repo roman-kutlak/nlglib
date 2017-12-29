@@ -234,7 +234,7 @@ class Lexicaliser(object):
             return None
         title = self(doc.title, **kwargs)
         sections = [self(x, **kwargs) for x in doc.sections]
-        return Document(*sections, title=title)
+        return Document(title, *sections)
 
     def get_template(self, item, **kwargs):
         """Return the template for given `element`.

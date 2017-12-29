@@ -16,7 +16,7 @@ def get_test_doc():
     c = get_clause()
     c.features['FORM'] = "IMPERATIVE"
     m2 = Message('Elaboration', c)
-    para = Document(m1, m2)
+    para = Document(None, m1, m2)
     return para
 
 

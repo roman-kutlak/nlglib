@@ -8,19 +8,17 @@ import realisation.simplenlg.client as snlg
 class TestSimplenlgClient(unittest.TestCase):
 
     simplenlg_server = None
+    client = None
 
     @classmethod
     def setUpClass(cls):
-        try:
-            jp = '../../simplenlg/build/jar/simplenlg.jar'
-            port = '50007'
-            cls.test_result = 'Put the piano and the drum into the truck.'
-            cls.simplenlg_server = snlg.SimpleNLGServer(jp, port)
-            cls.simplenlg_server.start()
-            cls.simplenlg_server.wait_for_init()
-            cls.client = snlg.SimplenlgClient('localhost', port)
-        except Exception as e:
-            logging.exception(e)
+        jp = '../simplenlg/build/jar/simplenlg.jar'
+        port = '50007'
+        cls.test_result = 'Put the piano and the drum into the truck.'
+        cls.simplenlg_server = snlg.SimpleNLGServer(jp, port)
+        cls.simplenlg_server.start()
+        cls.simplenlg_server.wait_for_init()
+        cls.client = snlg.SimplenlgClient('localhost', port)
 
     @classmethod
     def tearDownClass(cls):

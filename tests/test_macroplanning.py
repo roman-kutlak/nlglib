@@ -39,11 +39,11 @@ class TestDocument(unittest.TestCase):
         expected = '<Document: (Title)>'
         self.assertEqual(expected, repr(self.doc))
 
-    def test_constituents(self):
+    def test_elements(self):
         expected = [String('Title', {'cat': 'ANY'}),
                     Document('Section 1', 'para 1', 'para 2'),
                     Document('Section 2', 'para 3', 'para 4')]
-        self.assertEqual(expected, list(self.doc.constituents()))
+        self.assertEqual(expected, list(self.doc.elements()))
 
     def test_to_xml(self):
         expected = '''\

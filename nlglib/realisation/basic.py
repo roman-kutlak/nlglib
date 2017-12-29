@@ -75,7 +75,7 @@ class Realiser(object):
         if not kwargs.get('keep_title_punctuation') and title.endswith('.'):
             title = title[:-1]
         sections = [self.realise(x, **kwargs) for x in msg.sections]
-        return Document(*sections, title=title)
+        return Document(title, *sections)
 
 
 # **************************************************************************** #

@@ -211,11 +211,11 @@ class TestVar(unittest.TestCase):
 
     def test_repr(self):
         """ Test debug printing. """
-        expected = "Var: id='obj1' value=None {}"
+        expected = "Var('obj1', Word('obj1', 'NOUN'))"
         p = Var('obj1')
         self.assertEqual(expected, repr(p))
 
-        expected = "Var: id='obj1' value=None {'countable': 'yes'}"
+        expected = "Var('obj1', Word('obj1', 'NOUN'), {'countable': 'yes'})"
         p['countable'] = 'yes'
         self.assertEqual(expected, repr(p))
 

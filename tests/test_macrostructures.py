@@ -1,14 +1,6 @@
 import unittest
 
-from nlglib.macroplanning import Document, RhetRel, MsgSpec
-from nlglib.microplanning import *
-
-Paragraph = Document
-
-
-class Section(Document):
-    def __init__(self, title, *paragraphs):
-        super().__init__(*paragraphs, title=title)
+from nlglib.macroplanning import Document, RhetRel, MsgSpec, Paragraph
 
 
 class DummyMessage(MsgSpec):
@@ -32,7 +24,7 @@ class TestMessageSpec(unittest.TestCase):
     def test_repr(self):
         tm = DummyMessage('nice_name')
         descr = repr(tm)
-        self.assertEqual('MsgSpec: nice_name', descr)
+        self.assertEqual('MsgSpec(nice_name, {})', descr)
 
     def test_value_for(self):
         tm = DummyMessage('some_name')
@@ -46,30 +38,46 @@ class TestRhetRel(unittest.TestCase):
     <marker>and</marker>
     <nuclei>
       <nucleus>
-        This is the nuclei
+        <child xsi:type="WordElement" canned="true"  cat="ANY">
+          <base>This+is+the+nucleus</base>
+        </child>
+
       </nucleus>
-    </nuclei>
-    <satellite>
-      this is the satellite
-    </satellite>
+      <satellite>
+        <child xsi:type="WordElement" canned="true"  cat="ANY">
+          <base>this+is+the+satellite</base>
+        </child>
+      </satellite>
   </RhetRel>
 """
 
     expected2 = """\
   <RhetRel name="elaboration">
     <marker>and</marker>
-    <semrep>
-      This is the nuclei
-    </semrep>
-    <RhetRel name="concession">
-      <marker>however</marker>
-      <semrep>
-        this is another nuclei
-      </semrep>
-      <semrep>
-        this is the satellite
-      </semrep>
-    </RhetRel>
+    <nuclei>
+      <nucleus>
+        <child xsi:type="WordElement" canned="true"  cat="ANY">
+          <base>This+is+the+nucleus</base>
+        </child>
+
+      </nucleus>
+      <satellite>
+        <RhetRel name="concession">
+          <marker>however</marker>
+          <nuclei>
+            <nucleus>
+              <child xsi:type="WordElement" canned="true"  cat="ANY">
+                <base>this+is+another+nucleus</base>
+              </child>
+
+            </nucleus>
+            <satellite>
+              <child xsi:type="WordElement" canned="true"  cat="ANY">
+                <base>this+is+the+satellite</base>
+              </child>
+            </satellite>
+        </RhetRel>
+      </satellite>
   </RhetRel>
 """
 
@@ -95,12 +103,14 @@ class TestRhetRel(unittest.TestCase):
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = "RhetRel (Elaboration): 'foo' 'bar' 'baz'"
+        expected = "<RhetRel (Elaboration): String('foo', {}) String('bar', {}) String('baz', {})>"
         m = RhetRel('Elaboration', 'foo', 'bar', 'baz')
         descr = repr(m)
         self.assertEqual(expected, descr)
 
-        expected = "RhetRel (Contrast): RhetRel (Elaboration): 'foo' 'bar' 'baz' 'bar' 'baz'"
+        expected = "<RhetRel (Contrast): <RhetRel (Elaboration): " \
+                   "String('foo', {}) String('bar', {}) String('baz', {})> " \
+                   "String('bar', {}) String('baz', {})>"
         m2 = RhetRel('Contrast', m, 'bar', 'baz')
         descr = repr(m2)
         self.assertEqual(expected, descr)
@@ -108,129 +118,88 @@ class TestRhetRel(unittest.TestCase):
 
 class TestParagraph(unittest.TestCase):
     def test_str(self):
-        expected = '\tfoo bar'
+        expected = 'foo bar'
         m = RhetRel('Elaboration', 'foo', 'bar')
         p = Paragraph(m)
         descr = str(p)
         self.assertEqual(expected, descr)
 
-        expected = '\tfoo bar bar baz'
+        expected = 'foo bar bar baz'
         m2 = RhetRel('Contrast', m, 'bar', 'baz')
         p = Paragraph(m2)
         descr = str(p)
         self.assertEqual(expected, descr)
 
-        expected = '\tfoo bar bar baz; foobar'
+        expected = 'foo bar bar baz foobar'
         m3 = RhetRel('Leaf', 'foobar')
         p = Paragraph(m2, m3)
         descr = str(p)
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = """Paragraph (1):
-RhetRel (Elaboration): 'foo' 'bar'"""
+        expected = "<Paragraph (1):\n\t" \
+                   "<RhetRel (Elaboration): String('foo', {}) String('bar', {})>>"
         m = RhetRel('Elaboration', 'foo', 'bar')
         p = Paragraph(m)
         descr = repr(p)
         self.assertEqual(expected, descr)
 
-        expected = """Paragraph (1):
-RhetRel (Contrast): RhetRel (Elaboration): 'foo' 'bar' 'bar' 'baz'"""
+        expected = "<Paragraph (1):\n\t" \
+                   "<RhetRel (Contrast): " \
+                   "<RhetRel (Elaboration): String('foo', {}) String('bar', {})> " \
+                   "String('bar', {}) String('baz', {})>>"
         m2 = RhetRel('Contrast', m, 'bar', 'baz')
         p = Paragraph(m2)
         descr = repr(p)
         self.assertEqual(expected, descr)
 
-        expected = """Paragraph (2):
-RhetRel (Contrast): RhetRel (Elaboration): 'foo' 'bar' \
-'bar' 'baz'; RhetRel (Leaf): 'foobar'"""
+        expected = "<Paragraph (2):\n\t" \
+                   "<RhetRel (Contrast): " \
+                   "<RhetRel (Elaboration): String('foo', {}) String('bar', {})> " \
+                   "String('bar', {}) String('baz', {})>" \
+                   "\n\t<RhetRel (Leaf): String('foobar', {}) String('', {})>>"
         m3 = RhetRel('Leaf', 'foobar')
         p = Paragraph(m2, m3)
         descr = repr(p)
-        self.assertEqual(expected, descr)
-
-
-class TestSection(unittest.TestCase):
-    def test_str(self):
-        expected = 'One\n\tfoo bar'
-        m = RhetRel('Elaboration', 'foo', 'bar')
-        s = Section('One', Paragraph(m))
-        descr = str(s)
-        self.assertEqual(expected, descr)
-
-        expected = 'One\n\tfoo bar\n\tbaz bar'
-        m2 = RhetRel('Contrast', 'baz', 'bar')
-        s = Section('One', Paragraph(m), Paragraph(m2))
-        descr = str(s)
-        self.assertEqual(expected, descr)
-
-    def test_repr(self):
-        expected = """Section:
-title: 'One'
-Paragraph (1):
-RhetRel (Elaboration): 'foo' 'bar'"""
-        m = RhetRel('Elaboration', 'foo', 'bar')
-        s = Section('One', Paragraph(m))
-        descr = repr(s)
-        self.assertEqual(expected, descr)
-
-        expected = """Section:
-title: 'One'
-Paragraph (1):
-RhetRel (Elaboration): 'foo' 'bar'
-Paragraph (1):
-RhetRel (Contrast): 'baz' 'bar'"""
-        m2 = RhetRel('Contrast', 'baz', 'bar')
-        s = Section('One', Paragraph(m), Paragraph(m2))
-        descr = repr(s)
         self.assertEqual(expected, descr)
 
 
 class TestDocument(unittest.TestCase):
     def test_str(self):
-        expected = 'MyDoc\nOne\n\tfoo bar'
+        expected = "MyDoc\n\nOne\n\nfoo bar"
         m = RhetRel('Elaboration', 'foo', 'bar')
-        one = Section('One', Paragraph(m))
+        one = Document('One', Paragraph(m))
         d = Document('MyDoc', one)
         descr = str(d)
         self.assertEqual(expected, descr)
 
-        expected = 'MyDoc\nOne\n\tfoo bar\n\nTwo\n\tbaz bar'
+        expected = "MyDoc\n\nOne\n\nfoo bar\n\nTwo\n\nbaz bar"
         m2 = RhetRel('Contrast', 'baz', 'bar')
-        two = Section('Two', Paragraph(m2))
+        two = Document('Two', Paragraph(m2))
         d = Document('MyDoc', one, two)
         descr = str(d)
         self.assertEqual(expected, descr)
 
     def test_repr(self):
-        expected = """Document:
-title: 'MyDoc'
-Section:
-title: 'One'
-Paragraph (1):
-RhetRel (Elaboration): 'foo' 'bar'"""
+        expected = """\
+<Document: (MyDoc)
+<Document: (One)
+String('foo bar', {})>>"""
         m = RhetRel('Elaboration', 'foo', 'bar')
-        one = Section('One', Paragraph(m))
+        one = Document('One', Paragraph(m))
         d = Document('MyDoc', one)
-        descr = repr(d)
-        self.assertEqual(expected, descr)
+        self.assertEqual(expected, repr(d))
 
-        expected = """Document:
-title: 'MyDoc'
-Section:
-title: 'One'
-Paragraph (1):
-RhetRel (Elaboration): 'foo' 'bar'
-
-Section:
-title: 'Two'
-Paragraph (1):
-RhetRel (Contrast): 'baz' 'bar'"""
+        expected = """\
+<Document: (MyDoc)
+<Document: (One)
+String('foo bar', {})>
+<Document: (Two)
+String('baz bar', {})>>"""
         m2 = RhetRel('Contrast', 'baz', 'bar')
-        two = Section('Two', Paragraph(m2))
+        two = Document('Two', Paragraph(m2))
         d = Document('MyDoc', one, two)
-        descr = repr(d)
-        self.assertEqual(expected, descr)
+        self.assertEqual(expected, repr(d))
 
 
 if __name__ == '__main__':

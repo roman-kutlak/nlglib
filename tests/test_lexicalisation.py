@@ -54,9 +54,9 @@ class TestLexicalisation(unittest.TestCase):
         """ Test lexicalisation of Document. """
         m1 = RhetRel('Leaf', DummyMsg())
         m2 = RhetRel('Elaboration', DummyMsg(), DummyMsg())
-        s1 = Document(m1, title='Section One')
-        s2 = Document(m2, title='Section Two')
-        d = Document(s1, s2, title='Doc Title')
+        s1 = Document('Section One', m1)
+        s2 = Document('Section Two', m2)
+        d = Document('Doc Title', s1, s2)
         tmp = lex.document(d)
         expected = 'Doc Title\n\n' + \
             'Section One' + \
