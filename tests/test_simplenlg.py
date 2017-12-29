@@ -75,7 +75,7 @@ class TestSimplenlgClient(unittest.TestCase):
 
     def test_snlg_7(self):
         # FIXME: simplenlg realiser seems to have problem with coordinated elements
-        #   - missing upper case and period
+        #   - missing upper CASE and period
         expected = 'if x equals y and p is at location x then p is not at location y'
         realisation = self.client.xml_request(test_data7)
         self.assertEqual(expected, realisation)

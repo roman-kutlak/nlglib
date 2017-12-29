@@ -1,4 +1,4 @@
-from nlglib.features import number, gender, noun_type
+from nlglib.features import NUMBER, GENDER, NOUN_TYPE
 from nlglib.features.category import *
 from .struct import *
 
@@ -112,38 +112,38 @@ def NN(word, features=None):
 @str_or_element
 def NNS(word, features=None):
     o = Noun(word, features=features)
-    o[number] = number.plural
+    o[NUMBER] = NUMBER.plural
     return o
 
 
 @str_or_element
 def NNP(name, features=None):
     o = Noun(name, features=features)
-    o[noun_type] = noun_type.proper
+    o[NOUN_TYPE] = NOUN_TYPE.proper
     return o
 
 
 @str_or_element
 def NNPS(name, features=None):
     o = Noun(name, features=features)
-    o[noun_type] = noun_type.proper
-    o[number] = number.plural
+    o[NOUN_TYPE] = NOUN_TYPE.proper
+    o[NUMBER] = NUMBER.plural
     return o
 
 
 @str_or_element
 def Male(name, features=None):
     o = Noun(name, features=features)
-    o[noun_type] = noun_type.proper
-    o[gender] = gender.masculine
+    o[NOUN_TYPE] = NOUN_TYPE.proper
+    o[GENDER] = GENDER.masculine
     return o
 
 
 @str_or_element
 def Female(name, features=None):
     o = Noun(name, features=features)
-    o[noun_type] = noun_type.proper
-    o[gender] = gender.feminine
+    o[NOUN_TYPE] = NOUN_TYPE.proper
+    o[GENDER] = GENDER.feminine
     return o
 
 

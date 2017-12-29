@@ -7,8 +7,8 @@ If you are defining your own features, use the `Feature` and
 
 from .feature import FeatureGroup
 
-case = FeatureGroup(
-    'case',
+CASE = FeatureGroup(
+    'CASE',
     'nominative',
     'accusative',
     'genitive',
@@ -19,16 +19,16 @@ case = FeatureGroup(
     transform='lower'
 )
 
-number = FeatureGroup(
-    'number',
+NUMBER = FeatureGroup(
+    'NUMBER',
     'singular',
     'plural',
     'both',
     transform='lower'
 )
 
-gender = FeatureGroup(
-    'gender',
+GENDER = FeatureGroup(
+    'GENDER',
     'masculine',
     'feminine',
     'neuter',
@@ -36,8 +36,8 @@ gender = FeatureGroup(
 )
 
 # `generic` can be used for pronouns eg 'you' in
-person = FeatureGroup(
-    'person',
+PERSON = FeatureGroup(
+    'PERSON',
     'first',
     'second',
     'third',
@@ -45,8 +45,8 @@ person = FeatureGroup(
     transform='lower'
 )
 
-tense = FeatureGroup(
-    'tense',
+TENSE = FeatureGroup(
+    'TENSE',
     'present',
     'past',
     'future',
@@ -70,8 +70,8 @@ tense = FeatureGroup(
 # past perfect progressive tense	I had been going
 # present perfect progressive tense	I have been going
 # future perfect progressive tense	I will have been going
-aspect = FeatureGroup(
-    'aspect',
+ASPECT = FeatureGroup(
+    'ASPECT',
     'simple',
     'perfect',
     'progressive',
@@ -79,16 +79,16 @@ aspect = FeatureGroup(
     transform='lower'
 )
 
-mood = FeatureGroup(
-    'mood',
+MOOD = FeatureGroup(
+    'MOOD',
     'indicative',
     'imperative',
     'subjunctive',
     transform='lower'
 )
 
-modal = FeatureGroup(
-    'modal',
+MODAL = FeatureGroup(
+    'MODAL',
     'can', 'could',
     'may', 'might',
     'must', 'ought',
@@ -97,15 +97,15 @@ modal = FeatureGroup(
     transform='lower'
 )
 
-voice = FeatureGroup(
-    'voice',
+VOICE = FeatureGroup(
+    'VOICE',
     'active',
     'passive',
     transform='lower'
 )
 
-form = FeatureGroup(
-    'form',
+FORM = FeatureGroup(
+    'FORM',
     'bare_infinitive',
     'gerund',
     'imperative',
@@ -116,8 +116,8 @@ form = FeatureGroup(
     transform='lower'
 )
 
-interrogative_type = FeatureGroup(
-    'interrogative_type',
+INTERROGATIVE_TYPE = FeatureGroup(
+    'INTERROGATIVE_TYPE',
     'how',
     'why',
     'where',
@@ -132,29 +132,29 @@ interrogative_type = FeatureGroup(
     transform='lower'
 )
 
-register = FeatureGroup(
-    'register',
+REGISTER = FeatureGroup(
+    'REGISTER',
     'formal',
     'informal',
     transform='lower'
 )
 
-clause = FeatureGroup(
-    'clause',
+CLAUSE = FeatureGroup(
+    'CLAUSE',
     'matrix',
     'subordinate',
     transform='lower'
 )
 
-noun_type = FeatureGroup(
-    'noun_type',
+NOUN_TYPE = FeatureGroup(
+    'NOUN_TYPE',
     'common',
     'proper',
     transform='lower'
 )
 
-pronoun_type = FeatureGroup(
-    'pronoun_type',
+PRONOUN_TYPE = FeatureGroup(
+    'PRONOUN_TYPE',
     'personal',
     'special_personal',
     'snumeral',
@@ -166,8 +166,8 @@ pronoun_type = FeatureGroup(
     transform='lower'
 )
 
-pronoun_use = FeatureGroup(
-    'pronoun_use',
+PRONOUN_USE = FeatureGroup(
+    'PRONOUN_USE',
     'subjective',
     'objective',
     'reflexive',
@@ -175,11 +175,23 @@ pronoun_use = FeatureGroup(
     transform='lower'
 )
 
-element_type = FeatureGroup(
-    'element_type',
+NEGATED = FeatureGroup(
+    'NEGATED',
+    'true',
+    'false',
+)
+
+ELIDED = FeatureGroup(
+    'ELIDED',
     'elided',
-    'negated',
-    'inflected',
+    'true',
+    'false',
+)
+
+INFLECTED = FeatureGroup(
+    'INFLECTED',
+    'true',
+    'false',
 )
 
 
@@ -189,13 +201,13 @@ element_type = FeatureGroup(
 """
 An enumeration representing the grammatical function
 that an element might take. The discourse function
-is recorded under the feature `discourse_function`
+is recorded under the feature `DISCOURSE_FUNCTION`
 and applies to any type of NLGElement.
 
 """
 
-discourse_function = FeatureGroup(
-    'discourse_function',
+DISCOURSE_FUNCTION = FeatureGroup(
+    'DISCOURSE_FUNCTION',
 
     # Auxiliaries are the additional verbs added to a verb phrase to alter the
     # meaning being described. For public static final String example =
@@ -280,12 +292,12 @@ discourse_function = FeatureGroup(
     # <em>talk</em>, <em>bark</em>, <em>fall down</em>, <em>pick up</em>.
     "predicate",
 
-    # use lower case for constants
+    # use lower CASE for constants
     transform='lower'
 )
 
 # features that are excluded from equality comparison
-NON_COMPARABLE_FEATURES = [discourse_function]
+NON_COMPARABLE_FEATURES = [DISCOURSE_FUNCTION]
 
 # features that should be transferred on replacement
-TRANSFERABLE_FEATURES = [discourse_function]
+TRANSFERABLE_FEATURES = [DISCOURSE_FUNCTION]

@@ -30,9 +30,9 @@ class Feature(object):
 
         """
         if isinstance(other, Feature):
-            return self.name == other.name and self.value == other.value
+            return self.name.lower() == other.name.lower() and self.value == other.value
         elif isinstance(other, FeatureGroup):
-            return self.name == other.name
+            return self.name.lower() == other.name.lower()
         else:
             return False
 
@@ -42,7 +42,7 @@ class Feature(object):
 
 
 class FeatureGroup(object):
-    """Represents a group of features such as number or tense. """
+    """Represents a group of features such as NUMBER or TENSE. """
     # TODO: consider using metaclasses and __slots__
 
     def __init__(self, name, *values, transform=None):
@@ -53,13 +53,13 @@ class FeatureGroup(object):
 
         Note that the order of values matters! (intentionally)
 
-        :param str name: the name of the group (eg number or tense)
+        :param str name: the name of the group (eg NUMBER or TENSE)
         :param str values: the individual feature values (eg first, second or present, past)
         :param str transform: string transformation for given values ('lower', 'upper' or None)
 
-        >>> number = FeatureGroup('number', 'singular', 'plural')
-        >>> number.singular
-        <Feature number: singular>
+        >>> NUMBER = FeatureGroup('NUMBER', 'singular', 'plural')
+        >>> NUMBER.singular
+        <Feature NUMBER: singular>
 
         """
         def ident(x):
@@ -68,10 +68,10 @@ class FeatureGroup(object):
         if transform:
             fn = getattr(str, transform)
         self.transform = fn
-        self.name = fn(name)
+        self.name = name
         self.values = list(values)
         for v in values:
-            setattr(self, fn(v), Feature(fn(name), fn(v)))
+            setattr(self, fn(v), Feature(name, fn(v)))
 
     def __str__(self):
         return self.name
@@ -138,15 +138,15 @@ class FeatureSet(MutableSet):
         """Return True if the feature set contains either given feature or given feature group
 
         This function relies on the fact that FeatureGroup and Feature compare as equal
-        if their names match. This is to allow, for example, number.plural == number return True.
+        if their names match. This is to allow, for example, NUMBER.plural == NUMBER return True.
 
-        >>> number = FeatureGroup('number', 'singular', 'plural')
-        >>> fs = FeatureSet([number.plural])
-        >>> number in fs
+        >>> NUMBER = FeatureGroup('NUMBER', 'singular', 'plural')
+        >>> fs = FeatureSet([NUMBER.plural])
+        >>> NUMBER in fs
         True
-        >>> number.singular in fs
+        >>> NUMBER.singular in fs
         False
-        >>> number.plural in fs
+        >>> NUMBER.plural in fs
         True
 
         """
@@ -155,11 +155,11 @@ class FeatureSet(MutableSet):
         return x in self.__s
 
     def __getitem__(self, feature):
-        """Return the value of the corresponding feature group (eg number or tense) or None
+        """Return the value of the corresponding feature group (eg NUMBER or TENSE) or None
 
-        >>> fs = FeatureSet([Feature('number', 'plural')])
-        >>> fs[FeatureGroup('number')]
-        <Feature number: plural>
+        >>> fs = FeatureSet([Feature('NUMBER', 'plural')])
+        >>> fs[FeatureGroup('NUMBER')]
+        <Feature NUMBER: plural>
 
         """
         name = feature if isinstance(feature, str) else feature.name
@@ -171,12 +171,12 @@ class FeatureSet(MutableSet):
     def __setitem__(self, key, value):
         """Add the given `value` using `self.replace`; `key` is used only if `value` is a string.
 
-        >>> number = FeatureGroup('number', 'singular', 'plural')
-        >>> fs = FeatureSet([number.singular])
-        >>> fs[number] = number.plural
+        >>> NUMBER = FeatureGroup('NUMBER', 'singular', 'plural')
+        >>> fs = FeatureSet([NUMBER.singular])
+        >>> fs[NUMBER] = NUMBER.plural
         >>> repr(fs)
-        '<FeatureSet {<Feature number: plural>}>'
-        >>> fs[number] = 'singular'
+        '<FeatureSet {<Feature NUMBER: plural>}>'
+        >>> fs[NUMBER] = 'singular'
 
         """
         if isinstance(value, str):
@@ -188,10 +188,10 @@ class FeatureSet(MutableSet):
 
     def add(self, value):
         """Add a feature into the set
-        >>> fs = FeatureSet([Feature('number', 'singular')])
-        >>> fs.add(Feature('number', 'plural'))
+        >>> fs = FeatureSet([Feature('NUMBER', 'singular')])
+        >>> fs.add(Feature('NUMBER', 'plural'))
         >>> repr(fs)
-        '<FeatureSet {<Feature number: plural>, <Feature number: singular>}>'
+        '<FeatureSet {<Feature NUMBER: plural>, <Feature NUMBER: singular>}>'
 
         """
         self.__s.add(value)
@@ -199,10 +199,10 @@ class FeatureSet(MutableSet):
     def replace(self, value):
         """Add a feature into the set, replacing other feature(s) of the same group
 
-        >>> fs = FeatureSet([Feature('number', 'singular')])
-        >>> fs.replace(Feature('number', 'plural'))
+        >>> fs = FeatureSet([Feature('NUMBER', 'singular')])
+        >>> fs.replace(Feature('NUMBER', 'plural'))
         >>> repr(fs)
-        '<FeatureSet {<Feature number: plural>}>'
+        '<FeatureSet {<Feature NUMBER: plural>}>'
 
         """
         if not value:
@@ -213,18 +213,19 @@ class FeatureSet(MutableSet):
     def discard(self, value):
         """Discard a given value from the set (doesn't raise KeyError if not found)
 
-        >>> fs = FeatureSet([Feature('number', 'singular')])
-        >>> fs.discard(Feature('number', 'plural'))
+        >>> fs = FeatureSet([Feature('NUMBER', 'singular')])
+        >>> fs.discard(Feature('NUMBER', 'plural'))
+        {<Feature NUMBER: singular>}
         >>> repr(fs)
-        '<FeatureSet {<Feature number: singular>}>'
-        >>> fs.discard(FeatureGroup('number'))
+        '<FeatureSet {<Feature NUMBER: singular>}>'
+        >>> fs.discard(FeatureGroup('NUMBER'))
         >>> repr(fs)
         '<FeatureSet set()>'
 
         """
         feature = value if isinstance(value, str) else value.name
-        to_del = (x for x in self.__s if x.name == feature)
-        self.__s -= set(to_del)
+        to_del = set(x for x in self.__s if x.name == feature)
+        self.__s -= to_del
         return to_del
 
     def get(self, feature, default=None):

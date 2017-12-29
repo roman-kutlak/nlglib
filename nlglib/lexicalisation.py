@@ -3,7 +3,7 @@ import logging
 
 from nlglib.microplanning import *
 from nlglib.macroplanning import *
-from nlglib.features import category, element_type
+from nlglib.features import category, NEGATED
 
 __all__ = ['Lexicaliser']
 
@@ -193,7 +193,7 @@ class Lexicaliser(object):
             result = Clause()
             result.subject(nucleus)
             direct_object = satellite
-            features[element_type] = element_type.negated
+            features[NEGATED] = NEGATED.true
             result.predicate(VP('is', direct_object, features=features))
         elif relation == 'quantifier':
             # quantifiers have multiple nuclei (variables)
@@ -210,7 +210,7 @@ class Lexicaliser(object):
 
             front_mod = np
             # front_mod should go in front of existing front_mods
-            # In case of CC, modify the first coordinate
+            # In CASE of CC, modify the first coordinate
             if result.category == COORDINATION:
                 result.coords[0].add_front_modifier(String(front_mod), pos=0)
             else:
@@ -218,7 +218,7 @@ class Lexicaliser(object):
             log.debug('Result:\n' + repr(result))
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
-                                              features=(element_type.negated,)))
+                                              features=(NEGATED.true,)))
             cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.predicate.complements.append(cl)
