@@ -88,7 +88,8 @@ class Lexicaliser(object):
             template = self.get_template(arg, **kwargs)
             if template is None:
                 continue
-            log.info('Replacing\n{0} in \n{1} by \n{2}.'.format(repr(arg), repr(rv), repr(template)))
+            msg = 'Replacing\n{0} in \n{1} by \n{2}.'
+            log.info(msg.format(repr(arg), repr(rv), repr(template)))
             # avoid infinite recursion of lexicalising args (Var instances)?
             if rv == arg:
                 return template
@@ -119,7 +120,7 @@ class Lexicaliser(object):
             # if there are any arguments, replace them by values from the msg
             for arg in args:
                 log.info('Replacing argument\n{0} in \n{1}.'
-                                 .format(str(arg), repr(template)))
+                         .format(str(arg), repr(template)))
                 val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
                 if isinstance(val, str):
@@ -217,7 +218,7 @@ class Lexicaliser(object):
             log.debug('Result:\n' + repr(result))
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
-                                              features=(element_type.negated, )))
+                                              features=(element_type.negated,)))
             cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.predicate.complements.append(cl)
@@ -251,10 +252,11 @@ class Lexicaliser(object):
         The looked templates are `self.templates` and `kwargs['templates']`.
         
         If the template under given key is a callable object, 
-        it will be passed `element` and **kwargs and should return a template.
+        it will be passed `element` and `**kwargs` and should return a template.
         
         :param item: str or something with `key` attribute for lookup
-        :param kwargs: optional arguments from the pipeline
+        :param templates: optional templates to look up the item
+        :param kwargs: optional arguments passed to `lexicalise()`
         :return: a template or String(str(element))
         :rtype: Element
         

@@ -771,13 +771,12 @@ class Phrase(Element):
 
 class NounPhrase(Phrase):
     """
-     * <UL>
-     * <li>Specifier     (eg, "the")</LI>
-     * <LI>PreModifier   (eg, "green")</LI>
-     * <LI>Noun (head)   (eg, "apples")</LI>
-     * <LI>complement    (eg, "that you liked")</LI>
-     * <LI>PostModifier  (eg, "in the shop")</LI>
-     * </UL>
+     * Specifier     (eg, "the")
+     * PreModifier   (eg, "green")
+     * Noun (head)   (eg, "apples")
+     * complement    (eg, "that you liked")
+     * PostModifier  (eg, "in the shop")
+     
      """
 
     _spec = Element()
@@ -884,13 +883,12 @@ class NounPhrase(Phrase):
 
 class VerbPhrase(Phrase):
     """
-    * <UL>
-     * <LI>PreModifier      (eg, "reluctantly")</LI>
-     * <LI>Verb             (eg, "gave")</LI>
-     * <LI>IndirectObject   (eg, "Mary")</LI>
-     * <LI>Object           (eg, "an apple")</LI>
-     * <LI>PostModifier     (eg, "before school")</LI>
-     * </UL>
+     * PreModifier      (eg, "reluctantly")
+     * Verb             (eg, "gave")
+     * IndirectObject   (eg, "Mary")
+     * Object           (eg, "an apple")
+     * PostModifier     (eg, "before school")
+
      """
 
     category = category.VERB_PHRASE
@@ -975,17 +973,17 @@ class AdjectivePhrase(Phrase):
 class Clause(Phrase):
     """Clause - sentence.
     From simplenlg:
-    * <UL>
-    * <li>FrontModifier (eg, "Yesterday")
-    * <LI>Subject (eg, "John")
-    * <LI>PreModifier (eg, "reluctantly")
-    * <LI>Verb (eg, "gave")
-    * <LI>IndirectObject (eg, "Mary")
-    * <LI>Object (eg, "an apple")
-    * <LI>PostModifier (eg, "before school")
-    * </UL>
-    * Note that verb, indirect object, and object are propagated to the underlying
-    * verb phrase
+
+    * FrontModifier (eg, "Yesterday")
+    * Subject (eg, "John")
+    * PreModifier (eg, "reluctantly")
+    * Verb (eg, "gave")
+    * IndirectObject (eg, "Mary")
+    * Object (eg, "an apple")
+    * PostModifier (eg, "before school")
+    
+    Note that verb, indirect object, and object
+    are propagated to the underlying verb phrase
 
     """
 
@@ -1203,7 +1201,8 @@ def is_adjective_type(element, strict=False):
     check = all if strict else any
     return (isinstance(element, AdjectivePhrase) or
             isinstance(element, Word) and element.pos == category.ADJECTIVE or
-            isinstance(element, Coordination) and check(is_adjective_type(c) for c in element.coords))
+            isinstance(element, Coordination) and
+            check(is_adjective_type(c) for c in element.coords))
 
 
 def is_adverb_type(element, strict=False):
@@ -1211,7 +1210,8 @@ def is_adverb_type(element, strict=False):
     check = all if strict else any
     return (isinstance(element, AdverbPhrase) or
             isinstance(element, Word) and element.pos == category.ADVERB or
-            isinstance(element, Coordination) and check(is_adverb_type(c) for c in element.coords))
+            isinstance(element, Coordination)
+            and check(is_adverb_type(c) for c in element.coords))
 
 
 def is_noun_type(element, strict=False):
@@ -1219,7 +1219,8 @@ def is_noun_type(element, strict=False):
     check = all if strict else any
     return (isinstance(element, NounPhrase) or
             isinstance(element, Word) and element.pos == category.NOUN or
-            isinstance(element, Coordination) and check(is_noun_type(c) for c in element.coords))
+            isinstance(element, Coordination)
+            and check(is_noun_type(c) for c in element.coords))
 
 
 def is_verb_type(element, strict=False):
@@ -1227,7 +1228,8 @@ def is_verb_type(element, strict=False):
     check = all if strict else any
     return (isinstance(element, VerbPhrase) or
             isinstance(element, Word) and element.pos == category.VERB or
-            isinstance(element, Coordination) and check(is_verb_type(c) for c in element.coords))
+            isinstance(element, Coordination)
+            and check(is_verb_type(c) for c in element.coords))
 
 
 def is_element_type(element):
