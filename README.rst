@@ -1,3 +1,13 @@
+Current Status
+==============
+This is just a starting point - an alpha version - mainly a wrapper
+around SimpleNLG_.
+
+Although it is possible to go from first order logic to text,
+there is no sophistication in how things are processed.
+The library is still missing basics like aggregation or referring expression generation.
+
+
 Intro
 =====
 
@@ -11,9 +21,10 @@ to add a bit of text generation to their capabilities.
 Audience
 ========
 
-The library should be useable by programmers with as little linguistic knowledge
-as possible. Given that the aim of the library is language generation,
-some linguistic knowledge is necessary.
+The library should be usable by programmers with no prior linguistic knowledge.
+Given that the aim of the library is language generation,
+some linguistic knowledge is necessary but you should be able to pick it up
+from the examples.
 
 
 Scope
@@ -22,9 +33,7 @@ Scope
 The aim of the library is to create a base for NLG system starting from content
 selection all the way to realisation. The library will cover document structuring
 tools, lexicalisation, referring expression generation and aggregation.
-Realisation will be done using other realisation libraries (SimpleNLG or pynlg).
-At the moment, the input to the library is a list of First Order Logic formulas
-and the output is English text.
+Realisation will be done using other realisation libraries (SimpleNLG_ or pynlg_).
 
 
 History
@@ -34,3 +43,43 @@ NLGlib started as a part of the EPSRC project
 Scrutable Autonomous Systems (SAsSy): www.scrutable-systems.org
 When the project finished, the code was moved to this repository to create
 a stand-alone re-usable library.
+
+
+Example
+=======
+
+.. code-block:: python
+
+    from nlglib.realisation.simplenlg.realisation import Realiser
+    from nlglib.microplanning import *
+
+    realise_en = Realiser(host='roman.kutlak.info', port=40000)
+    realise_es = Realiser(host='roman.kutlak.info', port=40001)
+
+
+    def main():
+        p = Clause("María", "perseguir", "un mono")
+        p['TENSE'] = 'PAST'
+        # expected = 'María persigue un mono.'
+        print(realise_es(p))
+        p = Clause(NP("la", "rápida", "corredora"), VP("perseguir"), NP("un", "mono"))
+        subject = NP("la", "corredora")
+        objekt = NP("un", "mono")
+        verb = VP("perseguir")
+        subject.premodifiers.append("rápida")
+        p.subject = subject
+        p.predicate = verb
+        p.object = objekt
+        # expected = 'La rápida corredora persigue un mono.'
+        print(realise_es(p))
+        p = Clause(NP('this', 'example'), VP('show', 'how cool is simplenlg'))
+        # expected = This example shows how cool is simplenlg.
+        print(realise_en(p))
+
+
+    if __name__ == '__main__':
+        main()
+
+
+.. _SimpleNLG: https://github.com/simplenlg/simplenlg
+.. _pynlg: https://github.com/mapado/pynlg

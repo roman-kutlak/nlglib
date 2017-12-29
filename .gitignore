@@ -59,3 +59,5 @@ target/
 
 # jython files
 *$py.class
+cover
+tests/_trial_temp/

@@ -1,316 +1,302 @@
 import numbers
+import logging
 
-from nlglib import realisation
-from nlglib.aggregation import *
-from nlglib.lexicon import *
 from nlglib.microplanning import *
+from nlglib.macroplanning import *
+from nlglib.features import category, element_type
+
+__all__ = ['Lexicaliser']
+
+log = logging.getLogger(__name__)
 
 
-def get_log():
-    return logging.getLogger(__name__)
-
-
-get_log().addHandler(logging.NullHandler())
-
-
-def lexicalise(msg):
-    """ Perform lexicalisation on the message depending on the type. """
-    if msg is None:
-        return None
-    elif isinstance(msg, numbers.Number):
-        return Numeral(msg)
-    elif isinstance(msg, str):
-        return String(msg)
-    elif isinstance(msg, (list, tuple)):
-        return [lexicalise(x) for x in msg]
-    elif isinstance(msg, Element):
-        return lexicalise_element(msg)
-    elif isinstance(msg, MsgSpec):
-        return lexicalise_message_spec(msg)
-    elif isinstance(msg, Message):
-        return lexicalise_message(msg)
-    elif isinstance(msg, Paragraph):
-        return lexicalise_paragraph(msg)
-    elif isinstance(msg, Section):
-        return lexicalise_section(msg)
-    elif isinstance(msg, Document):
-        return lexicalise_document(msg)
-    else:
-        raise TypeError('"%s" is neither a Message nor a MsgInstance' % msg)
-
-
-def lexicalise_element(elt):
-    """ See if element contains placeholders and if so, replace them
-    by templates.
-
-    """
-    get_log().debug('Lexicalising Element: {0}'.format(repr(elt)))
-    # find arguments
-    args = elt.arguments()
-    # if there are any arguments, replace them by values
-    for arg in args:
-        result = templates.template(arg.id)
-        if result is None: continue
-        get_log().debug('Replacing\n{0} in \n{1} by \n{2}.'
-                        .format(repr(arg), repr(elt), repr(result)))
-        if isinstance(result, str):
-            result = String(result)
-        result.add_features(elt._features)
-        if elt == arg:
-            return result
-        else:
-            elt.replace(arg, lexicalise(result))
-    return elt
-
-
-# each message should correspond to a clause
-def lexicalise_message_spec(msg):
-    """ Return Element corresponding to given message specification.
-    If the lexicaliser can not find correct lexicalisation, it returns None
-    and logs the error.
-
-    """
-    get_log().debug('Lexicalising message specs: {0}'.format(repr(msg)))
-    try:
-        template = templates.template(msg.name)
-        # TODO: should MessageSpec correspond to a clause?
-        if template is None:
-            get_log().warning('No sentence template for "%s"' % msg.name)
-            result = String(str(msg))
-            result.add_features(msg._features)
-            return result
-        if isinstance(template, str):
-            result = String(template)
-            result.add_features(msg._features)
-            return result
-        template.add_features(msg._features)
-        # find arguments
-        args = template.arguments()
-        # if there are any arguments, replace them by values
-        # TODO: check that features are propagated
-        for arg in args:
-            get_log().debug('Replacing\n{0} in \n{1}.'
-                            .format(str(arg), repr(template)))
-            val = msg.value_for(arg.id)
-            # check if value is a template
-            if isinstance(val, Word) or isinstance(val, String):
-                t = templates.template(val.string)
-                if t:
-                    val = t
-            get_log().debug(' val = {0}'.format(repr(val)))
-            template.replace(arg, lexicalise(val))
-        return template
-    except Exception as e:
-        get_log().exception(str(e))
-        get_log().info('\tmessage: ' + repr(msg))
-        get_log().info('\ttemplate: ' + repr(template))
-
-
-# TODO: lexicalisation should replace Messages by {NLG Elements} and use
-# RST relations to connect the clauses when applicable.
-def lexicalise_message(msg, parenthesis=False):
-    """ Return a copy of Message with MsgSpecs replaced by NLG Elements. """
-    get_log().debug('Lexicalising message {0}'.format(msg))
-    if msg is None: return None
-    if isinstance(msg.nucleus, list):
-        nucleus = [lexicalise(x) for x in msg.nucleus if x is not None]
-    else:
-        nucleus = lexicalise(msg.nucleus)
-    satelites = [lexicalise(x) for x in msg.satelites if x is not None]
-
-    features = msg._features if hasattr(msg, '_features') else {}
-    # stick each message into a clause
-    result = None
-    if msg.rst == 'Conjunction' or msg.rst == 'Disjunction':
-        result = Coordination(*satelites, conj=msg.marker, features=features)
-    elif msg.rst == 'Imply':
-        get_log().debug('RST Implication: ' + repr(msg))
-        subj = promote_to_phrase(nucleus)
-        compl = promote_to_phrase(satelites[0])
-        compl.set_feature('COMPLEMENTISER', 'then')
-        result = subj
-        result.add_complement(compl)
-        result.add_front_modifier('if')
-    elif msg.rst == 'Equivalent':
-        result = promote_to_phrase(nucleus)
-        compl = promote_to_phrase(satelites[0])
-        compl.set_feature('COMPLEMENTISER', 'if and only if')
-        result.add_complement(compl)
-    elif msg.rst == 'ImpliedBy':
-        result = promote_to_phrase(nucleus)
-        compl = promote_to_phrase(satelites[0])
-        compl.set_feature('COMPLEMENTISER', 'if')
-        result.add_complement(compl)
-    elif msg.rst == 'Unless':
-        result = promote_to_phrase(nucleus)
-        compl = promote_to_phrase(satelites[0])
-        compl.set_feature('COMPLEMENTISER', 'unless')
-        result.add_complement(compl)
-    elif msg.rst == 'Equality':
-        result = Clause()
-        result.set_subj(nucleus)
-        object = satelites[0]
-        tmp_vp = VP('is', object, features=features)
-        get_log().debug('Setting VP:\n' + repr(tmp_vp))
-        result.set_vp(tmp_vp)
-    elif msg.rst == 'Inequality':
-        result = Clause()
-        result.set_subj(nucleus)
-        object = satelites[0]
-        features['NEGATED'] = 'true'
-        result.set_vp(VP('is', object, features=features))
-    elif msg.rst == 'Quantifier':
-        # quantifiers have multiple nuclei (variables)
-        quant = msg.marker
-        cc = Coordination(*nucleus, conj='and')
-        np = NounPhrase(cc, String(quant))
-
-        if (quant.startswith('there exist')):
-            np.add_post_modifier(String('such that'))
-        else:
-            np.add_post_modifier(String(','))
-
-        result = promote_to_phrase(satelites[0])
-
-        front_mod = realisation.simple_realisation(np)
-        # remove period
-        if front_mod.endswith('.'): front_mod = front_mod[:-1]
-        # lower case the first letter
-        front_mod = front_mod[0].lower() + front_mod[1:]
-        # front_mod should go in front of existing front_mods
-        # In case of CC, modify the first coordinate
-        if result._type == COORDINATION:
-            result.coords[0].add_front_modifier(String(front_mod), pos=0)
-        else:
-            result.add_front_modifier(String(front_mod), pos=0)
-        get_log().debug('Result:\n' + repr(result))
-    elif msg.rst == 'Negation':
-        result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
-                                          features={'NEGATED': 'true'}))
-        cl = promote_to_phrase(nucleus)
-        cl.set_feature('COMPLEMENTISER', 'that')
-        if parenthesis:
-            cl.add_front_modifier('(')
-            cl.add_post_modifier(')')
-        result.vp.add_complement(cl)
-    else:
-        get_log().debug('RST relation: ' + repr(msg))
-        get_log().debug('RST nucleus:  ' + repr(nucleus))
-        get_log().debug('RST satelite: ' + repr(satelites))
-        result = Message(msg.rst, nucleus, *satelites)
-        result.marker = msg.marker
-        # TODO: decide how to handle features. Add to all? Drop?
-        # return ([nucleus] if nucleus else []) + [x for x in satelites]
-    result.add_features(features)
-    return result
-
-
-def lexicalise_paragraph(msg):
-    """ Return a copy of Paragraph with MsgSpecs replaced by NLG Elements. """
-    get_log().debug('Lexicalising paragraph.')
-    if msg is None: return None
-    messages = [lexicalise(x) for x in msg.messages if x is not None]
-    return Paragraph(*messages)
-
-
-def lexicalise_section(msg):
-    """ Return a copy of a Section with MsgSpecs replaced by NLG Elements. """
-    get_log().debug('Lexicalising section.')
-    if msg is None: return None
-    title = lexicalise(msg.title)
-    paragraphs = [lexicalise(x) for x in msg.paragraphs if x is not None]
-    return Section(title, *paragraphs)
-
-
-def lexicalise_document(doc):
-    """ Return a copy of a Document with MsgSpecs replaced by NLG Elements. """
-    get_log().debug('Lexicalising document.')
-    if doc is None: return None
-    title = lexicalise(doc.title)
-    sections = [lexicalise(x) for x in doc.sections if x is not None]
-    return Document(title, *sections)
-
-
-def create_template_from(string):
-    return eval(string)
-
-
-class SentenceTemplates:
-    """SentenceTemplates provides mapping from STRIPS operators to sentences.
-        The keys are actionN where N is the number of parameters. These
-        are mapped to string compatible with string.format().
+class Lexicaliser(object):
+    """Lexicaliser performs lexicalisation of objects.
+    
+    The default implementation can lexicalise `Element`, `MsgSpec`, 
+    `RhetRel`, `Document` and `Paragraph` instances.
+    
+    Lexical templates are (partially) lexicalised syntactic trees (LST)
+    or callable objects that return LST.
+    
     """
 
-    def __init__(self):
-        self.templates = dict()
-        self.templates['simple_message'] = Clause(None, PlaceHolder('val'))
-        self.templates['string'] = Clause(None, VerbPhrase(PlaceHolder('val')))
+    default_templates = {
+        'string_message_spec': Clause(subject=Var('val'))
+    }
 
-    def template(self, action):
-        if action in self.templates:
-            return deepcopy(self.templates[action])
-        else:
+    def __init__(self, templates=None):
+        """Create a new lexicaliser.
+        
+        :param templates: a dict with templates for lexicalising elements
+        
+        """
+        self.templates = self.default_templates.copy()
+        if templates:
+            self.templates.update(templates)
+
+    def __call__(self, msg, **kwargs):
+        return self.lexicalise(msg, **kwargs)
+
+    def lexicalise(self, msg, **kwargs):
+        """Perform lexicalisation on the message depending on its category.
+
+        If the `message.category` doesn't match any condition,
+        call `msg.lexicalise(self, **kwargs)`
+
+        """
+        cat = msg.category if hasattr(msg, 'category') else type(msg)
+        log.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
+
+        if msg is None:
             return None
+        elif isinstance(msg, numbers.Number):
+            return Numeral(msg)
+        elif isinstance(msg, str):
+            return String(msg)
+        elif msg.category in category.element_category:
+            return self.element(msg, **kwargs)
+        elif isinstance(msg, (list, set, tuple)) or msg.category == category.ELEMENT_LIST:
+            return self.element_list(msg, **kwargs)
+        elif msg.category == category.MSG:
+            return self.message_specification(msg, **kwargs)
+        elif msg.category == category.RST:
+            return self.rst_relation(msg, **kwargs)
+        elif msg.category == category.DOCUMENT:
+            return self.document(msg, **kwargs)
+        elif msg.category == category.PARAGRAPH:
+            return self.paragraph(msg, **kwargs)
+        else:
+            return msg.lexicalise(self, **kwargs)
 
+    def element_list(self, element, **kwargs):
+        log.warning('This should not be called???')
+        return ElementList([self(x, **kwargs) for x in element])
 
-templates = SentenceTemplates()
+    def element(self, element, **kwargs):
+        """Return a deep copy of `element` with variables replaced.
+        
+        The replacement is looked up in self.templates and kwargs['templates']
+        using the `key` of the argument (`Var` instance).
+        
+        """
+        rv = deepcopy(element)
+        # find arguments
+        args = rv.arguments()
+        # if there are any variables, replace them by values from templates
+        for arg in args:
+            template = self.get_template(arg, **kwargs)
+            if template is None:
+                continue
+            msg = 'Replacing\n{0} in \n{1} by \n{2}.'
+            log.info(msg.format(repr(arg), repr(rv), repr(template)))
+            # avoid infinite recursion of lexicalising args (Var instances)?
+            if rv == arg:
+                return template
+            else:
+                # allow nested templates
+                lexicalised_arg = self.lexicalise(template, **kwargs)
+                rv.replace(arg, lexicalised_arg)
+        return rv
 
+    def message_specification(self, msg, **kwargs):
+        """Return Element corresponding to given message specification.
+    
+        If the lexicaliser can not find correct lexicalisation, it returns 
+        String(msg) and logs the error.
+        
+        :param msg: MsgSpec instance
+        :param kwargs: extra lexicalisation args (e.g., templates)
+        :return lexicalised message specification
+        :rtype: Element
 
-def add_templates(newtemplates):
-    """ Add the given templates to the default SentenceTemplate instance. """
-    for k, v in newtemplates.items():
-        templates.templates[k] = v
+        """
+        if msg is None:
+            return None
+        template = None
+        try:
+            template = self.get_template(msg, **kwargs)
+            args = template.arguments()
+            # if there are any arguments, replace them by values from the msg
+            for arg in args:
+                log.info('Replacing argument\n{0} in \n{1}.'
+                         .format(str(arg), repr(template)))
+                val = msg.value_for(arg.id)
+                # check if value is a template and if so, look it up
+                if isinstance(val, str):
+                    val = self.get_template(String(val), **kwargs)
+                lex_val = self(val, **kwargs)
+                log_msg = 'Replacement value for {0}: {1}'
+                log.info(log_msg.format(str(arg), repr(lex_val)))
+                template.replace(arg, lex_val)
+            return template
+        except Exception as e:
+            log.exception('Error in lexicalising MsgSpec: %s', e)
+            log.info('\tmsg: ' + repr(msg))
+            log.info('\ttemplate: ' + repr(template))
+        return String(msg)
 
+    def rst_relation(self, rel, **kwargs):
+        """Convert `rel` to Elements. 
+        
+        This method should convert any concrete rhetorical relations
+        into subordinations or coordinations. Abstract rhetorical relations
+        will be converted into a sequence (list).
+        
+        Rhetorical relations can be trees and the leaves should all be 
+        concrete so that they can be reduced to clauses 
+        (or similar Element instances).
+        
+        :param rel: RhetRel instance to lexicalise
+        :return: ElementList list with lexicalised elements
+        :rtype: ElementList
+        
+        """
+        features = deepcopy(getattr(rel, 'features'))
+        nuclei = [self(x, **kwargs) for x in rel.nuclei]
+        nucleus = nuclei[0]
+        satellite = self(rel.satellite, **kwargs)
+        # stick each message into a clause
+        relation = rel.relation.lower()
+        if relation in ('conjunction', 'disjunction'):
+            result = Coordination(*nuclei, conj=rel.marker,
+                                  features=features)
+        elif relation == 'imply':
+            log.debug('RST Implication: ' + repr(rel))
+            subj = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'then'
+            result = raise_to_clause(subj)
+            result.complements.append(compl)
+            result.front_modifiers.append('if')
+        elif relation == 'equivalent':
+            result = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'if and only if'
+            result.complements.append(compl)
+        elif relation == 'impliedBy':
+            result = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'if'
+            result.complements.append(compl)
+        elif relation == 'unless':
+            result = raise_to_phrase(nucleus)
+            compl = raise_to_phrase(satellite)
+            compl['COMPLEMENTISER'] = 'unless'
+            result.complements.append(compl)
+        elif relation == 'equality':
+            result = Clause()
+            result.subject = nucleus
+            tmp_vp = VerbPhrase('is', object=satellite, features=features)
+            result.predicate = tmp_vp
+        elif relation == 'inequality':
+            result = Clause()
+            result.subject(nucleus)
+            direct_object = satellite
+            features[element_type] = element_type.negated
+            result.predicate(VP('is', direct_object, features=features))
+        elif relation == 'quantifier':
+            # quantifiers have multiple nuclei (variables)
+            quant = rel.marker
+            cc = Coordination(*nuclei, conj='and')
+            np = NounPhrase(cc, String(quant))
 
-def add_template(k, v, replace=True):
-    if replace or (not k in templates.templates):
-        templates.templates[k] = v
-        return True
-    else:
-        return False
+            if quant.startswith('there exist'):
+                np['COMPLEMENTISER'] = String('such that')
+            else:
+                np['COMPLEMENTISER'] = String(',')
 
+            result = raise_to_phrase(satellite)
 
-def del_template(k, silent=True):
-    if silent and k not in templates.templates: return False
-    del templates.templates[k]
+            front_mod = np
+            # front_mod should go in front of existing front_mods
+            # In case of CC, modify the first coordinate
+            if result.category == COORDINATION:
+                result.coords[0].add_front_modifier(String(front_mod), pos=0)
+            else:
+                result.premodifiers.insert(0, String(front_mod))
+            log.debug('Result:\n' + repr(result))
+        elif relation == 'negation':
+            result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
+                                              features=(element_type.negated,)))
+            cl = raise_to_phrase(nucleus)
+            cl['COMPLEMENTISER'] = 'that'
+            result.predicate.complements.append(cl)
+        else:
+            result = rel.__class__(relation,
+                                   *nuclei,
+                                   satellite=satellite,
+                                   features=rel.features,
+                                   marker=rel.marker,
+                                   last_element_marker=rel.last_element_marker)
+        # handle concrete subordinate clauses
+        result.features.update(features)
+        return result
 
+    def document(self, doc, **kwargs):
+        if doc is None:
+            return None
+        title = self(doc.title, **kwargs)
+        sections = [self(x, **kwargs) for x in doc.sections]
+        return Document(title, *sections)
 
-def string_to_template(s):
-    return eval(s)
+    def paragraph(self, para, **kwargs):
+        if para is None:
+            return None
+        sentences = [self(x, **kwargs) for x in para.sentences]
+        return Paragraph(*sentences)
 
-############################################################################
-#
-# Copyright (C) 2013 Roman Kutlak, University of Aberdeen.
-# All rights reserved.
-#
-# This file is part of SAsSy NLG library.
-#
-# You may use this file under the terms of the BSD license as follows:
-#
-# "Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of University of Aberdeen nor
-#     the names of its contributors may be used to endorse or promote
-#     products derived from this software without specific prior written
-#     permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-#
-############################################################################
+    def get_template(self, item, templates=None, **kwargs):
+        """Return the template for given `element`.
+        
+        The looked templates are `self.templates` and `kwargs['templates']`.
+        
+        If the template under given key is a callable object, 
+        it will be passed `element` and `**kwargs` and should return a template.
+        
+        :param item: str or something with `key` attribute for lookup
+        :param templates: optional templates to look up the item
+        :param kwargs: optional arguments passed to `lexicalise()`
+        :return: a template or String(str(element))
+        :rtype: Element
+        
+        """
+        available_templates = templates or self.templates
+        key = item if isinstance(item, str) else item.id
+        template = deepcopy(available_templates.get(key))
+        if template is None:
+            log.warning('No template for "%s"' % key)
+            rv = String(item)
+        elif hasattr(template, '__call__'):  # callable passed -- invoke
+            # noinspection PyCallingNonCallable
+            template = template(item, templates=templates, **kwargs)
+            if template is None:
+                msg = 'Function for template "%s" returned None'
+                log.warning(msg % key)
+                rv = String(item)
+            else:
+                rv = template
+        else:
+            rv = template
+
+        if not isinstance(rv, Element):
+            rv = String(rv)
+
+        if not isinstance(item, str):
+            rv.features.update(deepcopy(item.features))
+
+        return rv
+
+    def items_as_element_list(self, items, features=None):
+        """Flatten items into an ElementList, optionally updating features."""
+        rv = ElementList(features=features)
+        for item in items:
+            if isinstance(item, ElementList):
+                # TODO: do we really want to propagate the item features here?
+                inner = self.items_as_element_list(item, features=item.features)
+                rv.extend(inner)
+            elif isinstance(item, Element):
+                rv.append(item)
+            else:
+                raise Exception('Unexpected type "{}".'.format(type(item)))
+        return rv

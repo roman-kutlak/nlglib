@@ -8,27 +8,37 @@ Basic Data Structures
 ---------------------
 
 The library requires `SimpleNLG <https://github.com/simplenlg/simplenlg>`_ for surface realisation.
-`nlglib` actually comes with a `simplenlg` jar but as it is not maintained much, it might be
-a few versions behind. It is probably best to replace the shipped version with a more recent one.
-
-Create a simple canned string:
 
 .. code-block:: python
 
-    from nlglib import pipeline
+    from nlglib.realisation.simplenlg.realisation import Realiser
+    from nlglib.microplanning import *
 
-    templates = {
-        'john': NNP('John', features=dict([Gender.feminine])),
-        'paul': NNP('Paul', features=dict([Gender.masculine])),
-        'george': NNP('George', features=dict([Gender.masculine])),
-        'ringo': NNP('Ringo', features=dict([Gender.masculine])),
-        'guitar': Noun('guitar'),
-        'bass': Noun('bass guitar'),
-        'drums': Noun('drum', features=dict([Number.plural])),
-        'Happy': Clause(NP(PlaceHolder(0)), VP('be', AdjP('happy'))),
-        'Play': Clause(NP(PlaceHolder(0)), VP('play', NP(PlaceHolder(1)))),
-    }
-    input_str = 'Play(john, guitar) & Play(paul, guitar); Play(george, bass); Play(ringo, drums)'
-    output_str = pipeline.translate(input_str, templates, [])
-    print(output_str)
+    realise_en = Realiser(host='roman.kutlak.info', port=40000)
+    realise_es = Realiser(host='roman.kutlak.info', port=40001)
+
+
+    def main():
+        p = Clause("María", "perseguir", "un mono")
+        p['TENSE'] = 'PAST'
+        # expected = 'María persigue un mono.'
+        print(realise_es(p))
+        p = Clause(NP("la", "rápida", "corredora"), VP("perseguir"), NP("un", "mono"))
+        subject = NP("la", "corredora")
+        objekt = NP("un", "mono")
+        verb = VP("perseguir")
+        subject.premodifiers.append("rápida")
+        p.subject = subject
+        p.predicate = verb
+        p.object = objekt
+        # expected = 'La rápida corredora persigue un mono.'
+        print(realise_es(p))
+        p = Clause(NP('this', 'example'), VP('show', 'how cool is simplenlg'))
+        # expected = This example shows how cool is simplenlg.
+        print(realise_en(p))
+
+
+    if __name__ == '__main__':
+        main()
+
 
