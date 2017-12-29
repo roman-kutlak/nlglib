@@ -1,7 +1,7 @@
 Current Status
 ==============
 This is just a starting point - an alpha version - mainly a wrapper
-around _SimpleNLG.
+around SimpleNLG_.
 
 Although it is possible to go from first order logic to text,
 there is no sophistication in how things are processed.
@@ -33,7 +33,7 @@ Scope
 The aim of the library is to create a base for NLG system starting from content
 selection all the way to realisation. The library will cover document structuring
 tools, lexicalisation, referring expression generation and aggregation.
-Realisation will be done using other realisation libraries (_SimpleNLG or pynlg).
+Realisation will be done using other realisation libraries (SimpleNLG_ or pynlg_).
 
 
 History
@@ -46,3 +46,4 @@ a stand-alone re-usable library.
 
 
 .. _SimpleNLG: https://github.com/simplenlg/simplenlg
+.. _pynlg: https://github.com/mapado/pynlg

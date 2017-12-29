@@ -12,7 +12,7 @@ setup(
     long_description=long_description(),
     author=["Roman Kutlak"],
     author_email=['kutlak.roman@gmail.com'],
-    url='http://github.com/roman-kutlak/nlglib',
+    url='https://github.com/roman-kutlak/nlglib',
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
