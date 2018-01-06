@@ -1,5 +1,5 @@
 Current Status |build|
-=================
+======================
 
 .. |build| image:: https://travis-ci.org/roman-kutlak/nlglib.svg?branch=master
     :target: https://travis-ci.org/roman-kutlak/nlglib
