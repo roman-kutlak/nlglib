@@ -11,4 +11,4 @@ matrix:
     - python: "2.7"
 
 script:
-  - nose tests --with-coverage --cover-package=nlglib --cover-erase --cover-html --rednose
+  - nosetests tests --with-coverage --cover-package=nlglib --cover-erase --cover-html --rednose
