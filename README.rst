@@ -1,4 +1,9 @@
-Current Status
+Current Status |build|
+=================
+
+.. |build| image:: https://travis-ci.org/roman-kutlak/nlglib.svg?branch=master
+    :target: https://travis-ci.org/roman-kutlak/nlglib
+
 ==============
 This is just a starting point - an alpha version - mainly a wrapper
 around SimpleNLG_.
@@ -6,6 +11,13 @@ around SimpleNLG_.
 Although it is possible to go from first order logic to text,
 there is no sophistication in how things are processed.
 The library is still missing basics like aggregation or referring expression generation.
+
+
+Installation
+============
+
+Either download the code from the repository and run `python setup.py install` or use pip:
+`pip install nlglib`.
 
 
 Intro
