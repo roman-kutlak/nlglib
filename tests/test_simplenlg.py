@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from nlglib.microplanning import Clause, CC, PP
-import realisation.simplenlg.client as snlg
+import nlglib.realisation.simplenlg.client as snlg
 
 
 class TestSimplenlgClient(unittest.TestCase):
