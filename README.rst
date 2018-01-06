@@ -4,7 +4,6 @@ Current Status |build|
 .. |build| image:: https://travis-ci.org/roman-kutlak/nlglib.svg?branch=master
     :target: https://travis-ci.org/roman-kutlak/nlglib
 
-==============
 This is just a starting point - an alpha version - mainly a wrapper
 around SimpleNLG_.
 
