@@ -23,7 +23,7 @@ def run():
     c3 = clauses[2]
     c2.complements += c3
     c = Clause('HEAD KNIGHT', 'say', c2)
-    cool_realiser = simplenlg.Realiser(host='roman.kutlak.info')
+    cool_realiser = simplenlg.Realiser(host='nlg.kutlak.info')
     realisation = cool_realiser(c)
     log.info(realisation)
     assert realisation == expected, 'Is simplenlg running?'

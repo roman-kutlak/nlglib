@@ -10,7 +10,7 @@ from nlglib.realisation.simplenlg import Realiser
 class TestSimplenlgTutorial(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.realiser = Realiser(host='roman.kutlak.info')
+        cls.realiser = Realiser(host='nlg.kutlak.info')
 
     def test_tense(self):
         expected = 'Mary chases the monkey.'

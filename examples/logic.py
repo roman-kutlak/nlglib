@@ -9,7 +9,7 @@ from nlglib.features import TENSE
 
 def run():
 
-    realise = Realiser(host='roman.kutlak.info')
+    realise = Realiser(host='nlg.kutlak.info')
     lex = Lexicaliser(templates={
         'x': String('X'),
         'arthur': Male('Arthur'),

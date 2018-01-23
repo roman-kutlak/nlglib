@@ -6,8 +6,8 @@ This example shows the use of nlglib with multiple simplenlg realisers.
 from nlglib.realisation.simplenlg.realisation import Realiser
 from nlglib.microplanning import *
 
-realise_en = Realiser(host='roman.kutlak.info', port=40000)
-realise_es = Realiser(host='roman.kutlak.info', port=40001)
+realise_en = Realiser(host='nlg.kutlak.info', port=40000)
+realise_es = Realiser(host='nlg.kutlak.info', port=40001)
 
 
 def main():
