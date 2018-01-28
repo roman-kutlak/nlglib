@@ -28,6 +28,9 @@ class Realiser(object):
         if msg is None:
             return ''
 
+        if hasattr(msg, 'realise'):
+            return msg.realise(self, **kwargs)
+
         # support dynamic dispatching
         msg_category = msg.category.lower()
         if hasattr(self, msg_category):
@@ -38,8 +41,6 @@ class Realiser(object):
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
-        elif hasattr(msg, 'realise'):
-            return msg.realise(self, **kwargs)
         else:
             return str(msg)
 

@@ -50,6 +50,9 @@ class Lexicaliser(object):
         if msg is None:
             return None
 
+        if hasattr(msg, 'lexicalise'):
+            return msg.lexicalise(self, **kwargs)
+
         # support dynamic dispatching
         msg_category = cat.lower()
         if hasattr(self, msg_category):
@@ -60,8 +63,6 @@ class Lexicaliser(object):
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
-        elif hasattr(msg, 'lexicalise'):
-            return msg.lexicalise(self, **kwargs)
         else:
             return String(msg)
 
