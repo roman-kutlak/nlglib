@@ -4,7 +4,7 @@ from nlglib.realisation.simplenlg.realisation import Realiser
 from nlglib.microplanning import *
 
 
-realise = Realiser(host='roman.kutlak.info')
+realise = Realiser(host='nlg.kutlak.info')
 
 
 def main():
