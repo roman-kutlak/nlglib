@@ -17,6 +17,17 @@ from nlglib.features import FeatureSet, DISCOURSE_FUNCTION, category
 
 _sentinel = object()
 
+__all__ = [
+    'Element', 'ElementList',
+    'Var', 'String', 'Word', 'Coordination', 'Clause',
+    'Phrase', 'NounPhrase', 'VerbPhrase', 'AdjectivePhrase', 'AdverbPhrase', 'PrepositionPhrase',
+    'str_or_element', 'is_adjective_type', 'is_adverb_type', 'is_noun_type', 'is_verb_type',
+    'is_element_type', 'is_phrase_type', 'is_clause_type',
+    'raise_to_element', 'raise_to_phrase', 'raise_to_np', 'raise_to_vp', 'raise_to_clause',
+    'comparable_features', 'transfer_features',
+    'ElementEncoder', 'ElementDecoder'
+]
+
 
 # noinspection PyShadowingBuiltins
 class Element(object):

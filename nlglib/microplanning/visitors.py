@@ -5,6 +5,14 @@ from nlglib.features import NON_COMPARABLE_FEATURES
 from .struct import Element, Word, String, Clause, Phrase, Coordination, NounPhrase
 
 
+__all__ = [
+    'PrintVisitor', 'XmlVisitor', 'ReprVisitor', 'StrVisitor',
+    'SimpleStrVisitor', 'ElementVisitor', 'ConstituentVisitor',
+    'sentence_iterator', 'aggregation_sentence_iterator',
+    'replace_element', 'replace_element_with_id'
+]
+
+
 class PrintVisitor:
     """ An abstract visitor class that maintains indentation info. """
 

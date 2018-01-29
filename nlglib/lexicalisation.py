@@ -1,5 +1,7 @@
 import logging
 
+from copy import deepcopy
+
 from nlglib.microplanning import *
 from nlglib.macroplanning import *
 from nlglib.features import category, NEGATED
@@ -40,7 +42,7 @@ class Lexicaliser(object):
         """Perform lexicalisation on the message depending on its category.
 
         If the `message.category` doesn't match any condition,
-        call `msg.lexicalise(self, **kwargs)` if `msg` has attr `lexicalis`
+        call `msg.lexicalise(self, **kwargs)` if `msg` has attr `lexicalise`
         otherwise return `String(msg)`
 
         """
@@ -207,7 +209,7 @@ class Lexicaliser(object):
             front_mod = np
             # front_mod should go in front of existing front_mods
             # In CASE of CC, modify the first coordinate
-            if result.category == COORDINATION:
+            if result.category == category.COORDINATION:
                 result.coords[0].add_front_modifier(String(front_mod), pos=0)
             else:
                 result.premodifiers.insert(0, String(front_mod))
