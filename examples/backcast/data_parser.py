@@ -1,5 +1,6 @@
 """Parse the weather data in a given folder and return a dict with YearData instances"""
 
+import math
 import re
 import os
 
@@ -127,6 +128,28 @@ class MonthData(WeatherData):
 
     def __repr__(self):
         return '<{0} {1}>'.format(self.__class__.__name__, str(self))
+
+
+class SummaryStats:
+    """Summary statistics of a data stream (eg mean_temperature)"""
+
+    mean = None
+    std_dev = None
+    min_value = None
+    max_value = None
+
+    def __init__(self, data):
+        self.process(data)
+
+    def process(self, data):
+        if not data:
+            return
+        self.mean = sum(data) / float(len(data))
+        self.min_value = min(data)
+        self.max_value = max(data)
+        if len(data) > 1:
+            self.std_dev = math.sqrt(sum((x - self.mean)**2 for x in data) /
+                                     float(len(data) - 1))
 
 
 def starts_with_year(s, pattern=re.compile('\d{4}\s.*')):
