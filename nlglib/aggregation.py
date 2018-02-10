@@ -3,7 +3,7 @@ import logging
 from copy import deepcopy
 from nlglib.macroplanning import RhetRel, Document, Paragraph
 from nlglib.microplanning import *
-from nlglib.features import NUMBER, DISCOURSE_FUNCTION
+from nlglib.features import NUMBER, DISCOURSE_FUNCTION, category
 
 
 class ElementError(Exception):
@@ -35,8 +35,8 @@ class SentenceAggregator:
         otherwise return `String(msg)`
 
         """
-        cat = msg.category if hasattr(msg, 'category') else type(msg)
-        self.logger.debug('Aggregating {0}: {1}'.format(cat, repr(msg)))
+        cat = msg.category if hasattr(msg, 'category') else None
+        self.logger.debug('Aggregating {0}: {1}'.format(cat or type(msg), repr(msg)))
 
         if msg is None:
             return None
@@ -45,7 +45,7 @@ class SentenceAggregator:
             return msg.aggregate(self, **kwargs)
 
         # support dynamic dispatching
-        msg_category = cat.lower()
+        msg_category = cat.lower() if cat else ''
         if hasattr(self, msg_category):
             fn = getattr(self, msg_category)
             return fn(msg, **kwargs)
@@ -54,11 +54,11 @@ class SentenceAggregator:
         else:
             return msg
 
-    def element_list(self, element, **kwargs):
+    def element_list(self, element, marker='and', **kwargs):
         self.logger.debug('Aggregating a list')
         elements = []
         if len(element) > 1:
-            elements = self.synt_aggregation([self.aggregate(x, **kwargs) for x in element])
+            elements = self.synt_aggregation([self.aggregate(x, **kwargs) for x in element], marker=marker)
         elif len(element) == 1:
             elements.append(self.aggregate(element[0]))
         return elements
@@ -69,7 +69,7 @@ class SentenceAggregator:
         subj = self.aggregate(clause.subject, **kwargs)
         obj = self.aggregate(clause.complements, **kwargs)
         vp = self.aggregate(clause.predicate, **kwargs)
-        vp.addfeatures(clause.predicate.features)
+        vp.features.update(clause.predicate.features)
         c = deepcopy(clause)
         c.subject = subj
         c.predicate = vp
@@ -79,7 +79,7 @@ class SentenceAggregator:
 
     def coordination(self, cc, **kwargs):
         self.logger.debug('Aggregating coordination.')
-        coords = self.element_list(cc.coords, **kwargs)
+        coords = self.element_list(cc.coords, marker=cc.conj, **kwargs)
         if len(coords) == 1:
             result = coords[0]
             result.features.update(cc.features)
@@ -124,34 +124,22 @@ class SentenceAggregator:
         sections = [self.aggregate(x, **kwargs) for x in doc.sections if x is not None]
         return Document(title, *sections)
 
-    def add_elements(self, e1, e2, conj='and', **kwargs):
-        if not isinstance(e1, Element) or not isinstance(e2, Element):
-            raise ElementError("To add elements they have to be NLGElements")
+    def add_elements(self, lhs, rhs, conj='and', **kwargs):
+        e1 = deepcopy(lhs)
+        e2 = deepcopy(rhs)
 
-        cc = Coordination()
-
-        if isinstance(e1, Coordination):
-            cc = deepcopy(e1)
-            cc.coords.append(deepcopy(e2))
-            if DISCOURSE_FUNCTION in e1.features:
-                cc.features[DISCOURSE_FUNCTION] = e2.features[DISCOURSE_FUNCTION]
+        if e1.category == category.COORDINATION:
+            cc = e1
+            if e2 not in cc.coords:
+                cc.coords.append(e2)
 
         elif isinstance(e2, Coordination):
-            cc = deepcopy(e2)
-            cc.coords.append(deepcopy(e1))
-            if DISCOURSE_FUNCTION in e1.features:
-                cc.features[DISCOURSE_FUNCTION] = e1.features[DISCOURSE_FUNCTION]
+            cc = e2
+            if e1 not in cc.coords:
+                cc.coords.append(e1)
         else:
-            cc.coords.append(deepcopy(e1))
-            cc.coords.append(deepcopy(e2))
-            if DISCOURSE_FUNCTION in e2.features:
-                cc.features[DISCOURSE_FUNCTION] = e2.features[DISCOURSE_FUNCTION]
-            elif DISCOURSE_FUNCTION in e1.features:
-                cc.features[DISCOURSE_FUNCTION] = e1.features[DISCOURSE_FUNCTION]
-        cc.conj = conj
-        # TODO: figure out when it is appropriate to set number to plural
-        if cc.coords[0]['PROPER'] != 'true':
-            cc[NUMBER] = NUMBER.plural
+            cc = Coordination(e1, e2, conj=conj)
+        cc[NUMBER] = NUMBER.plural
         return cc
 
     def try_to_aggregate(self, sent1, sent2, marker='and', **kwargs):
@@ -159,8 +147,7 @@ class SentenceAggregator:
         elements by a conjunction.
 
         """
-        if sent1 is None or sent2 is None: return None
-        if not isinstance(sent1, Clause) or not isinstance(sent2, Clause):
+        if sent1 is None or sent2 is None:
             return None
 
         replacement = Var("REPLACEMENT", "REPLACEMENT")
@@ -172,25 +159,12 @@ class SentenceAggregator:
                 s2 = deepcopy(sent2)
                 s2.replace(e2, replacement)  # replace one element
 
-                if s1.subject is None:
-                    if s1.predicate == replacement:
-                        continue
-                    if (isinstance(s1.predicate, Phrase) and
-                            isinstance(s2.predicate, Phrase) and
-                            s1.predicate.head != s2.predicate.head):
-                        continue
-
-                # if sentences are equal (eg s1: load x; s2: load x) aggregate
                 if s1 == s2:
                     self.logger.debug('Aggregating:\n\t%s\n\t%s' % (str(s1), str(s2)))
                     cc = self.add_elements(e1, e2, conj=marker)
                     s1.replace(replacement, cc)
                     self.logger.debug('Result of aggregation:\n%s' % repr(s1))
                     return s1
-            # else:
-            #     print('Did not aggregate:\n\t%s\n\t%s' % (str(s1), str(s2)))
-            #     if (str(s1) == str(s2)):
-            #         print('s1 == s2: %s' % str(s1 == s2))
         return None
 
     def synt_aggregation(self, elements, max=3, marker='and', **kwargs):
@@ -233,8 +207,8 @@ class SentenceAggregator:
         while i < len(new_elements):
             msg, increment = self._do_aggregate(new_elements, i, max, marker, **kwargs)
             if isinstance(msg, Clause):
-                if msg.subject.has_feature('PROPER', 'true'):
-                    msg.predicate.set_feature('NUMBER', 'SINGULAR')
+                if ('PROPER', 'true') in msg.subject.features:
+                    msg.predicate['NUMBER'] = 'SINGULAR'
             aggregated.append(msg)
             i += increment
 
@@ -282,3 +256,55 @@ class SentenceAggregator:
     def _can_skip(self, elements, j):
         """ Return true if this element can be skipped. """
         return elements[j] is None
+
+
+class DifficultyEstimator:
+    """Most basic difficulty estimator that returns 0 for any structure,
+    resulting in always aggregating syntax trees if possible.
+
+    In general, aggregating elements will increase the reading/comprehension
+    difficulty of the resulting element. A subclass of the DifficultyEstimator
+    could assess the difficulty of an element by, for example, counting
+    non-stop words and the length of the sentence.
+
+    """
+
+    threshold = 1
+
+    def estimate(self, element, context):
+        return 0
+
+    def can_aggregate(self, first, second, context):
+        """We can aggregate elements if their combined estimate
+        is less than or equal to the threshold.
+
+        """
+        return self.estimate(first, context) + self.estimate(second, context) <= self.threshold
+
+
+class AmbiguityEstimator:
+    """Most basic ambiguity estimator that returns 0 for any structure,
+    resulting in always aggregating syntax trees if possible.
+
+    In general, aggregating elements can introduce ambiguities
+    or even mislead readers. For example, consider:
+    John bought a house. Peter bought a house.
+    ==> John and Peter bought a house.
+
+    We should try to keep ambiguities low by, for example,
+    adding some more information as in:
+    ==> John and Peter each bought a house.
+
+    """
+
+    threshold = 1
+
+    def estimate(self, element, context):
+        return 0
+
+    def can_aggregate(self, first, second, context):
+        """We can aggregate elements if their combined estimate
+        is less than or equal to the threshold.
+
+        """
+        return self.estimate(first, context) + self.estimate(second, context) <= self.threshold
