@@ -41,12 +41,14 @@ class Lexicaliser(object):
     def lexicalise(self, msg, **kwargs):
         """Perform lexicalisation on the message depending on its category.
 
-        If the `message.category` doesn't match any condition,
-        call `msg.lexicalise(self, **kwargs)` if `msg` has attr `lexicalise`
-        otherwise return `String(msg)`
+        If the object has attribute 'lexicalise', it will be called with args (self, **kwargs).
+        Otherwise, get the object's category (`msg.category`) or type name
+        and try to look up the attribute with the same name in `self` (dynamic dispatch).
+        List, set and tuple are lexicalised by `element_list()`. Lastly,
+        if no method matches, return `String(msg)`.
 
         """
-        cat = msg.category if hasattr(msg, 'category') else type(msg)
+        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
         self.logger.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
@@ -56,11 +58,9 @@ class Lexicaliser(object):
             return msg.lexicalise(self, **kwargs)
 
         # support dynamic dispatching
-        msg_category = cat.lower()
-        if hasattr(self, msg_category):
-            fn = getattr(self, msg_category)
+        if hasattr(self, cat):
+            fn = getattr(self, cat)
             return fn(msg, **kwargs)
-
         elif msg.category in category.element_category:
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):

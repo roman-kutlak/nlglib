@@ -30,13 +30,15 @@ class SentenceAggregator:
     def aggregate(self, msg, **kwargs):
         """Perform aggregation on the message depending on its category.
 
-        If the `message.category` doesn't match any condition,
-        call `msg.aggregate(self, **kwargs)` if `msg` has attr `aggregate`
-        otherwise return `String(msg)`
+        If the object has attribute 'aggregate', it will be called with args (self, **kwargs).
+        Otherwise, get the object's category (`msg.category`) or type name
+        and try to look up the attribute with the same name in `self` (dynamic dispatch).
+        List, set and tuple are aggregated by `element_list()`. Lastly,
+        if no method matches, return `msg`.
 
         """
-        cat = msg.category if hasattr(msg, 'category') else None
-        self.logger.debug('Aggregating {0}: {1}'.format(cat or type(msg), repr(msg)))
+        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
+        self.logger.debug('Aggregating {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
             return None
@@ -45,14 +47,28 @@ class SentenceAggregator:
             return msg.aggregate(self, **kwargs)
 
         # support dynamic dispatching
-        msg_category = cat.lower() if cat else ''
-        if hasattr(self, msg_category):
-            fn = getattr(self, msg_category)
+        if hasattr(self, cat):
+            fn = getattr(self, cat)
             return fn(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
         else:
             return msg
+
+    def document(self, doc, **kwargs):
+        """ Perform aggregation on a document - possibly before lexicalisation. """
+        self.logger.debug('Aggregating document.')
+        if doc is None: return None
+        title = self.aggregate(doc.title, **kwargs)
+        sections = [self.aggregate(x, **kwargs) for x in doc.sections if x is not None]
+        return Document(title, *sections)
+
+    def paragraph(self, para, **kwargs):
+        """ Perform syntactic aggregation on the constituents. """
+        self.logger.debug('Aggregating paragraph.')
+        if para is None: return None
+        messages = [self.aggregate(x, **kwargs) for x in para.messages if x is not None]
+        return Paragraph(*messages)
 
     def element_list(self, element, marker='and', **kwargs):
         self.logger.debug('Aggregating a list')
@@ -87,44 +103,10 @@ class SentenceAggregator:
         else:
             return Coordination(*coords, conj=cc.conj, features=cc.features)
 
-    def rst_relation(self, msg, **kwargs):
-        """ Perform syntactic aggregation on the constituents.
-        The aggregation is triggered only if the RST relation is
-        a sequence or a list.
-
-        """
-        self.logger.debug('Aggregating message.')
-        if not (msg.rst == 'Sequence' or
-                msg.rst == 'Alternative' or
-                msg.rst == 'List'): return msg
-        # TODO: Sequence and list are probably multi-nucleus and not multi-satellite
-        self.logger.debug('Aggregating list or sequence.')
-        elements = []
-        if len(msg.nuclei) > 1:
-            elements = self.synt_aggregation([self.aggregate(s, **kwargs) for s in msg.nuclei], **kwargs)
-        elif len(msg.nuclei) == 1:
-            elements.append(msg.nucleus)
-        if msg.satellite is not None:
-            elements.insert(0, msg.satellite)
-            # TODO: put elements in nucleus or come up with a different struct.
-        return RhetRel(msg.rst, *elements)
-
-    def paragraph(self, para, **kwargs):
-        """ Perform syntactic aggregation on the constituents. """
-        self.logger.debug('Aggregating paragraph.')
-        if para is None: return None
-        messages = [self.aggregate(x, **kwargs) for x in para.messages if x is not None]
-        return Paragraph(*messages)
-
-    def document(self, doc, **kwargs):
-        """ Perform aggregation on a document - possibly before lexicalisation. """
-        self.logger.debug('Aggregating document.')
-        if doc is None: return None
-        title = self.aggregate(doc.title, **kwargs)
-        sections = [self.aggregate(x, **kwargs) for x in doc.sections if x is not None]
-        return Document(title, *sections)
-
     def add_elements(self, lhs, rhs, conj='and', **kwargs):
+        if lhs.category == rhs.category == category.NOUN_PHRASE:
+            return self.noun_phrase(lhs, rhs, **kwargs)
+
         e1 = deepcopy(lhs)
         e2 = deepcopy(rhs)
 
@@ -141,6 +123,21 @@ class SentenceAggregator:
             cc = Coordination(e1, e2, conj=conj)
         cc[NUMBER] = NUMBER.plural
         return cc
+
+    def noun_phrase(self, lhs, rhs, **kwargs):
+        """Aggregate two noun phrases"""
+        if lhs.head == rhs.head:
+            rv = deepcopy(lhs)
+            rv.premodifiers.extend(rhs.premodifiers)
+            return rv
+        elif lhs.premodifiers == rhs.premodifiers:
+            rv = deepcopy(lhs)
+            rv.head = CC(deepcopy(lhs.head), deepcopy(rhs.head),
+                         features={'NUMBER': 'plural'})
+            return rv
+        else:
+            return CC(deepcopy(lhs), deepcopy(rhs),
+                      features={'NUMBER': 'plural'})
 
     def try_to_aggregate(self, sent1, sent2, marker='and', **kwargs):
         """ Attempt to combine two elements into one by replacing the differing

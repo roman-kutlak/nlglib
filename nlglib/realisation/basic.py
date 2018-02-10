@@ -22,7 +22,16 @@ class Realiser(object):
         return self.realise(msg, **kwargs)
 
     def realise(self, msg, **kwargs):
-        cat = msg.category if hasattr(msg, 'category') else type(msg)
+        """Perform surface realisation of the given `msg` (convert to text)
+
+        If the object has attribute 'realise', it will be called with args (self, **kwargs).
+        Otherwise, get the object's category (`msg.category`) or type name
+        and try to look up the attribute with the same name in `self` (dynamic dispatch).
+        List, set and tuple are realised by `element_list()`. Lastly,
+        if no method matches, return `str(msg)`.
+
+        """
+        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
         self.logger.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
@@ -32,11 +41,9 @@ class Realiser(object):
             return msg.realise(self, **kwargs)
 
         # support dynamic dispatching
-        msg_category = msg.category.lower()
-        if hasattr(self, msg_category):
-            fn = getattr(self, msg_category)
+        if hasattr(self, cat):
+            fn = getattr(self, cat)
             return fn(msg, **kwargs)
-
         elif msg.category in category.element_category:
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):

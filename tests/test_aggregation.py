@@ -1,5 +1,6 @@
 import unittest
 
+from nlglib.features import NUMBER
 from nlglib.microplanning import *
 from nlglib.aggregation import SentenceAggregator
 
@@ -12,10 +13,28 @@ class TestAggregation(unittest.TestCase):
             NP('the', 'small', 'child'),
             NP('the', 'happy', 'child'),
         )
+        expected = NP('the', 'small', 'happy', 'child')
+        self.assertEqual(expected, res)
+
+    def test_add_elements_2(self):
+        res = self.aggregator.add_elements(
+            NP('the', 'small', 'boy'),
+            NP('the', 'small', 'girl'),
+        )
+        expected = NP('the', 'small',
+                      CC(Noun('boy'), Noun('girl'),
+                         features=[NUMBER.plural]))
+        self.assertEqual(expected, res)
+
+    def test_add_elements_3(self):
+        res = self.aggregator.add_elements(
+            NP('the', 'small', 'boy'),
+            NP('the', 'happy', 'girl'),
+        )
         expected = CC(
-            NP('the', 'small', 'child'),
-            NP('the', 'happy', 'child'),
-            features={'NUMBER': 'plural'}
+            NP('the', 'small', 'boy'),
+            NP('the', 'happy', 'girl'),
+            features=[NUMBER.plural]
         )
         self.assertEqual(expected, res)
 
@@ -34,7 +53,7 @@ class TestAggregation(unittest.TestCase):
                              PP('into', NP('the', 'truck'))))
         self.assertEqual(expected, c3)
 
-    def test_s_try_aggr(self):
+    def test_try_to_aggregate(self):
         c1 = Clause(Male('John'), VP('is', NP('a', 'boy')))
         c2 = Clause(Male('John'), VP('is', AdjP('tall')))
         c3 = self.aggregator.try_to_aggregate(c1, c2)
@@ -50,8 +69,8 @@ class TestAggregation(unittest.TestCase):
         c2 = Clause(Female('Marry'), VP('wrote', NP('an', 'article')))
         c3 = self.aggregator.try_to_aggregate(c1, c2)
         expected = Clause(
-            CC(Male('John'), Female('Marry'),
-               features={'NUMBER': 'plural'}),
+            NP(CC(Male('John'), Female('Marry'),
+               features={'NUMBER': 'plural'})),
             VP('wrote', NP('an', 'article')))
         self.assertEqual(expected, c3)
 
