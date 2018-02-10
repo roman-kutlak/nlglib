@@ -11,6 +11,9 @@ import copy
 from collections import MutableSet
 
 
+__all__ = ['Feature', 'FeatureGroup', 'FeatureSet']
+
+
 class Feature(object):
     """Represents individual features -- a pair of feature group name + value"""
 

@@ -6,6 +6,9 @@ from nlglib.features import category, NUMBER, GENDER, CASE, TENSE, NEGATED, MODA
 from nlglib.utils import flatten
 
 
+__all__ = ['Realiser']
+
+
 # a complementiser group
 complementiser = FeatureGroup('complementiser')
 
@@ -19,22 +22,34 @@ class Realiser(object):
         return self.realise(msg, **kwargs)
 
     def realise(self, msg, **kwargs):
+        """Perform surface realisation of the given `msg` (convert to text)
+
+        If the object has attribute 'realise', it will be called with args (self, **kwargs).
+        Otherwise, get the object's category (`msg.category`) or type name
+        and try to look up the attribute with the same name in `self` (dynamic dispatch).
+        List, set and tuple are realised by `element_list()`. Lastly,
+        if no method matches, return `str(msg)`.
+
+        """
+        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
+        self.logger.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
+
         if msg is None:
             return ''
+
+        if hasattr(msg, 'realise'):
+            return msg.realise(self, **kwargs)
+
+        # support dynamic dispatching
+        if hasattr(self, cat):
+            fn = getattr(self, cat)
+            return fn(msg, **kwargs)
         elif msg.category in category.element_category:
             return self.element(msg, **kwargs)
-        elif isinstance(msg, (list, set, tuple)) or msg.category == category.ELEMENT_LIST:
+        elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
-        elif msg.category == category.MSG:
-            return self.message_specification(msg, **kwargs)
-        elif msg.category == category.RST:
-            return self.rst_relation(msg, **kwargs)
-        elif msg.category == category.DOCUMENT:
-            return self.document(msg, **kwargs)
-        elif msg.category == category.PARAGRAPH:
-            return self.paragraph(msg, **kwargs)
         else:
-            return msg.realise(self, **kwargs) if hasattr(msg, 'realise') else str(msg)
+            return str(msg)
 
     # noinspection PyUnusedLocal
     def element(self, elt, **kwargs):
