@@ -105,7 +105,7 @@ class SentenceAggregator:
 
     def add_elements(self, lhs, rhs, conj='and', **kwargs):
         if lhs.category == rhs.category == category.NOUN_PHRASE:
-            return self.noun_phrase(lhs, rhs, **kwargs)
+            return self.aggregate_noun_phrase(lhs, rhs, **kwargs)
 
         e1 = deepcopy(lhs)
         e2 = deepcopy(rhs)
@@ -124,7 +124,7 @@ class SentenceAggregator:
         cc[NUMBER] = NUMBER.plural
         return cc
 
-    def noun_phrase(self, lhs, rhs, **kwargs):
+    def aggregate_noun_phrase(self, lhs, rhs, **kwargs):
         """Aggregate two noun phrases"""
         if lhs.head == rhs.head:
             rv = deepcopy(lhs)

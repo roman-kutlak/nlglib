@@ -300,9 +300,10 @@ class MsgSpec:
         if not hasattr(self, attr):
             raise ValueError('Error: cannot find value for key: %s' % attr)
         m = getattr(self, attr)
-        if not hasattr(m, '__call__'):
-            raise ValueError('Error: cannot call the method "%s"' % attr)
-        return m()
+        if hasattr(m, '__call__'):
+            return m()
+        else:
+            return m
 
     # TODO: extract to `Visitable` mixin class
     def accept(self, visitor, element='Element'):

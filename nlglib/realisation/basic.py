@@ -44,7 +44,7 @@ class Realiser(object):
         if hasattr(self, cat):
             fn = getattr(self, cat)
             return fn(msg, **kwargs)
-        elif msg.category in category.element_category:
+        elif cat in category.element_category:
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
