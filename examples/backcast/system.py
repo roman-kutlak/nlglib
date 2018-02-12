@@ -8,9 +8,12 @@ from nlglib.realisation.simplenlg import Realiser
 
 from .templates import templates
 from .data_parser import parse_data
-from . import messages
 from . import goals
+from . import messages
+from . import schemata
 
+
+# TODO: use a user model (old/young) to decide between reporting in deg Celsius or deg Centigrade
 
 class BackCast:
     realiser = Realiser(host='nlg.kutlak.info')
@@ -41,7 +44,9 @@ class BackCast:
         return messages.NoData(goal.year, goal.month)
 
     def describe_year(self, goal):
-        return messages.NoData(goal.year)
+        if goal.year not in self.kb:
+            return messages.NoData(goal.year)
+        return schemata.DescribeYear(goal.year, self.kb).document_plan
 
     def verbalise(self, msg):
         lexicalised = self.lexicaliser(msg)

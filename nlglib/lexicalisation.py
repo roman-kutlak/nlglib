@@ -48,7 +48,7 @@ class Lexicaliser(object):
         if no method matches, return `String(msg)`.
 
         """
-        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
+        cat = msg.category if hasattr(msg, 'category') else type(msg).__name__
         self.logger.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
@@ -58,8 +58,9 @@ class Lexicaliser(object):
             return msg.lexicalise(self, **kwargs)
 
         # support dynamic dispatching
-        if hasattr(self, cat):
-            fn = getattr(self, cat)
+        attribute = cat.lower()
+        if hasattr(self, attribute):
+            fn = getattr(self, attribute)
             return fn(msg, **kwargs)
         elif cat in category.element_category:
             return self.element(msg, **kwargs)
@@ -121,8 +122,8 @@ class Lexicaliser(object):
                 self.logger.info('Replacing argument\n{0} in \n{1}.'.format(str(arg), repr(template)))
                 val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
-                if isinstance(val, str):
-                    val = self.get_template(String(val), **kwargs)
+                if isinstance(val, (str, String)):
+                    val = self.get_template(val, **kwargs)
                 lex_val = self(val, **kwargs)
                 log_msg = 'Replacement value for {0}: {1}'
                 self.logger.info(log_msg.format(str(arg), repr(lex_val)))
@@ -220,6 +221,8 @@ class Lexicaliser(object):
             cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.predicate.complements.append(cl)
+        elif relation in ('sequence', 'list'):
+            return ElementList([self.lexicalise(e, **kwargs) for e in rel.nuclei])
         else:
             result = rel.__class__(relation,
                                    *nuclei,
@@ -260,10 +263,15 @@ class Lexicaliser(object):
         
         """
         available_templates = templates or self.templates
-        key = item if isinstance(item, str) else item.id
+        if isinstance(item, str):
+            key = item
+        elif isinstance(item, String):
+            key = item.value
+        else:
+            key = item.id
         template = deepcopy(available_templates.get(key))
         if template is None:
-            self.logger.warning('No template for "%s"' % key)
+            self.logger.warning('No template for key "%s" (item %s)', key, item)
             rv = String(item)
         elif hasattr(template, '__call__'):  # callable passed -- invoke
             # noinspection PyCallingNonCallable
@@ -282,6 +290,9 @@ class Lexicaliser(object):
 
         if not isinstance(item, str):
             rv.features.update(deepcopy(item.features))
+
+        if 'features' in kwargs:
+            rv.features.update(kwargs['features'])
 
         return rv
 

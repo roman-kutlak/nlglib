@@ -18,12 +18,12 @@ class Compare:
 class DescribeYear(Describe):
     """Describe given year"""
     def __init__(self, year):
-        self.year = year
+        self.year = int(year)
 
 
 class DescribeMonth(Describe):
     """Describe given month of a given year"""
     def __init__(self, year, month):
-        self.year = year
+        self.year = int(year)
         self.month = month
 

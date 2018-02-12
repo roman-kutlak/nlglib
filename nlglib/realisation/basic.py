@@ -31,8 +31,8 @@ class Realiser(object):
         if no method matches, return `str(msg)`.
 
         """
-        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
-        self.logger.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
+        cat = msg.category if hasattr(msg, 'category') else type(msg).__name__
+        self.logger.debug('Realising {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
             return ''
@@ -41,8 +41,9 @@ class Realiser(object):
             return msg.realise(self, **kwargs)
 
         # support dynamic dispatching
-        if hasattr(self, cat):
-            fn = getattr(self, cat)
+        attribute = cat.lower()
+        if hasattr(self, attribute):
+            fn = getattr(self, attribute)
             return fn(msg, **kwargs)
         elif cat in category.element_category:
             return self.element(msg, **kwargs)

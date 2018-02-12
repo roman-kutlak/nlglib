@@ -37,7 +37,7 @@ class SentenceAggregator:
         if no method matches, return `msg`.
 
         """
-        cat = msg.category.lower() if hasattr(msg, 'category') else type(msg).__name__
+        cat = msg.category if hasattr(msg, 'category') else type(msg).__name__
         self.logger.debug('Aggregating {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
@@ -47,8 +47,9 @@ class SentenceAggregator:
             return msg.aggregate(self, **kwargs)
 
         # support dynamic dispatching
-        if hasattr(self, cat):
-            fn = getattr(self, cat)
+        attribute = cat.lower()
+        if hasattr(self, attribute):
+            fn = getattr(self, attribute)
             return fn(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
