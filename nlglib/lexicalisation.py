@@ -1,3 +1,5 @@
+"""This module contains classes and functions for performing lexicalisation."""
+
 import logging
 
 from copy import deepcopy
@@ -20,9 +22,7 @@ class Lexicaliser(object):
     
     """
 
-    default_templates = {
-        'string_message_spec': Clause(subject=Var('val'))
-    }
+    default_templates = {'string_message_spec': Clause(subject=Var('val'))}
 
     def __init__(self, templates=None, logger=None):
         """Create a new lexicaliser.
@@ -119,7 +119,9 @@ class Lexicaliser(object):
             args = template.arguments()
             # if there are any arguments, replace them by values from the msg
             for arg in args:
-                self.logger.info('Replacing argument\n{0} in \n{1}.'.format(str(arg), repr(template)))
+                self.logger.info(
+                    'Replacing argument\n{0} in \n{1}.'.format(str(arg), repr(template))
+                )
                 val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
                 if isinstance(val, (str, String)):
@@ -158,8 +160,7 @@ class Lexicaliser(object):
         # stick each message into a clause
         relation = rel.relation.lower()
         if relation in ('conjunction', 'disjunction'):
-            result = Coordination(*nuclei, conj=rel.marker,
-                                  features=features)
+            result = Coordination(*nuclei, conj=rel.marker, features=features)
         elif relation == 'imply':
             self.logger.debug('RST Implication: ' + repr(rel))
             subj = raise_to_phrase(nucleus)
@@ -216,20 +217,21 @@ class Lexicaliser(object):
                 result.premodifiers.insert(0, String(front_mod))
             self.logger.debug('Result:\n' + repr(result))
         elif relation == 'negation':
-            result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
-                                              features=(NEGATED.true,)))
+            result = Clause(Pronoun('it'), VP('is', NP('the', 'case'), features=(NEGATED.true,)))
             cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.predicate.complements.append(cl)
         elif relation in ('sequence', 'list'):
             return ElementList([self.lexicalise(e, **kwargs) for e in rel.nuclei])
         else:
-            result = rel.__class__(relation,
-                                   *nuclei,
-                                   satellite=satellite,
-                                   features=rel.features,
-                                   marker=rel.marker,
-                                   last_element_marker=rel.last_element_marker)
+            result = rel.__class__(
+                relation,
+                *nuclei,
+                satellite=satellite,
+                features=rel.features,
+                marker=rel.marker,
+                last_element_marker=rel.last_element_marker
+            )
         # handle concrete subordinate clauses
         result.features.update(features)
         return result

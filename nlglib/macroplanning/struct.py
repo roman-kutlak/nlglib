@@ -32,10 +32,10 @@ class Document:
         self._sections = [promote_to_string(s) for s in sections]
 
     def __eq__(self, other):
-        return (isinstance(other, Document) and
-                other.category == self.category and
-                self.title == other.title and
-                self.sections == other.sections)
+        return (
+            isinstance(other, Document) and other.category == self.category and
+            self.title == other.title and self.sections == other.sections
+        )
 
     def __hash__(self):
         return hash(str(self))
@@ -47,8 +47,7 @@ class Document:
 
     def __str__(self):
         if self.title:
-            return (str(self.title) + '\n\n' +
-                    '\n\n'.join([str(s) for s in self.sections]))
+            return str(self.title) + '\n\n' + '\n\n'.join([str(s) for s in self.sections])
         else:
             return '\n\n'.join([str(s) for s in self.sections])
 
@@ -120,9 +119,10 @@ class Paragraph:
         self._sentences = [promote_to_string(s) for s in sentences]
 
     def __eq__(self, other):
-        return (isinstance(other, Paragraph) and
-                other.category == self.category and
-                self.sentences == other.sentences)
+        return (
+            isinstance(other, Paragraph) and other.category == self.category and
+            self.sentences == other.sentences
+        )
 
     def __hash__(self):
         return hash(str(self))
@@ -184,10 +184,18 @@ class RhetRel:
     phrases = ['']
     element_order = ['nucleus', 'satellite']
     is_abstract = True  # subclasses should override this
+
     # TODO: define RST_RELATIONS (abstract + concrete)?
 
-    def __init__(self, relation, *nuclei, satellite=None, features=None,
-                 marker=None, last_element_marker=None):
+    def __init__(
+        self,
+        relation,
+        *nuclei,
+        satellite=None,
+        features=None,
+        marker=None,
+        last_element_marker=None
+    ):
         if not nuclei:
             raise ValueError('At least one nucleus required for a RhetRel.')
         self.relation = relation
@@ -211,11 +219,11 @@ class RhetRel:
         return ' '.join(str(x) for x in self.order)
 
     def __eq__(self, other):
-        return (other.category == self.category and
-                self.relation == other.relation and
-                self.nuclei == other.nuclei and
-                self.satellite == other.satellite and
-                self.marker == other.marker)
+        return (
+            other.category == self.category and self.relation == other.relation and
+            self.nuclei == other.nuclei and self.satellite == other.satellite and
+            self.marker == other.marker
+        )
 
     def __hash__(self):
         return hash(str(self))
@@ -253,9 +261,7 @@ class RhetRel:
                 else:
                     rv = ' '.join([rv, self.last_element_marker, s])
         else:
-            rv = ' '.join([self.order[0].to_str(),
-                           self.marker,
-                           self.order[1].to_str()])
+            rv = ' '.join([self.order[0].to_str(), self.marker, self.order[1].to_str()])
         rv = rv.replace(' , ', ', ').replace('  ', ' ')
         return rv
 
@@ -288,8 +294,7 @@ class MsgSpec:
         return str(self.name)
 
     def __eq__(self, other):
-        return (other.category == self.category and
-                self.name == other.name)
+        return other.category == self.category and self.name == other.name
 
     @property
     def id(self):
@@ -392,8 +397,10 @@ class PredicateMsg(MsgSpec):
         except ValueError:
             return super().value_for(key)
         if idx >= len(self.args):
-            msg = ('Requested index ({}) is larger than '
-                   'the number of variables in the predicate "{}"')
+            msg = (
+                'Requested index ({}) is larger than '
+                'the number of variables in the predicate "{}"'
+            )
             raise SignatureError(msg.format(idx, repr(self)))
         return self.args[idx]
 

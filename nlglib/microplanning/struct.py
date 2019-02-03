@@ -4,7 +4,6 @@
 # TODO: check deepcopy
 # TODO: create module `element_algebra` and pud add/iadd into it
 
-
 import collections
 import json
 
@@ -14,18 +13,39 @@ from functools import wraps
 from nlglib.features import NON_COMPARABLE_FEATURES, TRANSFERABLE_FEATURES
 from nlglib.features import FeatureSet, DISCOURSE_FUNCTION, category
 
-
 _sentinel = object()
 
 __all__ = [
-    'Element', 'ElementList',
-    'Var', 'String', 'Word', 'Coordination', 'Clause',
-    'Phrase', 'NounPhrase', 'VerbPhrase', 'AdjectivePhrase', 'AdverbPhrase', 'PrepositionPhrase',
-    'str_or_element', 'is_adjective_type', 'is_adverb_type', 'is_noun_type', 'is_verb_type',
-    'is_element_type', 'is_phrase_type', 'is_clause_type',
-    'raise_to_element', 'raise_to_phrase', 'raise_to_np', 'raise_to_vp', 'raise_to_clause',
-    'comparable_features', 'transfer_features',
-    'ElementEncoder', 'ElementDecoder'
+    'Element',
+    'ElementList',
+    'Var',
+    'String',
+    'Word',
+    'Coordination',
+    'Clause',
+    'Phrase',
+    'NounPhrase',
+    'VerbPhrase',
+    'AdjectivePhrase',
+    'AdverbPhrase',
+    'PrepositionPhrase',
+    'str_or_element',
+    'is_adjective_type',
+    'is_adverb_type',
+    'is_noun_type',
+    'is_verb_type',
+    'is_element_type',
+    'is_phrase_type',
+    'is_clause_type',
+    'raise_to_element',
+    'raise_to_phrase',
+    'raise_to_np',
+    'raise_to_vp',
+    'raise_to_clause',
+    'comparable_features',
+    'transfer_features',
+    'ElementEncoder',
+    'ElementDecoder',
 ]
 
 
@@ -47,16 +67,12 @@ class Element(object):
         self.hash = -1
 
     def __copy__(self):
-        rv = self.__class__(features=self.features,
-                            parent=self.parent,
-                            id=self.id)
+        rv = self.__class__(features=self.features, parent=self.parent, id=self.id)
         return rv
 
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
-        rv = self.__class__(features=None,
-                            parent=None,
-                            id=self.id)
+        rv = self.__class__(features=None, parent=None, id=self.id)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -67,11 +83,11 @@ class Element(object):
         return False
 
     def __eq__(self, other):
-        return (isinstance(other, Element) and
-                self.id == other.id and
-                self.category == other.category and
-                comparable_features(self.features) ==
-                comparable_features(other.features))
+        return (
+            isinstance(other, Element) and self.id == other.id and
+            self.category == other.category and
+            comparable_features(self.features) == comparable_features(other.features)
+        )
 
     def __hash__(self):
         if self.hash == -1:
@@ -215,6 +231,7 @@ class Element(object):
 
 # decorator
 def str_or_element(fn):
+
     @wraps(fn)
     def helper(word, features=None):
         if isinstance(word, str):
@@ -225,6 +242,7 @@ def str_or_element(fn):
             return word
         else:
             return fn(str(word), features=features)
+
     return helper
 
 
@@ -284,8 +302,8 @@ class ElementList(collections.UserList):
         memo[id(self)] = rv
         rv.parent = memo.get(id(self.parent), None)
         rv.features = deepcopy(self.features, memo)
-        for o in self.data:
-            rv.data.append(deepcopy(o, memo))
+        for o in self:
+            rv.append(deepcopy(o, memo))
         return rv
 
     @classmethod
@@ -439,14 +457,14 @@ class Word(Element):
 
     def __copy__(self):
         # pos is in features
-        return self.__class__(self.word, pos=self.pos, features=self.features,
-                              parent=self.parent, id=self.id)
+        return self.__class__(
+            self.word, pos=self.pos, features=self.features, parent=self.parent, id=self.id
+        )
 
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         # pos is in features
-        rv = self.__class__(self.word, pos=self.pos, features=None,
-                            parent=None, id=self.id)
+        rv = self.__class__(self.word, pos=self.pos, features=None, parent=None, id=self.id)
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -489,8 +507,9 @@ class Coordination(Element):
         return self.hash
 
     def __copy__(self):
-        return self.__class__(*self.coords, conj=self.conj, features=self.features,
-                              parent=self.parent, id=self.id)
+        return self.__class__(
+            *self.coords, conj=self.conj, features=self.features, parent=self.parent, id=self.id
+        )
 
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
@@ -624,24 +643,21 @@ class Phrase(Element):
 
     def __init__(self, features=None, parent=None, id=None, **kwargs):
         super().__init__(features, parent, id)
-        self.premodifiers = (ElementList(parent=self) +
-                             kwargs.pop('premodifiers', []))
+        self.premodifiers = (ElementList(parent=self) + kwargs.pop('premodifiers', []))
         self.head = kwargs.pop('head', None)
-        self.complements = (ElementList(parent=self) +
-                            kwargs.pop('complements', []))
-        self.postmodifiers = (ElementList(parent=self) +
-                              kwargs.pop('postmodifiers', []))
+        self.complements = (ElementList(parent=self) + kwargs.pop('complements', []))
+        self.postmodifiers = (ElementList(parent=self) + kwargs.pop('postmodifiers', []))
 
     def __bool__(self):
         """Return True """
         return any(bool(x) for x in self.elements())
 
     def __eq__(self, other):
-        return (super().__eq__(other) and
-                self.premodifiers == other.premodifiers and
-                self.head == other.head and
-                self.complements == other.complements and
-                self.postmodifiers == other.postmodifiers)
+        return (
+            super().__eq__(other) and self.premodifiers == other.premodifiers and
+            self.head == other.head and self.complements == other.complements and
+            self.postmodifiers == other.postmodifiers
+        )
 
     def __hash__(self):
         if self.hash == -1:
@@ -649,8 +665,7 @@ class Phrase(Element):
         return self.hash
 
     def __copy__(self):
-        rv = self.__class__(features=self.features, parent=self.parent,
-                            id=self.id)
+        rv = self.__class__(features=self.features, parent=self.parent, id=self.id)
         rv.head = self.head
         rv.premodifiers = self.premodifiers[:]
         rv.complements = self.complements[:]
@@ -791,16 +806,15 @@ class NounPhrase(Phrase):
     _spec = Element()
     category = category.NOUN_PHRASE
 
-    def __init__(self, head=None, specifier=None, features=None,
-                 parent=None, id=None, **kwargs):
+    def __init__(self, head=None, specifier=None, features=None, parent=None, id=None, **kwargs):
         super().__init__(features, parent, id, **kwargs)
         self.specifier = specifier
         self.head = head
 
     def __eq__(self, other):
-        return (super().__eq__(other) and
-                self.specifier == other.specifier and
-                self.head == other.head)
+        return (
+            super().__eq__(other) and self.specifier == other.specifier and self.head == other.head
+        )
 
     def __hash__(self):
         if self.hash == -1:
@@ -808,8 +822,9 @@ class NounPhrase(Phrase):
         return self.hash
 
     def __copy__(self):
-        rv = self.__class__(self.head, self.specifier, features=self.features,
-                            parent=self.parent, id=self.id)
+        rv = self.__class__(
+            self.head, self.specifier, features=self.features, parent=self.parent, id=self.id
+        )
         rv.premodifiers = self.premodifiers[:]
         rv.complements = self.complements[:]
         rv.postmodifiers = self.postmodifiers[:]
@@ -920,8 +935,9 @@ class VerbPhrase(Phrase):
 
     @object.setter
     def object(self, value):
-        to_remove = [c for c in self.complements
-                     if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.object]
+        to_remove = [
+            c for c in self.complements if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.object
+        ]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
@@ -940,8 +956,10 @@ class VerbPhrase(Phrase):
 
     @indirect_object.setter
     def indirect_object(self, value):
-        to_remove = [c for c in self.complements
-                     if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.indirect_object]
+        to_remove = [
+            c for c in self.complements
+            if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.indirect_object
+        ]
         for c in to_remove:
             self.complements.remove(c)
         if value is None:
@@ -1000,8 +1018,9 @@ class Clause(Phrase):
     _predicate = None
     category = category.CLAUSE
 
-    def __init__(self, subject=None, predicate=None, objekt=None,
-                 features=None, parent=None, **kwargs):
+    def __init__(
+        self, subject=None, predicate=None, objekt=None, features=None, parent=None, **kwargs
+    ):
         super().__init__(features, parent=parent, **kwargs)
         fm = kwargs.pop('front_modifiers', [])
         self.front_modifiers = ElementList(parent=self) + fm
@@ -1011,12 +1030,11 @@ class Clause(Phrase):
             self.object = objekt
 
     def __eq__(self, other):
-        return (super().__eq__(other) and
-                self.premodifiers == other.premodifiers and
-                self.subject == other.subject and
-                self.predicate == other.predicate and
-                self.complements == other.complements and
-                self.postmodifiers == other.postmodifiers)
+        return (
+            super().__eq__(other) and self.premodifiers == other.premodifiers and
+            self.subject == other.subject and self.predicate == other.predicate and
+            self.complements == other.complements and self.postmodifiers == other.postmodifiers
+        )
 
     def __hash__(self):
         if self.hash == -1:
@@ -1039,8 +1057,7 @@ class Clause(Phrase):
             raise ValueError(msg.format(self, other))
 
     def __copy__(self):
-        rv = self.__class__(features=self.features, parent=self.parent,
-                            id=self.id)
+        rv = self.__class__(features=self.features, parent=self.parent, id=self.id)
         rv.front_modifiers = self.front_modifiers[:]
         rv.subject = self.subject
         rv.premodifiers = self.premodifiers[:]
@@ -1208,37 +1225,41 @@ class Clause(Phrase):
 def is_adjective_type(element, strict=False):
     """Return True if `element` is adjective modifier (adj or AdjP)"""
     check = all if strict else any
-    return (isinstance(element, AdjectivePhrase) or
-            isinstance(element, Word) and element.pos == category.ADJECTIVE or
-            isinstance(element, Coordination) and
-            check(is_adjective_type(c) for c in element.coords))
+    return (
+        isinstance(element, AdjectivePhrase) or
+        isinstance(element, Word) and element.pos == category.ADJECTIVE or
+        isinstance(element, Coordination) and check(is_adjective_type(c) for c in element.coords)
+    )
 
 
 def is_adverb_type(element, strict=False):
     """Return True if `element` is adverb modifier (adv or AdvP)"""
     check = all if strict else any
-    return (isinstance(element, AdverbPhrase) or
-            isinstance(element, Word) and element.pos == category.ADVERB or
-            isinstance(element, Coordination)
-            and check(is_adverb_type(c) for c in element.coords))
+    return (
+        isinstance(element, AdverbPhrase) or
+        isinstance(element, Word) and element.pos == category.ADVERB or
+        isinstance(element, Coordination) and check(is_adverb_type(c) for c in element.coords)
+    )
 
 
 def is_noun_type(element, strict=False):
     """Return True if `element` is adverb modifier (adv or AdvP)"""
     check = all if strict else any
-    return (isinstance(element, NounPhrase) or
-            isinstance(element, Word) and element.pos == category.NOUN or
-            isinstance(element, Coordination)
-            and check(is_noun_type(c) for c in element.coords))
+    return (
+        isinstance(element, NounPhrase) or
+        isinstance(element, Word) and element.pos == category.NOUN or
+        isinstance(element, Coordination) and check(is_noun_type(c) for c in element.coords)
+    )
 
 
 def is_verb_type(element, strict=False):
     """Return True if `element` is adverb modifier (adv or AdvP)"""
     check = all if strict else any
-    return (isinstance(element, VerbPhrase) or
-            isinstance(element, Word) and element.pos == category.VERB or
-            isinstance(element, Coordination)
-            and check(is_verb_type(c) for c in element.coords))
+    return (
+        isinstance(element, VerbPhrase) or
+        isinstance(element, Word) and element.pos == category.VERB or
+        isinstance(element, Coordination) and check(is_verb_type(c) for c in element.coords)
+    )
 
 
 def is_element_type(element):
@@ -1369,20 +1390,20 @@ def transfer_features(source, target):
 
 
 class ElementEncoder(json.JSONEncoder):
+
     def default(self, python_object):
         if isinstance(python_object, (Element, ElementList)):
             dct = python_object.__dict__
             if 'parent' in dct:
                 dct['parent'] = None
-            return {'__class__': str(type(python_object)),
-                    '__value__': dct}
+            return {'__class__': str(type(python_object)), '__value__': dct}
         elif isinstance(python_object, FeatureSet):
-            return {'__class__': str(type(python_object)),
-                    '__value__': python_object.as_dict()}
+            return {'__class__': str(type(python_object)), '__value__': python_object.as_dict()}
         return super(ElementEncoder, self).default(python_object)
 
 
 class ElementDecoder(json.JSONDecoder):
+
     def __init__(self, *args, **kwargs):
         kwargs['object_hook'] = ElementDecoder.from_json
         super(ElementDecoder, self).__init__(*args, **kwargs)

@@ -1,6 +1,6 @@
 """Definition of the lexical categories."""
 
-from .feature import FeatureGroup
+from nlglib.features.feature import FeatureGroup
 
 #  A default value, indicating an unspecified category.
 ANY = "ANY"
@@ -102,11 +102,18 @@ pos_category = FeatureGroup(
 
 element_category = FeatureGroup(
     'element_category',
-    ELEMENT, ELEMENT_LIST,
-    STRING, WORD, VAR,
+    ELEMENT,
+    ELEMENT_LIST,
+    STRING,
+    WORD,
+    VAR,
     COORDINATION,
-    PHRASE, NOUN_PHRASE, VERB_PHRASE,
-    PREPOSITION_PHRASE, ADJECTIVE_PHRASE, ADVERB_PHRASE,
+    PHRASE,
+    NOUN_PHRASE,
+    VERB_PHRASE,
+    PREPOSITION_PHRASE,
+    ADJECTIVE_PHRASE,
+    ADVERB_PHRASE,
     CLAUSE,
     transform='lower'
 )

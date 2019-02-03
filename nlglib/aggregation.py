@@ -1,9 +1,16 @@
-import logging
+"""This module provides classes for performing syntactic aggregation.
 
+For example, 'Roman is programming.' and 'Roman is singing' can be
+put together to create 'Roman is programming and singing.' 
+
+"""
+
+import logging
 from copy import deepcopy
-from nlglib.macroplanning import RhetRel, Document, Paragraph
+
+from nlglib.features import NUMBER, category
+from nlglib.macroplanning import Document, Paragraph
 from nlglib.microplanning import *
-from nlglib.features import NUMBER, DISCOURSE_FUNCTION, category
 
 
 class ElementError(Exception):
@@ -75,7 +82,8 @@ class SentenceAggregator:
         self.logger.debug('Aggregating a list')
         elements = []
         if len(element) > 1:
-            elements = self.synt_aggregation([self.aggregate(x, **kwargs) for x in element], marker=marker)
+            elements = self.synt_aggregation([self.aggregate(x, **kwargs) for x in element],
+                                             marker=marker)
         elif len(element) == 1:
             elements.append(self.aggregate(element[0]))
         return elements
@@ -127,24 +135,25 @@ class SentenceAggregator:
 
     def aggregate_noun_phrase(self, lhs, rhs, **kwargs):
         """Aggregate two noun phrases"""
+        del kwargs  # unused for now
         if lhs.head == rhs.head:
             rv = deepcopy(lhs)
             rv.premodifiers.extend(rhs.premodifiers)
             return rv
         elif lhs.premodifiers == rhs.premodifiers:
             rv = deepcopy(lhs)
-            rv.head = CC(deepcopy(lhs.head), deepcopy(rhs.head),
-                         features={'NUMBER': 'plural'})
+            rv.head = CC(deepcopy(lhs.head), deepcopy(rhs.head), features={'NUMBER': 'plural'})
             return rv
         else:
-            return CC(deepcopy(lhs), deepcopy(rhs),
-                      features={'NUMBER': 'plural'})
+            return CC(deepcopy(lhs), deepcopy(rhs), features={'NUMBER': 'plural'})
 
     def try_to_aggregate(self, sent1, sent2, marker='and', **kwargs):
         """ Attempt to combine two elements into one by replacing the differing
         elements by a conjunction.
 
         """
+        del kwargs  # unused for now
+
         if sent1 is None or sent2 is None:
             return None
 
@@ -213,6 +222,8 @@ class SentenceAggregator:
         return aggregated
 
     def _do_aggregate(self, elements, i, max, marker='and', **kwargs):
+        del kwargs  # unused for now
+
         lhs = elements[i]
         j = i + 1
         increment = 1
@@ -270,6 +281,7 @@ class DifficultyEstimator:
     threshold = 1
 
     def estimate(self, element, context):
+        del element, context  # unused for now
         return 0
 
     def can_aggregate(self, first, second, context):
@@ -298,6 +310,7 @@ class AmbiguityEstimator:
     threshold = 1
 
     def estimate(self, element, context):
+        del element, context  # unused for now
         return 0
 
     def can_aggregate(self, first, second, context):

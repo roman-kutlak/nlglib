@@ -1,15 +1,24 @@
+"""This package contains visitor classes (see the visitor pattern) and helpers."""
+
 from urllib.parse import quote_plus
 
 from nlglib.features import DISCOURSE_FUNCTION, ASPECT, category, FeatureGroup
 from nlglib.features import NON_COMPARABLE_FEATURES
-from .struct import Element, Word, String, Clause, Phrase, Coordination, NounPhrase
-
+from nlglib.microplanning.struct import Element, Word, String, Clause
+from nlglib.microplanning.struct import Phrase, Coordination, NounPhrase
 
 __all__ = [
-    'PrintVisitor', 'XmlVisitor', 'ReprVisitor', 'StrVisitor',
-    'SimpleStrVisitor', 'ElementVisitor', 'ConstituentVisitor',
-    'sentence_iterator', 'aggregation_sentence_iterator',
-    'replace_element', 'replace_element_with_id'
+    'PrintVisitor',
+    'XmlVisitor',
+    'ReprVisitor',
+    'StrVisitor',
+    'SimpleStrVisitor',
+    'ElementVisitor',
+    'ConstituentVisitor',
+    'sentence_iterator',
+    'aggregation_sentence_iterator',
+    'replace_element',
+    'replace_element_with_id',
 ]
 
 
@@ -56,16 +65,19 @@ class PrintVisitor:
         """
         self.enter(name)
         elts = getattr(node, attr)
-        for e in elts: e.accept(self)
+        for e in elts:
+            e.accept(self)
         self.exit()
 
     def _get_args(self, **kwargs):
-        args = {'tag': self.ancestors[-1],
-                'outer': self.indent * self.depth,
-                'inner': self.indent * (self.depth + 1),
-                'sep': self.sep,
-                }
-        for k, v in kwargs.items(): args[k] = v
+        args = {
+            'tag': self.ancestors[-1],
+            'outer': self.indent * self.depth,
+            'inner': self.indent * (self.depth + 1),
+            'sep': self.sep,
+        }
+        for k, v in kwargs.items():
+            args[k] = v
         return args
 
 
@@ -100,12 +112,14 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         # neg = 'not ' if node.negated == 'true' else ''
         neg = ''
         features = self.features_to_xml_attributes(node)
-        text = ('{outer}<{tag} xsi:type="WordElement" '
-                'canned="true" {f}>{sep}'
-                '{inner}<base>{neg}{word}</base>{sep}'
-                '{outer}</{tag}>{sep}').format(word=quote_plus(node.value),
-                                               neg=neg,
-                                               **self._get_args(f=features))
+        text = (
+            '{outer}<{tag} xsi:type="WordElement" '
+            'canned="true" {f}>{sep}'
+            '{inner}<base>{neg}{word}</base>{sep}'
+            '{outer}</{tag}>{sep}'
+        ).format(
+            word=quote_plus(node.value), neg=neg, **self._get_args(f=features)
+        )
         self.xml += text
 
     def word(self, node):
@@ -116,10 +130,13 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         if word == 'is': word = 'be'
         features = self.features_to_xml_attributes(node)
         id = ' id="{}"'.format(node.id) if node.id else ''
-        text = ('{outer}<{tag} xsi:type="WordElement"{f}{id}>{sep}'
-                '{inner}<base>{word}</base>{sep}'
-                '{outer}</{tag}>{sep}').format(word=quote_plus(word), id=id,
-                                               **self._get_args(f=features))
+        text = (
+            '{outer}<{tag} xsi:type="WordElement"{f}{id}>{sep}'
+            '{inner}<base>{word}</base>{sep}'
+            '{outer}</{tag}>{sep}'
+        ).format(
+            word=quote_plus(word), id=id, **self._get_args(f=features)
+        )
         self.xml += text
 
     def var(self, node):
@@ -199,16 +216,12 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
             cat = category.ANY
         else:
             cat = element.category
-        features_dict = {
-            'cat': cat
-        }
+        features_dict = {'cat': cat}
         for f in element.features:
             # if feature or feature group is not in dict, just return a dict with K:V
             value = f.value.lower()
             default_value = value if value in ('true', 'false') else f.value.upper()
-            converted = feature_map.get(f, {
-                f.name.upper(): default_value
-            })
+            converted = feature_map.get(f, {f.name.upper(): default_value})
             # returned value is either a dict or a lambda taking `f`
             if hasattr(converted, '__call__'):
                 converted = converted(f)
@@ -983,8 +996,8 @@ def replace_element_with_id(sent, elt_id, replacement=None):
                 return True
     return False
 
-# Penn Treebank Tags
 
+# Penn Treebank Tags
 
 # Number Tag    Description
 # 1.     Coordination      Coordinating conjunction

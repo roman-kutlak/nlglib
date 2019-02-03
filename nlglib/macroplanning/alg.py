@@ -1,14 +1,11 @@
 import itertools
 
 import nltk
-from nltk.sem import *
 from nltk.sem.logic import *
 
-from .struct import RhetRel, PredicateMsg, StringMsg, Document
-
-from nlglib.microplanning import NounPhrase, Word, Var
-
 from nlglib.features import NEGATED
+from nlglib.macroplanning.struct import RhetRel, PredicateMsg, StringMsg, Document
+from nlglib.microplanning import NounPhrase, Word, Var
 
 expr = nltk.sem.Expression.fromstring
 
@@ -113,9 +110,11 @@ def formula_to_rst(f):
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, ApplicationExpression):
         predicate = f.term
-        m = PredicateMsg(predicate.pred.variable.name,
-                         *[formula_to_rst(x) for x in predicate.args],
-                         features=(NEGATED.true, ))
+        m = PredicateMsg(
+            predicate.pred.variable.name,
+            *[formula_to_rst(x) for x in predicate.args],
+            features=(NEGATED.true,)
+        )
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, IndividualVariableExpression):
         arg = f.term

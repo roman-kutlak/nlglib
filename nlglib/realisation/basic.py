@@ -5,9 +5,7 @@ from nlglib.microplanning import is_clause_type
 from nlglib.features import category, NUMBER, GENDER, CASE, TENSE, NEGATED, MODAL, FeatureGroup
 from nlglib.utils import flatten
 
-
 __all__ = ['Realiser']
-
 
 # a complementiser group
 complementiser = FeatureGroup('complementiser')
@@ -108,6 +106,7 @@ class Realiser(object):
 # **************************************************************************** #
 
 
+# TODO: Move to visitors?
 class RealisationVisitor:
     """ A visitor that collects the strings in the NLG structure
     and performs a simple surface realisation.
@@ -152,16 +151,20 @@ class RealisationVisitor:
         node.predicate.features.replace(node.subject[GENDER])
         node.predicate.features.replace(node.subject[CASE])
         node.predicate.features.replace(node[NEGATED])
-        for o in node.front_modifiers: o.accept(self)
+        for o in node.front_modifiers:
+            o.accept(self)
         node.subject.accept(self)
-        for o in node.premodifiers: o.accept(self)
+        for o in node.premodifiers:
+            o.accept(self)
         node.predicate.accept(self)
         if len(node.complements) > 0:
             if complementiser in node.complements[0]:
                 self.text += node.complements[0][complementiser]
                 self.text += ' '
-        for c in node.complements: c.accept(self)
-        for o in node.postmodifiers: o.accept(self)
+        for c in node.complements:
+            c.accept(self)
+        for o in node.postmodifiers:
+            o.accept(self)
 
     def coordination(self, node):
         if node.coords is None or len(node.coords) == 0: return ''
@@ -180,17 +183,21 @@ class RealisationVisitor:
 
     def noun_phrase(self, node):
         node.specifier.accept(self)
-        for c in node.premodifiers: c.accept(self)
+        for c in node.premodifiers:
+            c.accept(self)
         node.head.accept(self)
         if len(node.complements) > 0:
             if complementiser in node.complements[0]:
                 self.text += node.complements[0][complementiser]
                 self.text += ' '
-        for c in node.complements: c.accept(self)
-        for c in node.postmodifiers: c.accept(self)
+        for c in node.complements:
+            c.accept(self)
+        for c in node.postmodifiers:
+            c.accept(self)
 
     def verb_phrase(self, node):
-        for c in node.premodifiers: c.accept(self)
+        for c in node.premodifiers:
+            c.accept(self)
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
@@ -238,7 +245,8 @@ class RealisationVisitor:
                 self.text += ' ' + node.complements[0][complementiser] + ' '
         for c in node.complements:
             c.accept(self)
-        for c in node.postmodifiers: c.accept(self)
+        for c in node.postmodifiers:
+            c.accept(self)
 
     def preposition_phrase(self, node):
         self.phrase(node)
@@ -250,9 +258,12 @@ class RealisationVisitor:
         self.phrase(node)
 
     def phrase(self, node):
-        for c in node.premodifiers: c.accept(self)
+        for c in node.premodifiers:
+            c.accept(self)
         node.head.accept(self)
         if complementiser in node:
             self.text += ' {0} '.format(node[complementiser])
-        for c in node.complements: c.accept(self)
-        for c in node.postmodifiers: c.accept(self)
+        for c in node.complements:
+            c.accept(self)
+        for c in node.postmodifiers:
+            c.accept(self)

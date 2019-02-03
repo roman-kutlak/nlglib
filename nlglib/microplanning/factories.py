@@ -1,20 +1,38 @@
+"""This module contains convenience functions for creating syntactic elements."""
 from nlglib.features import NUMBER, GENDER, NOUN_TYPE
 from nlglib.features.category import *
-from .struct import *
+from nlglib.microplanning.struct import *
 
 __all__ = [
-    'Any', 'Adjective', 'Adverb', 'Auxiliary',
-    'Complementiser', 'Conjunction',
-    'Determiner', 'Determiner',
+    'Any',
+    'Adjective',
+    'Adverb',
+    'Auxiliary',
+    'Complementiser',
+    'Conjunction',
+    'Determiner',
+    'Determiner',
     'Interjection',
     'Modal',
-    'Noun', 'Numeral',
-    'Particle', 'Preposition', 'Pronoun',
+    'Noun',
+    'Numeral',
+    'Particle',
+    'Preposition',
+    'Pronoun',
     'Symbol',
     'Verb',
-    'NN', 'NNS', 'NNP', 'NNPS',
-    'Male', 'Female',
-    'NP', 'VP', 'PP', 'AdjP', 'AdvP', 'CC'
+    'NN',
+    'NNS',
+    'NNP',
+    'NNPS',
+    'Male',
+    'Female',
+    'NP',
+    'VP',
+    'PP',
+    'AdjP',
+    'AdvP',
+    'CC',
 ]
 
 ###############################################################################
@@ -118,6 +136,7 @@ def Verb(word, features=None):
 # 14.	NNP     Proper noun, singular
 # 15.	NNPS	Proper noun, plural
 
+
 @str_or_element
 def NN(word, features=None):
     return Noun(word, features=features)
@@ -177,11 +196,20 @@ def NP(spec, *mods_and_head, features=None, **kwargs):
     else:
         words = list(mods_and_head)
     if spec is None:
-        return NounPhrase(Noun(words[-1]), features=features,
-                          premodifiers=[Adjective(x) for x in words[:-1]], **kwargs)
+        return NounPhrase(
+            Noun(words[-1]),
+            features=features,
+            premodifiers=[Adjective(x) for x in words[:-1]],
+            **kwargs
+        )
     else:
-        return NounPhrase(Noun(words[-1]), Determiner(spec), features=features,
-                          premodifiers=[Adjective(x) for x in words[:-1]], **kwargs)
+        return NounPhrase(
+            Noun(words[-1]),
+            Determiner(spec),
+            features=features,
+            premodifiers=[Adjective(x) for x in words[:-1]],
+            **kwargs
+        )
 
 
 def VP(head, *complements, features=None, **kwargs):
@@ -189,8 +217,7 @@ def VP(head, *complements, features=None, **kwargs):
 
 
 def PP(head, *complements, features=None, **kwargs):
-    return PrepositionPhrase(Preposition(head),
-                             *complements, features=features, **kwargs)
+    return PrepositionPhrase(Preposition(head), *complements, features=features, **kwargs)
 
 
 def AdjP(head, *complements, features=None, **kwargs):
