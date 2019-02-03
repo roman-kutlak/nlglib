@@ -251,18 +251,18 @@ class Lexicaliser(object):
 
     def get_template(self, item, templates=None, **kwargs):
         """Return the template for given `element`.
-        
+
         The looked templates are `self.templates` and `kwargs['templates']`.
-        
-        If the template under given key is a callable object, 
+
+        If the template under given key is a callable object,
         it will be passed `element` and `**kwargs` and should return a template.
-        
+
         :param item: str or something with `key` attribute for lookup
         :param templates: optional templates to look up the item
         :param kwargs: optional arguments passed to `lexicalise()`
         :return: a template or String(str(element))
         :rtype: Element
-        
+
         """
         available_templates = templates or self.templates
         if isinstance(item, str):

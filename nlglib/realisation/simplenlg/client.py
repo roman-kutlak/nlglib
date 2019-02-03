@@ -9,7 +9,6 @@ import urllib.parse
 
 from nlglib.utils import LogPipe
 
-
 log = logging.getLogger(__name__)
 
 
@@ -43,7 +42,9 @@ class Socket:
         except OSError as msg:
             self.socket.close()
             self.socket = None
-            log.exception('Socket.connect(%s, %s) caught an exception: %s', self.host, self.port, msg)
+            log.exception(
+                'Socket.connect(%s, %s) caught an exception: %s', self.host, self.port, msg
+            )
             raise
 
     def _send(self, msg, length):
@@ -94,8 +95,7 @@ class Socket:
             if self.socket is not None:
                 self.socket.close()
         except OSError as e:
-            log.exception(
-                'Socket.close() caught an exception: %s' % str(e))
+            log.exception('Socket.close() caught an exception: %s' % str(e))
             raise
 
     # allow the use in 'with' statement
@@ -174,11 +174,13 @@ class SimpleNLGServer(threading.Thread):
         """
         args = ['java', '-Xmx512m', '-jar', self.jar_path, self.port]
         with self.error_log, self.output_log:
-            with subprocess.Popen(args,
-                                  stdin=subprocess.PIPE,
-                                  stdout=self.output_log,
-                                  stderr=self.error_log,
-                                  universal_newlines=True) as proc:
+            with subprocess.Popen(
+                args,
+                stdin=subprocess.PIPE,
+                stdout=self.output_log,
+                stderr=self.error_log,
+                universal_newlines=True
+            ) as proc:
                 # use a condition variable to signal that the process is running
                 time.sleep(1)
                 self._signal_startup_done()
@@ -210,7 +212,7 @@ class SimpleNLGServer(threading.Thread):
         log.debug('SimpleNLG server (%s): waiting for startup...' % self.jar_path)
         with self.start_cv:
             while not self._ready:
-                self.start_cv.wait()        
+                self.start_cv.wait()
         log.debug('SimpleNLG server (%s): startup done.' % self.jar_path)
 
     def _wait_for_shutdown(self):

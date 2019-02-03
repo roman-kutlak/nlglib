@@ -10,7 +10,6 @@ not found in others.
 import copy
 from collections import MutableSet
 
-
 __all__ = ['Feature', 'FeatureGroup', 'FeatureSet']
 
 
@@ -46,6 +45,7 @@ class Feature(object):
 
 class FeatureGroup(object):
     """Represents a group of features such as NUMBER or TENSE. """
+
     # TODO: consider using metaclasses and __slots__
 
     def __init__(self, name, *values, transform=None):
@@ -65,8 +65,10 @@ class FeatureGroup(object):
         <Feature NUMBER: singular>
 
         """
+
         def ident(x):
             return x
+
         fn = ident
         if transform:
             fn = getattr(str, transform)
@@ -120,7 +122,7 @@ class FeatureGroup(object):
 class FeatureSet(MutableSet):
     """Represents a set of features"""
     __slots__ = ['__s']
-    
+
     def __init__(self, seq=()):
         self.__s = set(seq)
 
@@ -129,7 +131,9 @@ class FeatureSet(MutableSet):
 
     def __str__(self):
         features = sorted(self.__s, key=lambda f: (f.name, f.value))
-        return '{' + ', '.join('{k}: {v}'.format(k=repr(f.name), v=repr(f.value)) for f in features) + '}'
+        return '{' + ', '.join(
+            '{k}: {v}'.format(k=repr(f.name), v=repr(f.value)) for f in features
+        ) + '}'
 
     def __len__(self):
         return len(self.__s)

@@ -34,6 +34,7 @@ setup(
     extras_require={'dev': [
         'coverage',
         'nose',
+        'pycodestyle',
         'rednose',
     ]},
     test_suite='nose.collector',
