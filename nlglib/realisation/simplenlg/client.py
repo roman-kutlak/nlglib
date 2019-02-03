@@ -43,7 +43,7 @@ class Socket:
         except OSError as msg:
             self.socket.close()
             self.socket = None
-            log.exception('Socket.connect() caught an exception: %s' % msg)
+            log.exception('Socket.connect(%s, %s) caught an exception: %s', self.host, self.port, msg)
             raise
 
     def _send(self, msg, length):

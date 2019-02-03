@@ -61,4 +61,3 @@ target/
 *$py.class
 cover
 tests/_trial_temp/
-examples/backcast/data
