@@ -70,7 +70,6 @@ class TestSimplenlgClient(unittest.TestCase):
     def test_snlg_6(self):
         expected = 'There exists X such that p.'
         realisation = self.client.xml_request(test_data6)
-        print(realisation)
         self.assertEqual(expected, realisation)
 
     def test_snlg_7(self):

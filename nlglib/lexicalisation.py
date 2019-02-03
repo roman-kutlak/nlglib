@@ -1,13 +1,12 @@
-import numbers
 import logging
+
+from copy import deepcopy
 
 from nlglib.microplanning import *
 from nlglib.macroplanning import *
 from nlglib.features import category, NEGATED
 
 __all__ = ['Lexicaliser']
-
-log = logging.getLogger(__name__)
 
 
 class Lexicaliser(object):
@@ -25,12 +24,13 @@ class Lexicaliser(object):
         'string_message_spec': Clause(subject=Var('val'))
     }
 
-    def __init__(self, templates=None):
+    def __init__(self, templates=None, logger=None):
         """Create a new lexicaliser.
         
         :param templates: a dict with templates for lexicalising elements
         
         """
+        self.logger = logger or logging.getLogger(__name__)
         self.templates = self.default_templates.copy()
         if templates:
             self.templates.update(templates)
@@ -42,35 +42,34 @@ class Lexicaliser(object):
         """Perform lexicalisation on the message depending on its category.
 
         If the `message.category` doesn't match any condition,
-        call `msg.lexicalise(self, **kwargs)`
+        call `msg.lexicalise(self, **kwargs)` if `msg` has attr `lexicalise`
+        otherwise return `String(msg)`
 
         """
         cat = msg.category if hasattr(msg, 'category') else type(msg)
-        log.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
+        self.logger.debug('Lexicalising {0}: {1}'.format(cat, repr(msg)))
 
         if msg is None:
             return None
-        elif isinstance(msg, numbers.Number):
-            return Numeral(msg)
-        elif isinstance(msg, str):
-            return String(msg)
-        elif msg.category in category.element_category:
-            return self.element(msg, **kwargs)
-        elif isinstance(msg, (list, set, tuple)) or msg.category == category.ELEMENT_LIST:
-            return self.element_list(msg, **kwargs)
-        elif msg.category == category.MSG:
-            return self.message_specification(msg, **kwargs)
-        elif msg.category == category.RST:
-            return self.rst_relation(msg, **kwargs)
-        elif msg.category == category.DOCUMENT:
-            return self.document(msg, **kwargs)
-        elif msg.category == category.PARAGRAPH:
-            return self.paragraph(msg, **kwargs)
-        else:
+
+        if hasattr(msg, 'lexicalise'):
             return msg.lexicalise(self, **kwargs)
 
+        # support dynamic dispatching
+        msg_category = cat.lower()
+        if hasattr(self, msg_category):
+            fn = getattr(self, msg_category)
+            return fn(msg, **kwargs)
+
+        elif msg.category in category.element_category:
+            return self.element(msg, **kwargs)
+        elif isinstance(msg, (list, set, tuple)):
+            return self.element_list(msg, **kwargs)
+        else:
+            return String(msg)
+
     def element_list(self, element, **kwargs):
-        log.warning('This should not be called???')
+        self.logger.warning('This should not be called???')
         return ElementList([self(x, **kwargs) for x in element])
 
     def element(self, element, **kwargs):
@@ -89,7 +88,7 @@ class Lexicaliser(object):
             if template is None:
                 continue
             msg = 'Replacing\n{0} in \n{1} by \n{2}.'
-            log.info(msg.format(repr(arg), repr(rv), repr(template)))
+            self.logger.info(msg.format(repr(arg), repr(rv), repr(template)))
             # avoid infinite recursion of lexicalising args (Var instances)?
             if rv == arg:
                 return template
@@ -119,21 +118,20 @@ class Lexicaliser(object):
             args = template.arguments()
             # if there are any arguments, replace them by values from the msg
             for arg in args:
-                log.info('Replacing argument\n{0} in \n{1}.'
-                         .format(str(arg), repr(template)))
+                self.logger.info('Replacing argument\n{0} in \n{1}.'.format(str(arg), repr(template)))
                 val = msg.value_for(arg.id)
                 # check if value is a template and if so, look it up
                 if isinstance(val, str):
                     val = self.get_template(String(val), **kwargs)
                 lex_val = self(val, **kwargs)
                 log_msg = 'Replacement value for {0}: {1}'
-                log.info(log_msg.format(str(arg), repr(lex_val)))
+                self.logger.info(log_msg.format(str(arg), repr(lex_val)))
                 template.replace(arg, lex_val)
             return template
         except Exception as e:
-            log.exception('Error in lexicalising MsgSpec: %s', e)
-            log.info('\tmsg: ' + repr(msg))
-            log.info('\ttemplate: ' + repr(template))
+            self.logger.exception('Error in lexicalising MsgSpec: %s', e)
+            self.logger.info('\tmsg: ' + repr(msg))
+            self.logger.info('\ttemplate: ' + repr(template))
         return String(msg)
 
     def rst_relation(self, rel, **kwargs):
@@ -162,7 +160,7 @@ class Lexicaliser(object):
             result = Coordination(*nuclei, conj=rel.marker,
                                   features=features)
         elif relation == 'imply':
-            log.debug('RST Implication: ' + repr(rel))
+            self.logger.debug('RST Implication: ' + repr(rel))
             subj = raise_to_phrase(nucleus)
             compl = raise_to_phrase(satellite)
             compl['COMPLEMENTISER'] = 'then'
@@ -211,11 +209,11 @@ class Lexicaliser(object):
             front_mod = np
             # front_mod should go in front of existing front_mods
             # In CASE of CC, modify the first coordinate
-            if result.category == COORDINATION:
+            if result.category == category.COORDINATION:
                 result.coords[0].add_front_modifier(String(front_mod), pos=0)
             else:
                 result.premodifiers.insert(0, String(front_mod))
-            log.debug('Result:\n' + repr(result))
+            self.logger.debug('Result:\n' + repr(result))
         elif relation == 'negation':
             result = Clause(Pronoun('it'), VP('is', NP('the', 'case'),
                                               features=(NEGATED.true,)))
@@ -265,14 +263,14 @@ class Lexicaliser(object):
         key = item if isinstance(item, str) else item.id
         template = deepcopy(available_templates.get(key))
         if template is None:
-            log.warning('No template for "%s"' % key)
+            self.logger.warning('No template for "%s"' % key)
             rv = String(item)
         elif hasattr(template, '__call__'):  # callable passed -- invoke
             # noinspection PyCallingNonCallable
             template = template(item, templates=templates, **kwargs)
             if template is None:
                 msg = 'Function for template "%s" returned None'
-                log.warning(msg % key)
+                self.logger.warning(msg % key)
                 rv = String(item)
             else:
                 rv = template

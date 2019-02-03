@@ -2,6 +2,20 @@ from nlglib.features import NUMBER, GENDER, NOUN_TYPE
 from nlglib.features.category import *
 from .struct import *
 
+__all__ = [
+    'Any', 'Adjective', 'Adverb', 'Auxiliary',
+    'Complementiser', 'Conjunction',
+    'Determiner', 'Determiner',
+    'Interjection',
+    'Modal',
+    'Noun', 'Numeral',
+    'Particle', 'Preposition', 'Pronoun',
+    'Symbol',
+    'Verb',
+    'NN', 'NNS', 'NNP', 'NNPS',
+    'Male', 'Female',
+    'NP', 'VP', 'PP', 'AdjP', 'AdvP', 'CC'
+]
 
 ###############################################################################
 #                                                                              #
