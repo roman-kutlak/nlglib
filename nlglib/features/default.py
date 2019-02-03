@@ -5,7 +5,7 @@ If you are defining your own features, use the `Feature` and
 
 """
 
-from .feature import FeatureGroup
+from nlglib.features.feature import FeatureGroup
 
 CASE = FeatureGroup(
     'CASE',
@@ -19,40 +19,14 @@ CASE = FeatureGroup(
     transform='lower'
 )
 
-NUMBER = FeatureGroup(
-    'NUMBER',
-    'singular',
-    'plural',
-    'both',
-    transform='lower'
-)
+NUMBER = FeatureGroup('NUMBER', 'singular', 'plural', 'both', transform='lower')
 
-GENDER = FeatureGroup(
-    'GENDER',
-    'masculine',
-    'feminine',
-    'neuter',
-    transform='lower'
-)
+GENDER = FeatureGroup('GENDER', 'masculine', 'feminine', 'neuter', transform='lower')
 
 # `generic` can be used for pronouns eg 'you' in
-PERSON = FeatureGroup(
-    'PERSON',
-    'first',
-    'second',
-    'third',
-    'generic',
-    transform='lower'
-)
+PERSON = FeatureGroup('PERSON', 'first', 'second', 'third', 'generic', transform='lower')
 
-TENSE = FeatureGroup(
-    'TENSE',
-    'present',
-    'past',
-    'future',
-    'conditional',
-    transform='lower'
-)
+TENSE = FeatureGroup('TENSE', 'present', 'past', 'future', 'conditional', transform='lower')
 
 # The Simple Aspect (Indefinite Aspect)	Example
 # simple past tense	            I went
@@ -71,38 +45,27 @@ TENSE = FeatureGroup(
 # present perfect progressive tense	I have been going
 # future perfect progressive tense	I will have been going
 ASPECT = FeatureGroup(
-    'ASPECT',
-    'simple',
-    'perfect',
-    'progressive',
-    'perfect_progressive',
-    transform='lower'
+    'ASPECT', 'simple', 'perfect', 'progressive', 'perfect_progressive', transform='lower'
 )
 
-MOOD = FeatureGroup(
-    'MOOD',
-    'indicative',
-    'imperative',
-    'subjunctive',
-    transform='lower'
-)
+MOOD = FeatureGroup('MOOD', 'indicative', 'imperative', 'subjunctive', transform='lower')
 
 MODAL = FeatureGroup(
     'MODAL',
-    'can', 'could',
-    'may', 'might',
-    'must', 'ought',
-    'shall', 'should',
-    'will', 'would',
+    'can',
+    'could',
+    'may',
+    'might',
+    'must',
+    'ought',
+    'shall',
+    'should',
+    'will',
+    'would',
     transform='lower'
 )
 
-VOICE = FeatureGroup(
-    'VOICE',
-    'active',
-    'passive',
-    transform='lower'
-)
+VOICE = FeatureGroup('VOICE', 'active', 'passive', transform='lower')
 
 FORM = FeatureGroup(
     'FORM',
@@ -132,26 +95,11 @@ INTERROGATIVE_TYPE = FeatureGroup(
     transform='lower'
 )
 
-REGISTER = FeatureGroup(
-    'REGISTER',
-    'formal',
-    'informal',
-    transform='lower'
-)
+REGISTER = FeatureGroup('REGISTER', 'formal', 'informal', transform='lower')
 
-CLAUSE = FeatureGroup(
-    'CLAUSE',
-    'matrix',
-    'subordinate',
-    transform='lower'
-)
+CLAUSE = FeatureGroup('CLAUSE', 'matrix', 'subordinate', transform='lower')
 
-NOUN_TYPE = FeatureGroup(
-    'NOUN_TYPE',
-    'common',
-    'proper',
-    transform='lower'
-)
+NOUN_TYPE = FeatureGroup('NOUN_TYPE', 'common', 'proper', transform='lower')
 
 PRONOUN_TYPE = FeatureGroup(
     'PRONOUN_TYPE',
@@ -167,12 +115,7 @@ PRONOUN_TYPE = FeatureGroup(
 )
 
 PRONOUN_USE = FeatureGroup(
-    'PRONOUN_USE',
-    'subjective',
-    'objective',
-    'reflexive',
-    'possessive',
-    transform='lower'
+    'PRONOUN_USE', 'subjective', 'objective', 'reflexive', 'possessive', transform='lower'
 )
 
 NEGATED = FeatureGroup(
@@ -194,10 +137,7 @@ INFLECTED = FeatureGroup(
     'false',
 )
 
-
 # ######################### Discourse ######################### #
-
-
 """
 An enumeration representing the grammatical function
 that an element might take. The discourse function

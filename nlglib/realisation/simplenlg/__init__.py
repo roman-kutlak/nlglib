@@ -1,3 +1,4 @@
-from .client import SimplenlgClient, SimpleNLGServer
+"""This package contains classes for realisation using SimpleNLG (over XML)."""
 
-from .realisation import *
+from nlglib.realisation.simplenlg.client import SimplenlgClient, SimpleNLGServer
+from nlglib.realisation.simplenlg.realisation import *

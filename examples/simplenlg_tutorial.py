@@ -106,9 +106,9 @@ def coordinated_clause():
 
 
 def subordinate_clause():
-    p = Clause("I", "be", "happy")
-    q = Clause("I", "eat", "fish")
-    q['COMPLEMENTISER'] = "because"
+    p = Clause('I', 'be', 'happy')
+    q = Clause('I', 'eat', 'fish')
+    q['COMPLEMENTISER'] = 'because'
     q['TENSE'] = 'PAST'
     p.complements += q
     print(realise(p))

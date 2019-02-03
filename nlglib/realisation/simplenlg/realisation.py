@@ -11,14 +11,14 @@ import logging
 
 from nlglib.microplanning import *
 
-from . import SimplenlgClient
-from ..basic import Realiser as BasicRealiser
-
+from nlglib.realisation.simplenlg.client import SimplenlgClient
+from nlglib.realisation.basic import Realiser as BasicRealiser
 
 __all__ = ['Realiser']
 
 
 class Realiser(BasicRealiser):
+    """Realiser that uses SimpleNLG over TCP (XML serialisation)."""
 
     def __init__(self, client=None, host='localhost', port=40000, logger=None):
         self.logger = logger or logging.getLogger(__name__)
