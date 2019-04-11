@@ -367,7 +367,7 @@ class ReprVisitor(PrintVisitor):
     def adjective_phrase(self, node):
         self.phrase(node, 'AdjectivePhrase')
 
-    def advp(self, node):
+    def adverb_phrase(self, node):
         self.phrase(node, 'AdverbPhrase')
 
     def clause(self, node):
