@@ -8,7 +8,7 @@ def long_description():
 
 setup(
     name='nlglib',
-    version='0.2.1',
+    version='0.3.0+f1',
     description='Natural Language Generation library for Python',
     long_description=long_description(),
     author='Roman Kutlak',

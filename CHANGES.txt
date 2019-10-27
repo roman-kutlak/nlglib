@@ -1,0 +1,5 @@
+2019-10-27 0.3.0+f1
+ * added additional argument `lang` to SimpleNLGServer constructor, to enable
+   setting the language to use in the SimpleNLG jar to be executed
+   (needs SimpleNLG fork)
+

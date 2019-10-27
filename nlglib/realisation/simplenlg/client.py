@@ -140,7 +140,13 @@ class SimpleNLGServer(threading.Thread):
 
     """
 
-    def __init__(self, jar_path, port):
+    def __init__(self, jar_path, port, lang=None):
+        '''
+         :param jar_path (str): SimpleNLG jarfile to launch
+         :param port (int): port where the server will listen for requests
+         :param lang (str): optional language argument to pass to SimpleNLG
+           to switch language for realisation (needs SimpleNLG fork)
+        '''
         super(SimpleNLGServer, self).__init__()
         log.debug('Creating simpleNLG server (%s)' % jar_path)
         log.debug('simpleNLG server port: ' + str(port))
@@ -149,6 +155,9 @@ class SimpleNLGServer(threading.Thread):
             raise ServerError(msg.format(jar_path))
         self.jar_path = jar_path
         self.port = str(port)
+        self.lang = str(lang).lower() if lang is not None else None
+        if self.lang is not None:
+            log.debug('simpleNLG server language: ' + self.lang)
         self.start_cv = threading.Condition()
         self.exit_cv = threading.Condition()
         self._ready = False
@@ -173,6 +182,8 @@ class SimpleNLGServer(threading.Thread):
 
         """
         args = ['java', '-Xmx512m', '-jar', self.jar_path, self.port]
+        if self.lang is not None:
+            args.append(self.lang)
         with self.error_log, self.output_log:
             with subprocess.Popen(
                 args,
