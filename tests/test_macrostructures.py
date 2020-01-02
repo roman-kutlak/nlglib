@@ -16,6 +16,7 @@ class DummyMessage(MsgSpec):
 
 
 class TestMessageSpec(unittest.TestCase):
+
     def test_str(self):
         tm = DummyMessage('nice_name')
         descr = str(tm)
@@ -117,6 +118,7 @@ class TestRhetRel(unittest.TestCase):
 
 
 class TestParagraph(unittest.TestCase):
+
     def test_str(self):
         expected = 'foo bar'
         m = RhetRel('Elaboration', 'foo', 'bar')
@@ -165,6 +167,7 @@ class TestParagraph(unittest.TestCase):
 
 
 class TestDocument(unittest.TestCase):
+
     def test_str(self):
         expected = "MyDoc\n\nOne\n\nfoo bar"
         m = RhetRel('Elaboration', 'foo', 'bar')
@@ -184,7 +187,8 @@ class TestDocument(unittest.TestCase):
         expected = """\
 <Document: (MyDoc)
 <Document: (One)
-String('foo bar')>>"""
+<Paragraph (1):
+	<RhetRel (Elaboration): String('foo') String('bar')>>>>"""
         m = RhetRel('Elaboration', 'foo', 'bar')
         one = Document('One', Paragraph(m))
         d = Document('MyDoc', one)
@@ -193,9 +197,11 @@ String('foo bar')>>"""
         expected = """\
 <Document: (MyDoc)
 <Document: (One)
-String('foo bar')>
+<Paragraph (1):
+	<RhetRel (Elaboration): String('foo') String('bar')>>>
 <Document: (Two)
-String('baz bar')>>"""
+<Paragraph (1):
+	<RhetRel (Contrast): String('baz') String('bar')>>>>"""
         m2 = RhetRel('Contrast', 'baz', 'bar')
         two = Document('Two', Paragraph(m2))
         d = Document('MyDoc', one, two)

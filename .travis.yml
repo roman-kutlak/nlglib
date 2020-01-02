@@ -10,4 +10,4 @@ matrix:
   fast_finish: true
 
 script:
-  - nosetests tests --with-coverage --cover-package=nlglib --cover-erase --cover-html --rednose
+  - nosetests tests

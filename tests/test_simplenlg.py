@@ -12,35 +12,35 @@ class TestSimplenlgClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        jp = 'nlglib/res/simplenlg.jar'
-        port = '50007'
+        # jp = 'nlglib/res/simplenlg.jar'
+        # port = '50007'
         cls.test_result = 'Put the piano and the drum into the truck.'
-        cls.simplenlg_server = snlg.SimpleNLGServer(jp, port)
-        cls.simplenlg_server.start()
-        cls.simplenlg_server.wait_for_init()
-        cls.client = snlg.SimplenlgClient('localhost', port)
+        # cls.simplenlg_server = snlg.SimpleNLGServer(jp, port)
+        # cls.simplenlg_server.start()
+        # cls.simplenlg_server.wait_for_init()
+        cls.client = snlg.SimplenlgClient('nlg.kutlak.info', 40000)
 
-    @classmethod
-    def tearDownClass(cls):
-        # signal that we would like to shut the server down
-        if cls.simplenlg_server:
-            cls.simplenlg_server.shutdown()
-
-    def test_socket(self):
-        self.assertIsNotNone(self.simplenlg_server)
-        self.simplenlg_server.wait_for_init()
-        mysocket = snlg.Socket('', 50007)
-        with mysocket as sock:
-            n = sock.send_string(test_data)
-            self.assertEqual(n, len(test_data))
-            msg = sock.recv_string()
-            self.assertEqual(self.test_result, msg)
-
-        with mysocket as sock:
-            n = sock.send_string(test_data)
-            self.assertEqual(n, len(test_data))
-            msg = sock.recv_string()
-            self.assertEqual(self.test_result, msg)
+    # @classmethod
+    # def tearDownClass(cls):
+    #     # signal that we would like to shut the server down
+    #     if cls.simplenlg_server:
+    #         cls.simplenlg_server.shutdown()
+    #
+    # def test_socket(self):
+    #     self.assertIsNotNone(self.simplenlg_server)
+    #     self.simplenlg_server.wait_for_init()
+    #     mysocket = snlg.Socket('', 50007)
+    #     with mysocket as sock:
+    #         n = sock.send_string(test_data)
+    #         self.assertEqual(n, len(test_data))
+    #         msg = sock.recv_string()
+    #         self.assertEqual(self.test_result, msg)
+    #
+    #     with mysocket as sock:
+    #         n = sock.send_string(test_data)
+    #         self.assertEqual(n, len(test_data))
+    #         msg = sock.recv_string()
+    #         self.assertEqual(self.test_result, msg)
 
     def test_snlg_1(self):
         expected = self.test_result
@@ -81,10 +81,16 @@ class TestSimplenlgClient(unittest.TestCase):
 
     def test_complex_sentence(self):
         c1 = Clause('x', 'equal', 'y', front_modifiers=['if'])
-        c2 = Clause('p', 'be', PP('at', 'location x'),
-                    features={'COMPLEMENTISER': 'and'})
-        c3 = Clause('p', 'be', PP('at', 'location y'),
-                    features={'NEGATED': 'true', 'COMPLEMENTISER': 'then'})
+        c2 = Clause('p', 'be', PP('at', 'location x'), features={'COMPLEMENTISER': 'and'})
+        c3 = Clause(
+            'p',
+            'be',
+            PP('at', 'location y'),
+            features={
+                'NEGATED': 'true',
+                'COMPLEMENTISER': 'then'
+            }
+        )
         c2.complements.append(c3)
         c1.complements.append(c2)
         expected = 'If x equals y and p is at location x then p is not at location y.'
@@ -94,8 +100,15 @@ class TestSimplenlgClient(unittest.TestCase):
     def test_coordination(self):
         c1 = Clause('x', 'equal', 'y', front_modifiers=['if'])
         c2 = Clause('p', 'be', PP('at', 'location x'))
-        c3 = Clause('p', 'be', PP('at', 'location y'),
-                    features={'NEGATED': 'true', 'COMPLEMENTISER': 'then'})
+        c3 = Clause(
+            'p',
+            'be',
+            PP('at', 'location y'),
+            features={
+                'NEGATED': 'true',
+                'COMPLEMENTISER': 'then'
+            }
+        )
         c2.complements.append(c3)
         c = CC(c1, c2)
         expected = 'if x equals y and p is at location x then p is not at location y'
@@ -397,7 +410,6 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 </nlg:Request>
 </nlg:NLGSpec>
 """
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
