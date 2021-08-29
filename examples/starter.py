@@ -1,4 +1,4 @@
-from nlglib.features import TENSE, ASPECT
+from nlglib.features import TENSE, ASPECT, NUMBER
 from nlglib.microplanning import *
 from nlglib.realisation.simplenlg import Realiser
 from nlglib.lexicalisation import Lexicaliser
@@ -7,6 +7,7 @@ from nlglib.macroplanning import expr, formula_to_rst
 import logging
 
 realise = Realiser(host='nlg.kutlak.info')
+
 # realise = str
 
 
@@ -17,28 +18,55 @@ def run_simple_examples():
     s = Clause(NNP('John'), VP('be', AdjP('happy')))
     print(realise(s))
 
-    s = Clause(NNP('Paul'), VP('play', NP('guitar'), features={ASPECT.progressive, }))
+    s = Clause(NNP('Paul'), VP('play', NP('guitar'), features={
+        ASPECT.progressive,
+    }))
     print(realise(s))
 
-    guitarists = Coordination(Clause(NNP('John'),
-                                     VP('play', NP('a', 'guitar'),
-                                        features={ASPECT.progressive, TENSE.past, })),
-                              Clause(NNP('George'),
-                                     VP('play', NP('a', 'guitar'),
-                                        features={ASPECT.progressive, TENSE.past, })),
-                              Clause(NNP('Paul'),
-                                     VP('play', NP('a', 'guitar'),
-                                        features={ASPECT.progressive, TENSE.past, }))
-                              )
+    guitarists = Coordination(
+        Clause(
+            NNP('John'), VP('play', NP('a', 'guitar'), features={
+                ASPECT.progressive,
+                TENSE.past,
+            })
+        ),
+        Clause(
+            NNP('George'),
+            VP('play', NP('a', 'guitar'), features={
+                ASPECT.progressive,
+                TENSE.past,
+            })
+        ),
+        Clause(
+            NNP('Paul'), VP('play', NP('a', 'guitar'), features={
+                ASPECT.progressive,
+                TENSE.past,
+            })
+        )
+    )
     print(realise(guitarists))
 
-    gringo = Coordination(Clause(NNP('George'),
-                                 VP('play', NP('a', 'bass'),
-                                    features={ASPECT.progressive, TENSE.past, })),
-                          Clause(NNP('Ringo'),
-                                 VP('play', NP('drum', features={NUMBER.plural, }),
-                                    features={ASPECT.progressive, TENSE.past, }))
-                          )
+    gringo = Coordination(
+        Clause(
+            NNP('George'), VP('play', NP('a', 'bass'), features={
+                ASPECT.progressive,
+                TENSE.past,
+            })
+        ),
+        Clause(
+            NNP('Ringo'),
+            VP(
+                'play',
+                NP('drum', features={
+                    NUMBER.plural,
+                }),
+                features={
+                    ASPECT.progressive,
+                    TENSE.past,
+                }
+            )
+        )
+    )
     print(realise(gringo))
 
 
@@ -50,7 +78,9 @@ def run_pipeline():
         'ringo': NNP(Male('Ringo')),
         'guitar': Noun('guitar'),
         'bass': Noun('bass guitar'),
-        'drums': Noun('drum', features={NUMBER.plural, }),
+        'drums': Noun('drum', features={
+            NUMBER.plural,
+        }),
         'Happy': Clause(NP(Var(0)), VP('be', AdjP('happy'))),
         'Play': Clause(NP(Var(0)), VP('play', NP(Var(1)))),
     }

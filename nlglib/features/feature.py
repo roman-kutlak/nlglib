@@ -8,7 +8,7 @@ not found in others.
 """
 
 import copy
-from collections import MutableSet
+from collections.abc import MutableSet
 
 __all__ = ['Feature', 'FeatureGroup', 'FeatureSet']
 
