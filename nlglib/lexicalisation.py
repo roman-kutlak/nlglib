@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from nlglib.microplanning import *
 from nlglib.macroplanning import *
-from nlglib.features import category, NEGATED
+from nlglib.features import category, Negated
 
 __all__ = ['Lexicaliser']
 
@@ -62,7 +62,7 @@ class Lexicaliser(object):
         if hasattr(self, attribute):
             fn = getattr(self, attribute)
             return fn(msg, **kwargs)
-        elif cat in category.element_category:
+        elif cat in category.ElementCategory:
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
@@ -193,7 +193,7 @@ class Lexicaliser(object):
             result = Clause()
             result.subject(nucleus)
             direct_object = satellite
-            features[NEGATED] = NEGATED.true
+            features[Negated] = Negated.true
             result.predicate(VP('is', direct_object, features=features))
         elif relation == 'quantifier':
             # quantifiers have multiple nuclei (variables)
@@ -210,14 +210,14 @@ class Lexicaliser(object):
 
             front_mod = np
             # front_mod should go in front of existing front_mods
-            # In CASE of CC, modify the first coordinate
+            # In Case of CC, modify the first coordinate
             if result.category == category.COORDINATION:
                 result.coords[0].add_front_modifier(String(front_mod), pos=0)
             else:
                 result.premodifiers.insert(0, String(front_mod))
             self.logger.debug('Result:\n' + repr(result))
         elif relation == 'negation':
-            result = Clause(Pronoun('it'), VP('is', NP('the', 'case'), features=(NEGATED.true,)))
+            result = Clause(Pronoun('it'), VP('is', NP('the', 'case'), features=(Negated.true,)))
             cl = raise_to_phrase(nucleus)
             cl['COMPLEMENTISER'] = 'that'
             result.predicate.complements.append(cl)

@@ -134,7 +134,7 @@ class TestXmlFormatting(unittest.TestCase):
     def test_clause(self):
         v = XmlVisitor()
         s = Clause(NP(Noun('Arthur')), VP(Verb('smiled'),
-                                          features={'TENSE': 'PAST'}))
+                                          features={'Tense': 'PAST'}))
         expected = """\
 <child xsi:type="SPhraseSpec" cat="CLAUSE">
   <subj xsi:type="NPPhraseSpec" cat="NOUN_PHRASE" discourseFunction="subject">
@@ -142,7 +142,7 @@ class TestXmlFormatting(unittest.TestCase):
       <base>Arthur</base>
     </head>
   </subj>
-  <vp xsi:type="VPPhraseSpec" TENSE="PAST" cat="VERB_PHRASE" discourseFunction="predicate">
+  <vp xsi:type="VPPhraseSpec" Tense="PAST" cat="VERB_PHRASE" discourseFunction="predicate">
     <head xsi:type="WordElement" cat="VERB" discourseFunction="head">
       <base>smiled</base>
     </head>
@@ -176,7 +176,7 @@ class TestXmlFormatting(unittest.TestCase):
     def test_format(self):
         v = XmlVisitor(depth=1, indent='    ')
         s = Clause(NP(Noun('Arthur')), VP(Verb('smiled'),
-                                          features={'TENSE': 'PAST'}))
+                                          features={'Tense': 'PAST'}))
         expected = """\
     <child xsi:type="SPhraseSpec" cat="CLAUSE">
         <subj xsi:type="NPPhraseSpec" cat="NOUN_PHRASE" discourseFunction="subject">
@@ -184,7 +184,7 @@ class TestXmlFormatting(unittest.TestCase):
                 <base>Arthur</base>
             </head>
         </subj>
-        <vp xsi:type="VPPhraseSpec" TENSE="PAST" cat="VERB_PHRASE" discourseFunction="predicate">
+        <vp xsi:type="VPPhraseSpec" Tense="PAST" cat="VERB_PHRASE" discourseFunction="predicate">
             <head xsi:type="WordElement" cat="VERB" discourseFunction="head">
                 <base>smiled</base>
             </head>
@@ -197,12 +197,12 @@ class TestXmlFormatting(unittest.TestCase):
 
         v = XmlVisitor(indent='', sep='')
         s = Clause(NP(Noun('Arthur')), VP(Verb('smiled'),
-                                          features={'TENSE': 'PAST'}))
+                                          features={'Tense': 'PAST'}))
         expected = '<child xsi:type="SPhraseSpec" cat="CLAUSE">' \
                    '<subj xsi:type="NPPhraseSpec" cat="NOUN_PHRASE" discourseFunction="subject">' \
                    '<head xsi:type="WordElement" cat="NOUN" discourseFunction="head">' \
                    '<base>Arthur</base></head></subj>' \
-                   '<vp xsi:type="VPPhraseSpec" TENSE="PAST" cat="VERB_PHRASE" ' \
+                   '<vp xsi:type="VPPhraseSpec" Tense="PAST" cat="VERB_PHRASE" ' \
                    'discourseFunction="predicate">' \
                    '<head xsi:type="WordElement" cat="VERB" discourseFunction="head">' \
                    '<base>smiled</base></head></vp></child>'
@@ -232,8 +232,8 @@ class TestRepresentation(unittest.TestCase):
 
         v = ReprVisitor()
         s = Noun('truck')
-        s['NUMBER'] = 'PLURAL'
-        expected = "Word('truck', 'NOUN', features={'NUMBER': 'PLURAL'})"
+        s['Number'] = 'PLURAL'
+        expected = "Word('truck', 'NOUN', features={'Number': 'PLURAL'})"
         s.accept(v)
         actual = str(v)
         self.assertEqual(s, eval(actual))
@@ -296,11 +296,11 @@ VerbPhrase(Word('put', 'VERB'),
         s = NP('the', 'war')
         s.postmodifiers.append(PP('of',
                                   NP('the', 'worlds',
-                                     features={'NUMBER': 'PLURAL'})))
+                                     features={'Number': 'PLURAL'})))
         expected = "NounPhrase(Word('war', 'NOUN'), Word('the', 'DETERMINER'),\n"\
                    "           postmodifiers=[PrepositionPhrase(Word('of', 'PREPOSITION'), " \
                    "NounPhrase(Word('worlds', 'NOUN'), Word('the', 'DETERMINER'), " \
-                   "features={'NUMBER': 'PLURAL'}))])"
+                   "features={'Number': 'PLURAL'}))])"
         s.accept(v)
         actual = str(v)
         self.assertEqual(s, eval(actual))

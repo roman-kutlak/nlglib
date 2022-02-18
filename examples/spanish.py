@@ -12,7 +12,7 @@ realise_es = Realiser(host='nlg.kutlak.info', port=40001)
 
 def main():
     p = Clause("María", "perseguir", "un mono")
-    p['TENSE'] = 'PAST'
+    p['Tense'] = 'PAST'
     # expected = 'María persigue un mono.'
     print(realise_es(p))
     p = Clause(NP("la", "rápida", "corredora"), VP("perseguir"), NP("un", "mono"))

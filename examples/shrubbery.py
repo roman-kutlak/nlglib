@@ -12,7 +12,7 @@ def run():
         Clause('you', 'must return', PP('here', PP('with', NP('a', 'shrubbery'))),
                features={'complementiser': 'that'}),
         Clause('you', VP('pass', PP('through', NP('this', 'wood', complements=[Adjective('alive')]))),
-               features={'TENSE': 'future', 'complementiser': 'or'}, premodifiers=['never']),
+               features={'Tense': 'future', 'complementiser': 'or'}, premodifiers=['never']),
     ]
     for c in clauses:
         realisation = r.realise(c)

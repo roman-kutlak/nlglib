@@ -2,7 +2,7 @@ import logging
 
 from nlglib.macroplanning import Document, Paragraph
 from nlglib.microplanning import is_clause_type
-from nlglib.features import category, NUMBER, GENDER, CASE, TENSE, NEGATED, MODAL, FeatureGroup
+from nlglib.features import category, Number, Gender, Case, Tense, Negated, Modal, FeatureGroup
 from nlglib.utils import flatten
 
 __all__ = ['Realiser']
@@ -22,7 +22,7 @@ class Realiser(object):
     def realise(self, msg, **kwargs):
         """Perform surface realisation of the given `msg` (convert to text)
 
-        If the object has attribute 'realise', it will be called with args (self, **kwargs).
+        If the object has an attribute 'realise', it will be called with args (self, **kwargs).
         Otherwise, get the object's category (`msg.category`) or type name
         and try to look up the attribute with the same name in `self` (dynamic dispatch).
         List, set and tuple are realised by `element_list()`. Lastly,
@@ -43,7 +43,7 @@ class Realiser(object):
         if hasattr(self, attribute):
             fn = getattr(self, attribute)
             return fn(msg, **kwargs)
-        elif cat in category.element_category:
+        elif cat in category.ElementCategory:
             return self.element(msg, **kwargs)
         elif isinstance(msg, (list, set, tuple)):
             return self.element_list(msg, **kwargs)
@@ -125,15 +125,15 @@ class RealisationVisitor:
         pass
 
     def string(self, node):
-        if NEGATED.true in node:
+        if Negated.true in node:
             self.text += 'not '
         self.text += node.value + ' '
 
     def word(self, node):
         word = node.word
-        # if (node.has_feature('NUMBER', 'PLURAL') and node.pos == 'NOUN'):
+        # if (node.has_feature('Number', 'PLURAL') and node.pos == 'NOUN'):
         #     word = lexicon.pluralise_noun(node.word)
-        if NEGATED.true in node:
+        if Negated.true in node:
             self.text += 'not '
         self.text += word + ' '
 
@@ -147,10 +147,10 @@ class RealisationVisitor:
     def clause(self, node):
         # do a bit of coordination
         node.predicate.features.update(node.features)
-        node.predicate.features.replace(node.subject[NUMBER])
-        node.predicate.features.replace(node.subject[GENDER])
-        node.predicate.features.replace(node.subject[CASE])
-        node.predicate.features.replace(node[NEGATED])
+        node.predicate.features.replace(node.subject[Number])
+        node.predicate.features.replace(node.subject[Gender])
+        node.predicate.features.replace(node.subject[Case])
+        node.predicate.features.replace(node[Negated])
         for o in node.front_modifiers:
             o.accept(self)
         node.subject.accept(self)
@@ -201,43 +201,43 @@ class RealisationVisitor:
         tmp_vis = RealisationVisitor()
         node.head.accept(tmp_vis)
         head = str(tmp_vis)
-        if MODAL in node:
-            self.text += ' ' + node[MODAL] + ' '
-            if NEGATED.true in node:
+        if Modal in node:
+            self.text += ' ' + node[Modal] + ' '
+            if Negated.true in node:
                 self.text += 'not '
             node.head.accept(self)
         # hs the head a modal verb?
-        elif head in MODAL:
+        elif head in Modal:
             self.text += ' '
             node.head.accept(self)
             self.text += ' '
-            if NEGATED.true in node:
+            if Negated.true in node:
                 self.text += 'not '
         elif head == 'have':
-            if NEGATED.true in node:
+            if Negated.true in node:
                 self.text += 'do not have '
             else:
                 self.text += 'have '
         elif head == 'has':
-            if NEGATED.true in node:
+            if Negated.true in node:
                 self.text += 'does not have '
             else:
                 self.text += 'has '
         elif head == 'be' or head == 'is':
-            if NUMBER.plural in node:
-                if TENSE.past in node:
+            if Number.plural in node:
+                if Tense.past in node:
                     self.text += 'were '
                 else:
                     self.text += 'are '
             else:
-                if TENSE.past in node:
+                if Tense.past in node:
                     self.text += 'was '
                 else:
                     self.text += 'is '
-            if NEGATED.true in node:
+            if Negated.true in node:
                 self.text += 'not '
         else:
-            if NEGATED.true in node:
+            if Negated.true in node:
                 self.text += 'does not '
             node.head.accept(self)
         if len(node.complements) > 0:

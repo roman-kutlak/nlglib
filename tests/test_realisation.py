@@ -14,7 +14,7 @@ def get_clause():
 def get_test_doc():
     m1 = RhetRel('Leaf', Clause(String('hello'), None))
     c = get_clause()
-    c.features['FORM'] = "IMPERATIVE"
+    c.features['Form'] = "IMPERATIVE"
     m2 = RhetRel('Elaboration', c)
     para = Document(None, m1, m2)
     return para
@@ -36,7 +36,7 @@ class TestRealiser(unittest.TestCase):
         expected = 'You say hello.'
         self.assertEqual(expected, text)
 
-        c.features['FORM'] = "IMPERATIVE"
+        c.features['Form'] = "IMPERATIVE"
 
         text = realiser.realise(c)
         expected = 'Say hello.'
@@ -67,7 +67,7 @@ class TestStringRealisation(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         v = RealisationVisitor()
-        s = Word('house', 'NOUN', {'NUMBER': 'PLURAL'})
+        s = Word('house', 'NOUN', {'Number': 'PLURAL'})
         expected = 'houses'
         s.accept(v)
         actual = str(v)

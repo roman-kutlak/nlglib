@@ -6,9 +6,9 @@ from nlglib.features import Feature, FeatureGroup, FeatureSet
 # noinspection PyUnresolvedReferences
 class TestFeature(unittest.TestCase):
     def test_equal(self):
-        singular = Feature('NUMBER', 'singular')
-        plural = Feature('NUMBER', 'plural')
-        number = FeatureGroup('NUMBER', 'singular', 'plural')
+        singular = Feature('Number', 'singular')
+        plural = Feature('Number', 'plural')
+        number = FeatureGroup('Number', 'singular', 'plural')
         self.assertEqual(number.singular, singular)
         self.assertEqual(number.plural, plural)
         self.assertEqual(number, singular)
@@ -17,44 +17,44 @@ class TestFeature(unittest.TestCase):
         self.assertNotEqual(singular, plural)
 
     def test_str(self):
-        singular = Feature('NUMBER', 'singular')
-        self.assertEqual('NUMBER: singular', str(singular))
+        singular = Feature('Number', 'singular')
+        self.assertEqual('Number: singular', str(singular))
 
     def test_repr(self):
-        singular = Feature('NUMBER', 'singular')
-        self.assertEqual('<Feature NUMBER: singular>', repr(singular))
+        singular = Feature('Number', 'singular')
+        self.assertEqual('<Feature Number: singular>', repr(singular))
 
 
 # noinspection PyUnresolvedReferences
 class TestFeatureGroup(unittest.TestCase):
     def test_equal(self):
-        singular = Feature('NUMBER', 'singular')
-        plural = Feature('NUMBER', 'plural')
-        number = FeatureGroup('NUMBER', 'singular', 'plural')
+        singular = Feature('Number', 'singular')
+        plural = Feature('Number', 'plural')
+        number = FeatureGroup('Number', 'singular', 'plural')
         self.assertEqual(2, len(number))
         self.assertEqual(number.singular, singular)
         self.assertEqual(number.plural, plural)
         self.assertEqual(number, singular)
         self.assertEqual(number, plural)
         self.assertNotEqual(number.singular, number.plural)
-        number2 = FeatureGroup('NUMBER', 'singular', 'plural')
+        number2 = FeatureGroup('Number', 'singular', 'plural')
         self.assertEqual(number, number2)
-        number3 = FeatureGroup('NUMBER', 'plural', 'singular')
+        number3 = FeatureGroup('Number', 'plural', 'singular')
         self.assertNotEqual(number, number3)
 
     def test_str(self):
-        singular = Feature('NUMBER', 'singular')
-        self.assertEqual('NUMBER: singular', str(singular))
+        singular = Feature('Number', 'singular')
+        self.assertEqual('Number: singular', str(singular))
 
     def test_repr(self):
-        singular = Feature('NUMBER', 'singular')
-        self.assertEqual('<Feature NUMBER: singular>', repr(singular))
+        singular = Feature('Number', 'singular')
+        self.assertEqual('<Feature Number: singular>', repr(singular))
 
     def test_contains(self):
-        singular = Feature('NUMBER', 'singular')
-        plural = Feature('NUMBER', 'plural')
-        dual = Feature('NUMBER', 'dual')
-        number = FeatureGroup('NUMBER', 'singular', 'plural')
+        singular = Feature('Number', 'singular')
+        plural = Feature('Number', 'plural')
+        dual = Feature('Number', 'dual')
+        number = FeatureGroup('Number', 'singular', 'plural')
         self.assertIn(singular, number)
         self.assertIn(plural, number)
         self.assertNotIn(dual, number)
@@ -63,9 +63,9 @@ class TestFeatureGroup(unittest.TestCase):
         self.assertNotIn(fake, number)
 
     def test_eq(self):
-        fg = FeatureGroup('NUMBER', 'singular', 'plural')
-        sg = Feature('NUMBER', 'singular')
-        pl = Feature('NUMBER', 'plural')
+        fg = FeatureGroup('Number', 'singular', 'plural')
+        sg = Feature('Number', 'singular')
+        pl = Feature('Number', 'plural')
         self.assertEqual(fg, sg)
         self.assertEqual(fg, pl)
         self.assertNotEqual(sg, pl)
@@ -74,9 +74,9 @@ class TestFeatureGroup(unittest.TestCase):
 # noinspection PyUnresolvedReferences
 class TestFeatureSet(unittest.TestCase):
 
-    number = FeatureGroup('NUMBER', 'singular', 'plural')
-    tense = FeatureGroup('TENSE', 'present', 'past', 'future')
-    person = FeatureGroup('PERSON', 'first', 'second', 'third')
+    number = FeatureGroup('Number', 'singular', 'plural')
+    tense = FeatureGroup('Tense', 'present', 'past', 'future')
+    person = FeatureGroup('Person', 'first', 'second', 'third')
 
     def test_contains(self):
         fs = FeatureSet([self.number.singular, self.person.first])
@@ -84,7 +84,7 @@ class TestFeatureSet(unittest.TestCase):
         self.assertIn(self.number.singular, fs)
         self.assertNotIn(self.number.plural, fs)
         self.assertIn(self.number, fs)
-        self.assertEqual(Feature('number', 'plural'), Feature('NUMBER', 'plural'))
+        self.assertEqual(Feature('number', 'plural'), Feature('Number', 'plural'))
         self.assertNotEqual(Feature('number', 'plural'), Feature('number', 'PLURAL'))
 
     def test_add(self):

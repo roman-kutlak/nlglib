@@ -2,7 +2,7 @@
 
 from urllib.parse import quote_plus
 
-from nlglib.features import DISCOURSE_FUNCTION, ASPECT, category, FeatureGroup
+from nlglib.features import DiscourseFunction, Aspect, category, FeatureGroup
 from nlglib.features import NON_COMPARABLE_FEATURES
 from nlglib.microplanning.struct import Element, Word, String, Clause
 from nlglib.microplanning.struct import Phrase, Coordination, NounPhrase
@@ -235,10 +235,10 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 
 # either a dict or a lambda taking Feature and returning a dict
 simplenlg_features = {
-    DISCOURSE_FUNCTION: lambda f: {'discourseFunction': f.value},
-    ASPECT.progressive: {'PROGRESSIVE': 'true'},
-    ASPECT.perfect: {'PERFECT': 'true'},
-    ASPECT.perfect_progressive: {'PERFECT': 'true',
+    DiscourseFunction: lambda f: {'discourseFunction': f.value},
+    Aspect.progressive: {'PROGRESSIVE': 'true'},
+    Aspect.perfect: {'PERFECT': 'true'},
+    Aspect.perfect_progressive: {'PERFECT': 'true',
                                  'PROGRESSIVE': 'true'},
     FeatureGroup('conj'): lambda f: {f.name: f.value},
     FeatureGroup('complementiser'): lambda f: {f.name.upper(): f.value},

@@ -1,6 +1,6 @@
 import inspect
 
-from nlglib.features import category, NEGATED
+from nlglib.features import category, Negated
 from nlglib.microplanning import String, Element
 
 
@@ -381,7 +381,7 @@ class PredicateMsg(MsgSpec):
             return self.name
         else:
             neg = ''
-            if NEGATED.true in self.features:
+            if Negated.true in self.features:
                 neg = '-'
             return neg + self.name + '(' + ', '.join([str(x) for x in self.args]) + ')'
 

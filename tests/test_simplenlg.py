@@ -74,7 +74,7 @@ class TestSimplenlgClient(unittest.TestCase):
 
     def test_snlg_7(self):
         # FIXME: simplenlg realiser seems to have problem with coordinated elements
-        #   - missing upper CASE and period
+        #   - missing upper Case and period
         expected = 'if x equals y and p is at location x then p is not at location y'
         realisation = self.client.xml_request(test_data7)
         self.assertEqual(expected, realisation)
@@ -87,7 +87,7 @@ class TestSimplenlgClient(unittest.TestCase):
             'be',
             PP('at', 'location y'),
             features={
-                'NEGATED': 'true',
+                'Negated': 'true',
                 'COMPLEMENTISER': 'then'
             }
         )
@@ -105,7 +105,7 @@ class TestSimplenlgClient(unittest.TestCase):
             'be',
             PP('at', 'location y'),
             features={
-                'NEGATED': 'true',
+                'Negated': 'true',
                 'COMPLEMENTISER': 'then'
             }
         )
@@ -125,7 +125,7 @@ test_data = """\
   <nlg:Request>
 
     <Document cat="PARAGRAPH">
-      <child xsi:type="SPhraseSpec" FORM="IMPERATIVE" >
+      <child xsi:type="SPhraseSpec" Form="IMPERATIVE" >
         <vp xsi:type="VPPhraseSpec" >
           <head xsi:type="WordElement" cat="VERB">
             <base>put</base>
@@ -190,7 +190,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
             <base>transfusion of whole blood</base>
         </head>
     </subj>
-    <vp xsi:type="VPPhraseSpec" PASSIVE="true" TENSE="PRESENT">
+    <vp xsi:type="VPPhraseSpec" PASSIVE="true" Tense="PRESENT">
       <head cat="VERB">
         <base>indicate</base>
     </head>
@@ -215,7 +215,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
             <base>Roman</base>
         </head>
     </subj>
-    <vp xsi:type="VPPhraseSpec" NEGATED="true">
+    <vp xsi:type="VPPhraseSpec" Negated="true">
         <head cat="VERB">
             <base>be</base>
         </head>
@@ -248,7 +248,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 <nlg:Request>
 
 <Document cat="PARAGRAPH">
-<child xsi:type="SPhraseSpec" NEGATED="true">
+<child xsi:type="SPhraseSpec" Negated="true">
   <subj xsi:type="WordElement" canned="true">
     <base>Roman</base>
   </subj>
@@ -311,7 +311,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
 <nlg:Request>
 <Document cat="PARAGRAPH">
-<child xsi:type="SPhraseSpec" PERSON="THIRD">
+<child xsi:type="SPhraseSpec" Person="THIRD">
   <subj xsi:type="NPPhraseSpec">
     <head xsi:type="WordElement" canned="true" >
       <base>there</base>
@@ -384,7 +384,7 @@ xsi:schemaLocation="http://simplenlg.googlecode.com/svn/trunk/res/xml ">
         </compl>
       </compl>
     </vp>
-    <compl xsi:type="SPhraseSpec" NEGATED="true" COMPLEMENTISER="then">
+    <compl xsi:type="SPhraseSpec" Negated="true" COMPLEMENTISER="then">
       <subj xsi:type="NPPhraseSpec">
         <head xsi:type="WordElement" canned="true" >
           <base>p</base>

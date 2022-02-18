@@ -8,7 +8,7 @@ put together to create 'Roman is programming and singing.'
 import logging
 from copy import deepcopy
 
-from nlglib.features import NUMBER, category
+from nlglib.features import Number, category
 from nlglib.macroplanning import Document, Paragraph
 from nlglib.microplanning import *
 
@@ -130,7 +130,7 @@ class SentenceAggregator:
                 cc.coords.append(e1)
         else:
             cc = Coordination(e1, e2, conj=conj)
-        cc[NUMBER] = NUMBER.plural
+        cc[Number] = Number.plural
         return cc
 
     def aggregate_noun_phrase(self, lhs, rhs, **kwargs):
@@ -142,10 +142,10 @@ class SentenceAggregator:
             return rv
         elif lhs.premodifiers == rhs.premodifiers:
             rv = deepcopy(lhs)
-            rv.head = CC(deepcopy(lhs.head), deepcopy(rhs.head), features={'NUMBER': 'plural'})
+            rv.head = CC(deepcopy(lhs.head), deepcopy(rhs.head), features={'Number': 'plural'})
             return rv
         else:
-            return CC(deepcopy(lhs), deepcopy(rhs), features={'NUMBER': 'plural'})
+            return CC(deepcopy(lhs), deepcopy(rhs), features={'Number': 'plural'})
 
     def try_to_aggregate(self, sent1, sent2, marker='and', **kwargs):
         """ Attempt to combine two elements into one by replacing the differing
@@ -215,7 +215,7 @@ class SentenceAggregator:
             msg, increment = self._do_aggregate(new_elements, i, max, marker, **kwargs)
             if isinstance(msg, Clause):
                 if ('PROPER', 'true') in msg.subject.features:
-                    msg.predicate['NUMBER'] = 'SINGULAR'
+                    msg.predicate['Number'] = 'SINGULAR'
             aggregated.append(msg)
             i += increment
 

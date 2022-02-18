@@ -11,7 +11,7 @@ from copy import deepcopy
 from functools import wraps
 
 from nlglib.features import NON_COMPARABLE_FEATURES, TRANSFERABLE_FEATURES
-from nlglib.features import FeatureSet, DISCOURSE_FUNCTION, category
+from nlglib.lexicon.features import FeatureSet, DiscourseFunction, category
 
 _sentinel = object()
 
@@ -91,7 +91,7 @@ class Element(object):
 
     def __hash__(self):
         if self.hash == -1:
-            self.hash = hash(str(self))
+            self.hash = hash(self.category + str(self.id))
         return self.hash
 
     def __repr__(self):
@@ -140,6 +140,8 @@ class Element(object):
         if not other:
             return self
         return Coordination(self, other)
+
+    # TODO: add __getattr__ to look up feature if exists?
 
     @classmethod
     def from_dict(cls, dct):
@@ -399,9 +401,10 @@ class String(Element):
 
     category = category.STRING
 
-    def __init__(self, value='', features=None, parent=None, id=None):
+    def __init__(self, value='', features=None, parent=None, id=None, word=None):
         super().__init__(features, parent, id)
         self.value = str(value)
+        self.word = word
 
     def __bool__(self):
         """Return True if the string is non-empty. """
@@ -433,38 +436,53 @@ class String(Element):
 
 
 class Word(Element):
-    """Word represents word and its corresponding POS (Part-of-Speech) tag. """
+    """Word represents word and its corresponding POS (Part-of-Speech) tag."""
 
     category = category.WORD
 
-    def __init__(self, word, pos=None, features=None, parent=None, id=None):
+    def __init__(
+        self, word, pos=None, features=None, parent=None, id=None, realisation=None
+    ):
         super().__init__(features, parent, id)
         self.word = str(word)
         self.pos = pos or category.ANY
-        self.do_inflection = False
+        self.realisation = realisation
 
     def __bool__(self):
-        """Return True """
+        """Return True"""
         return True
 
     def __eq__(self, other):
-        return super().__eq__(other) and self.word == other.word and self.pos == other.pos
+        return (
+            super().__eq__(other) and self.word == other.word and self.pos == other.pos
+        )
 
     def __hash__(self):
         if self.hash == -1:
-            self.hash = hash(str(self))
+            self.hash = hash((self.category, self.word))
         return self.hash
 
     def __copy__(self):
-        # pos is in features
         return self.__class__(
-            self.word, pos=self.pos, features=self.features, parent=self.parent, id=self.id
+            self.word,
+            pos=self.pos,
+            features=self.features,
+            parent=self.parent,
+            id=self.id,
+            realisation=self.realisation,
         )
 
     # noinspection PyArgumentList
     def __deepcopy__(self, memo):
         # pos is in features
-        rv = self.__class__(self.word, pos=self.pos, features=None, parent=None, id=self.id)
+        rv = self.__class__(
+            self.word,
+            pos=self.pos,
+            features=None,
+            parent=None,
+            id=self.id,
+            realisation=self.realisation,
+        )
         memo[id(self)] = rv
         rv.features = deepcopy(self.features, memo=memo)
         rv.parent = memo.get(id(self.parent), None)
@@ -472,7 +490,7 @@ class Word(Element):
 
     @property
     def string(self):
-        """Return the word. """
+        """Return the word."""
         return self.word
 
 
@@ -535,7 +553,7 @@ class Coordination(Element):
         return rv
 
     def __iadd__(self, other):
-        other.features.discard(DISCOURSE_FUNCTION)
+        other.features.discard(DiscourseFunction)
         self.coords.append(other)
         return self
 
@@ -709,7 +727,7 @@ class Phrase(Element):
             self._head = new_value
         else:
             self._head = Element()
-        self._head[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.head
+        self._head[DiscourseFunction] = DiscourseFunction.head
 
     def elements(self, recursive=False, itself=None):
         """Return a generator yielding elements contained in the element
@@ -850,7 +868,7 @@ class NounPhrase(Phrase):
             self._spec = new_value
         else:
             self._spec = Element()
-        self._spec[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.specifier
+        self._spec[DiscourseFunction] = DiscourseFunction.specifier
 
     def elements(self, recursive=False, itself=None):
         """Return a generator yielding elements contained in the element
@@ -929,14 +947,14 @@ class VerbPhrase(Phrase):
     @property
     def object(self):
         for c in self.complements:
-            if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.object:
+            if c[DiscourseFunction] == DiscourseFunction.object:
                 return c
         return None
 
     @object.setter
     def object(self, value):
         to_remove = [
-            c for c in self.complements if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.object
+            c for c in self.complements if c[DiscourseFunction] == DiscourseFunction.object
         ]
         for c in to_remove:
             self.complements.remove(c)
@@ -944,13 +962,13 @@ class VerbPhrase(Phrase):
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.object
+        new_value[DiscourseFunction] = DiscourseFunction.object
         self.complements.append(new_value)
 
     @property
     def indirect_object(self):
         for c in self.complements:
-            if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.indirect_object:
+            if c[DiscourseFunction] == DiscourseFunction.indirect_object:
                 return c
         return None
 
@@ -958,7 +976,7 @@ class VerbPhrase(Phrase):
     def indirect_object(self, value):
         to_remove = [
             c for c in self.complements
-            if c[DISCOURSE_FUNCTION] == DISCOURSE_FUNCTION.indirect_object
+            if c[DiscourseFunction] == DiscourseFunction.indirect_object
         ]
         for c in to_remove:
             self.complements.remove(c)
@@ -966,7 +984,7 @@ class VerbPhrase(Phrase):
             return
         new_value = raise_to_element(value)
         new_value.parent = self
-        new_value[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.indirect_object
+        new_value[DiscourseFunction] = DiscourseFunction.indirect_object
         self.complements.insert(0, new_value)
 
 
@@ -1092,14 +1110,14 @@ class Clause(Phrase):
     def subject(self, value):
         if self._subject:
             self._subject.parent = None
-            del self._subject[DISCOURSE_FUNCTION]
+            del self._subject[DiscourseFunction]
         if value is not None:
             new_value = raise_to_np(value)
             new_value.parent = self
             self._subject = new_value
         else:
             self._subject = Element()
-        self._subject[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.subject
+        self._subject[DiscourseFunction] = DiscourseFunction.subject
 
     @property
     def predicate(self):
@@ -1109,14 +1127,14 @@ class Clause(Phrase):
     def predicate(self, value):
         if self._predicate:
             self._predicate.parent = None
-            del self._predicate[DISCOURSE_FUNCTION]
+            del self._predicate[DiscourseFunction]
         if value is not None:
             new_value = raise_to_vp(value)
             new_value.parent = self
             self._predicate = new_value
         else:
             self._predicate = Element()
-        self._predicate[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.predicate
+        self._predicate[DiscourseFunction] = DiscourseFunction.predicate
 
     @property
     def head(self):
@@ -1374,7 +1392,7 @@ def comparable_features(original_features):
 
     """
     rv = original_features.copy()
-    # disregard DISCOURSE_FUNCTION features
+    # disregard DiscourseFunction features
     for f in NON_COMPARABLE_FEATURES:
         rv.discard(f)
     return rv

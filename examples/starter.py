@@ -1,4 +1,4 @@
-from nlglib.features import TENSE, ASPECT, NUMBER
+from nlglib.features import Tense, Aspect, Number
 from nlglib.microplanning import *
 from nlglib.realisation.simplenlg import Realiser
 from nlglib.lexicalisation import Lexicaliser
@@ -19,28 +19,28 @@ def run_simple_examples():
     print(realise(s))
 
     s = Clause(NNP('Paul'), VP('play', NP('guitar'), features={
-        ASPECT.progressive,
+        Aspect.progressive,
     }))
     print(realise(s))
 
     guitarists = Coordination(
         Clause(
             NNP('John'), VP('play', NP('a', 'guitar'), features={
-                ASPECT.progressive,
-                TENSE.past,
+                Aspect.progressive,
+                Tense.past,
             })
         ),
         Clause(
             NNP('George'),
             VP('play', NP('a', 'guitar'), features={
-                ASPECT.progressive,
-                TENSE.past,
+                Aspect.progressive,
+                Tense.past,
             })
         ),
         Clause(
             NNP('Paul'), VP('play', NP('a', 'guitar'), features={
-                ASPECT.progressive,
-                TENSE.past,
+                Aspect.progressive,
+                Tense.past,
             })
         )
     )
@@ -49,8 +49,8 @@ def run_simple_examples():
     gringo = Coordination(
         Clause(
             NNP('George'), VP('play', NP('a', 'bass'), features={
-                ASPECT.progressive,
-                TENSE.past,
+                Aspect.progressive,
+                Tense.past,
             })
         ),
         Clause(
@@ -58,11 +58,11 @@ def run_simple_examples():
             VP(
                 'play',
                 NP('drum', features={
-                    NUMBER.plural,
+                    Number.plural,
                 }),
                 features={
-                    ASPECT.progressive,
-                    TENSE.past,
+                    Aspect.progressive,
+                    Tense.past,
                 }
             )
         )
@@ -79,7 +79,7 @@ def run_pipeline():
         'guitar': Noun('guitar'),
         'bass': Noun('bass guitar'),
         'drums': Noun('drum', features={
-            NUMBER.plural,
+            Number.plural,
         }),
         'Happy': Clause(NP(Var(0)), VP('be', AdjP('happy'))),
         'Play': Clause(NP(Var(0)), VP('play', NP(Var(1)))),

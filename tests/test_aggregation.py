@@ -1,6 +1,6 @@
 import unittest
 
-from nlglib.features import NUMBER
+from nlglib.features import Number
 from nlglib.microplanning import *
 from nlglib.aggregation import SentenceAggregator
 
@@ -23,7 +23,7 @@ class TestAggregation(unittest.TestCase):
         )
         expected = NP('the', 'small',
                       CC(Noun('boy'), Noun('girl'),
-                         features=[NUMBER.plural]))
+                         features=[Number.plural]))
         self.assertEqual(expected, res)
 
     def test_add_elements_3(self):
@@ -34,7 +34,7 @@ class TestAggregation(unittest.TestCase):
         expected = CC(
             NP('the', 'small', 'boy'),
             NP('the', 'happy', 'girl'),
-            features=[NUMBER.plural]
+            features=[Number.plural]
         )
         self.assertEqual(expected, res)
 
@@ -43,7 +43,7 @@ class TestAggregation(unittest.TestCase):
         c1 = Clause(None, VP('put', NP('the', 'piano'), PP('into', NP('the', 'truck'))))
         c2 = Clause(None, VP('put', NP('the', 'drum'), PP('into', NP('the', 'truck'))))
         c3 = self.aggregator.try_to_aggregate(c1, c2)
-        plural = {'NUMBER': 'plural'}
+        plural = {'Number': 'plural'}
         expected = Clause(NounPhrase(Element()),
                           VP('put',
                              NP('the', CC(Noun('piano'),
@@ -60,7 +60,7 @@ class TestAggregation(unittest.TestCase):
         expected = Clause(
             Male('John'),
             VP('is', CC(NP('a', 'boy'), AdjP('tall'),
-                        features={'NUMBER': 'plural'}
+                        features={'Number': 'plural'}
                         ))
         )
         self.assertEqual(expected, c3)
@@ -70,7 +70,7 @@ class TestAggregation(unittest.TestCase):
         c3 = self.aggregator.try_to_aggregate(c1, c2)
         expected = Clause(
             NP(CC(Male('John'), Female('Marry'),
-               features={'NUMBER': 'plural'})),
+               features={'Number': 'plural'})),
             VP('wrote', NP('an', 'article')))
         self.assertEqual(expected, c3)
 

@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from nlglib.features import category, NUMBER, GENDER, TENSE, ASPECT, NEGATED
+from nlglib.features import category, Number, Gender, Tense, Aspect, Negated
 from nlglib.microplanning import *
 from nlglib.macroplanning import Document, Paragraph
 from nlglib.realisation.simplenlg import Realiser
@@ -18,29 +18,29 @@ class TestSimplenlgTutorial(unittest.TestCase):
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
         expected = 'Mary chased the monkey.'
-        c[TENSE] = TENSE.past
+        c[Tense] = Tense.past
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
         expected = 'Mary will chase the monkey.'
-        c[TENSE] = TENSE.future
+        c[Tense] = Tense.future
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
 
     def test_negation(self):
         expected = 'Mary does not chase the monkey.'
         c = Clause('Mary', 'chase', 'the monkey')
-        c[NEGATED] = NEGATED.true
+        c[Negated] = Negated.true
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
 
     def test_interrogative(self):
         expected = 'Does Mary chase the monkey?'
         c = Clause('Mary', 'chase', 'the monkey')
-        c['INTERROGATIVE_TYPE'] = 'YES_NO'
+        c['InterrogativeType'] = 'YES_NO'
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
         expected = 'Who does Mary chase?'
-        c['INTERROGATIVE_TYPE'] = 'WHO_OBJECT'
+        c['InterrogativeType'] = 'WHO_OBJECT'
         actual = self.realiser(c)
         self.assertEqual(expected, actual)
 
@@ -106,9 +106,9 @@ class TestSimplenlgTutorial(unittest.TestCase):
 
     def test_coordinated_clause(self):
         expected = 'My cat liked fish.'
-        s1 = Clause('my cat', 'like', 'fish', features={'TENSE': 'PAST'})
-        s2 = Clause('my dog', 'like', 'big bones', features=[TENSE.present])
-        s3 = Clause('my horse', 'like', 'grass', features=[TENSE.future])
+        s1 = Clause('my cat', 'like', 'fish', features={'Tense': 'PAST'})
+        s2 = Clause('my dog', 'like', 'big bones', features=[Tense.present])
+        s3 = Clause('my horse', 'like', 'grass', features=[Tense.future])
         actual = self.realiser(s1)
         self.assertEqual(expected, actual)
         expected = 'My dog likes big bones.'
@@ -134,7 +134,7 @@ class TestSimplenlgTutorial(unittest.TestCase):
         p = Clause("I", "be", "happy")
         q = Clause("I", "eat", "fish")
         q['COMPLEMENTISER'] = "because"
-        q['TENSE'] = 'PAST'
+        q['Tense'] = 'PAST'
         p.complements += q
         actual = self.realiser(p)
         self.assertEqual(expected, actual)

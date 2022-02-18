@@ -3,7 +3,7 @@ import itertools
 import nltk
 from nltk.sem.logic import *
 
-from nlglib.features import NEGATED
+from nlglib.features import Negated
 from nlglib.macroplanning.struct import RhetRel, PredicateMsg, StringMsg, Document
 from nlglib.microplanning import NounPhrase, Word, Var
 
@@ -113,7 +113,7 @@ def formula_to_rst(f):
         m = PredicateMsg(
             predicate.pred.variable.name,
             *[formula_to_rst(x) for x in predicate.args],
-            features=(NEGATED.true,)
+            features=(Negated.true,)
         )
         return m
     if isinstance(f, NegatedExpression) and isinstance(f.term, IndividualVariableExpression):

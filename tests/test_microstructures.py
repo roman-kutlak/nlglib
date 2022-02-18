@@ -5,7 +5,7 @@ from copy import copy, deepcopy
 
 from nlglib.microplanning import *
 
-from nlglib.features import DISCOURSE_FUNCTION, category
+from nlglib.features import DiscourseFunction, category
 
 
 class TestElement(unittest.TestCase):
@@ -64,15 +64,15 @@ class TestElement(unittest.TestCase):
     def test_features_to_xml_attributes(self):
         """ Test formatting features so that they can be put into XML. """
         e = Element()
-        expected = ' TENSE="PAST" cat="ELEMENT"'
-        e['TENSE'] = 'past'
+        expected = ' Tense="PAST" cat="ELEMENT"'
+        e['Tense'] = 'past'
         data = XmlVisitor.features_to_xml_attributes(e)
         self.assertEqual(expected, data)
 
-        expected = ' PROGRESSIVE="true" TENSE="PAST" cat="ELEMENT"'
-        e['ASPECT'] = 'progressive'
+        expected = ' PROGRESSIVE="true" Tense="PAST" cat="ELEMENT"'
+        e['Aspect'] = 'progressive'
         data = XmlVisitor.features_to_xml_attributes(e)
-        self.assertIn('TENSE="PAST"', data)
+        self.assertIn('Tense="PAST"', data)
         self.assertIn('PROGRESSIVE="true"', data)
         self.assertEqual(expected, data)
 
@@ -82,14 +82,14 @@ class TestElement(unittest.TestCase):
         e2 = Element()
         self.assertEqual(e1, e2)
 
-        e1['TENSE'] = 'future'
+        e1['Tense'] = 'future'
         self.assertNotEqual(e1, e2)
 
-        e2['ASPECT'] = 'progressive'
+        e2['Aspect'] = 'progressive'
         self.assertNotEqual(e1, e2)
 
-        e1['ASPECT'] = 'progressive'
-        e2['TENSE'] = 'future'
+        e1['Aspect'] = 'progressive'
+        e2['Tense'] = 'future'
         self.assertEqual(e1, e2)
 
 
@@ -565,7 +565,7 @@ class TestPhrase(unittest.TestCase):
         expected = 'Peter went to Russia'
         self.assertEqual(expected, str(p))
 
-        p['TENSE'] = 'past'
+        p['Tense'] = 'past'
         expected = 'Peter went to Russia'
         self.assertEqual(expected, str(p))
 
@@ -598,11 +598,11 @@ Phrase(String('went'),
        postmodifiers=[String('Russia')])"""
         self.assertEqual(expected, repr(p))
 
-        p['TENSE'] = 'past'
+        p['Tense'] = 'past'
         expected = """\
 Phrase(String('went'),
        String('to'),
-       features={'TENSE': 'past'},
+       features={'Tense': 'past'},
        premodifiers=[String('Peter')],
        postmodifiers=[String('Russia')])"""
         self.assertEqual(expected, repr(p))
@@ -613,10 +613,10 @@ Phrase(String('went'),
         p2 = Phrase()
         self.assertEqual(p1, p2)
 
-        p1.head = Word('went', 'VERB', {'TENSE': 'PAST'})
+        p1.head = Word('went', 'VERB', {'Tense': 'PAST'})
         self.assertNotEqual(p1, p2)
 
-        p2.head = Word('went', 'VERB', {'TENSE': 'PAST'})
+        p2.head = Word('went', 'VERB', {'Tense': 'PAST'})
         self.assertEqual(p1, p2)
 
         p1.premodifiers.append('Peter')
@@ -637,10 +637,10 @@ Phrase(String('went'),
         p2.postmodifiers.append('Russia')
         self.assertEqual(p1, p2)
 
-        p1['TENSE'] = 'past'
+        p1['Tense'] = 'past'
         self.assertNotEqual(p1, p2)
 
-        p2['TENSE'] = 'past'
+        p2['Tense'] = 'past'
         self.assertEqual(p1, p2)
 
 
@@ -734,13 +734,13 @@ class TestVerbPhrase(unittest.TestCase):
     def test_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', object='it')
         obj = String('it')
-        obj[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.object
+        obj[DiscourseFunction] = DiscourseFunction.object
         self.assertEqual(obj, phrase.object)
 
     def test_indirect_object_property(self):
         phrase = VerbPhrase('give', indirect_object='me', object='it')
         obj = String('me')
-        obj[DISCOURSE_FUNCTION] = DISCOURSE_FUNCTION.indirect_object
+        obj[DiscourseFunction] = DiscourseFunction.indirect_object
         self.assertEqual(obj, phrase.indirect_object)
 
     def test_elements(self):

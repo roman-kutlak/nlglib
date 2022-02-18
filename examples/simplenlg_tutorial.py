@@ -23,23 +23,23 @@ def main():
 
 def tense():
     c = Clause('Mary', 'chase', 'the monkey')
-    c['TENSE'] = 'PAST'
+    c['Tense'] = 'PAST'
     print(realise(c))
-    c['TENSE'] = 'FUTURE'
+    c['Tense'] = 'FUTURE'
     print(realise(c))
 
 
 def negation():
     c = Clause('Mary', 'chase', 'the monkey')
-    c['NEGATED'] = 'true'
+    c['Negated'] = 'true'
     print(realise(c))
 
 
 def interrogative():
     c = Clause('Mary', 'chase', 'the monkey')
-    c['INTERROGATIVE_TYPE'] = 'YES_NO'
+    c['InterrogativeType'] = 'YES_NO'
     print(realise(c))
-    c['INTERROGATIVE_TYPE'] = 'WHO_OBJECT'
+    c['InterrogativeType'] = 'WHO_OBJECT'
     print(realise(c))
 
 
@@ -93,9 +93,9 @@ def prepositional_phrase():
 
 
 def coordinated_clause():
-    s1 = Clause('my cat', 'like', 'fish', features={'TENSE': 'PAST'})
-    s2 = Clause('my dog', 'like', 'big bones', features={'TENSE': 'PRESENT'})
-    s3 = Clause('my horse', 'like', 'grass', features={'TENSE': 'FUTURE'})
+    s1 = Clause('my cat', 'like', 'fish', features={'Tense': 'PAST'})
+    s2 = Clause('my dog', 'like', 'big bones', features={'Tense': 'PRESENT'})
+    s3 = Clause('my horse', 'like', 'grass', features={'Tense': 'FUTURE'})
     c = s1 + s2 + s3
     c = CC(s1, s2, s3)
     print(realise(s1))
@@ -109,7 +109,7 @@ def subordinate_clause():
     p = Clause('I', 'be', 'happy')
     q = Clause('I', 'eat', 'fish')
     q['COMPLEMENTISER'] = 'because'
-    q['TENSE'] = 'PAST'
+    q['Tense'] = 'PAST'
     p.complements += q
     print(realise(p))
 

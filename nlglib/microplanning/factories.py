@@ -1,5 +1,5 @@
 """This module contains convenience functions for creating syntactic elements."""
-from nlglib.features import NUMBER, GENDER, NOUN_TYPE
+from nlglib.features import Number, Gender, NounType
 from nlglib.features.category import *
 from nlglib.microplanning.struct import *
 
@@ -89,7 +89,7 @@ def Interjection(word, features=None):
 
 @str_or_element
 def Modal(word, features=None):
-    return Word(word, MODAL, features)
+    return Word(word, Modal, features)
 
 
 @str_or_element
@@ -145,38 +145,38 @@ def NN(word, features=None):
 @str_or_element
 def NNS(word, features=None):
     o = Noun(word, features=features)
-    o[NUMBER] = NUMBER.plural
+    o[Number] = Number.plural
     return o
 
 
 @str_or_element
 def NNP(name, features=None):
     o = Noun(name, features=features)
-    o[NOUN_TYPE] = NOUN_TYPE.proper
+    o[NounType] = NounType.proper
     return o
 
 
 @str_or_element
 def NNPS(name, features=None):
     o = Noun(name, features=features)
-    o[NOUN_TYPE] = NOUN_TYPE.proper
-    o[NUMBER] = NUMBER.plural
+    o[NounType] = NounType.proper
+    o[Number] = Number.plural
     return o
 
 
 @str_or_element
 def Male(name, features=None):
     o = Noun(name, features=features)
-    o[NOUN_TYPE] = NOUN_TYPE.proper
-    o[GENDER] = GENDER.masculine
+    o[NounType] = NounType.proper
+    o[Gender] = Gender.masculine
     return o
 
 
 @str_or_element
 def Female(name, features=None):
     o = Noun(name, features=features)
-    o[NOUN_TYPE] = NOUN_TYPE.proper
-    o[GENDER] = GENDER.feminine
+    o[NounType] = NounType.proper
+    o[Gender] = Gender.feminine
     return o
 
 
