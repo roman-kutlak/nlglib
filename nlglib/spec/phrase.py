@@ -19,10 +19,110 @@ from nlglib.lexicon.feature import category as cat
 from nlglib.lexicon.feature import internal
 from nlglib.lexicon.feature import clause
 from nlglib.lexicon.feature import discourse
+from nlglib.lexicon.feature import lexical
 from nlglib.lexicon.feature import person
 from nlglib.lexicon.feature import number
+from nlglib.lexicon.feature import gender
 
-__all__ = ['PhraseElement', 'AdjectivePhraseElement', 'NounPhraseElement']
+__all__ = ['CoordinatedPhraseElement', 'PhraseElement', 'AdjectivePhraseElement', 'NounPhraseElement']
+
+
+_sentinel = object()
+
+
+class CoordinatedPhraseElement(NLGElement):
+
+    PLURAL_COORDINATORS = ["and"]
+
+    def __init__(self, *coordinates, lexicon=None):
+        super().__init__(lexicon=lexicon)
+        self.features[ELIDED] = False
+        self.features[discourse.CONJUNCTION] = StringElement("and", lexicon=self.lexicon)
+        for c in coordinates:
+            self.add_coordinate(c)
+        self.helper = get_phrase_helper(language=self.lexicon.language,
+                                        phrase_type=cat.COORDINATED_PHRASE)()
+
+    def add_coordinate(self, element):
+        """Adds a new coordinate to the phrase element.
+
+        If the new coordinate is a
+        `NLGElement` then it is added directly to the coordination. If
+        the new coordinate is a string a `StringElement`
+        is created and added to the coordination. `StringElement`s
+        will have their complementisers suppressed by default. In the case of
+        clauses, complementisers will be suppressed if the clause is not the
+        first element in the coordination.
+
+        """
+        coordinates = self.features.get(internal.COORDINATES, [])
+        if isinstance(element, str):
+            element = StringElement(string=element, lexicon=self.lexicon)
+            element.features[feature.SUPPRESSED_COMPLEMENTISER] = True
+        else:
+            if element.category == cat.CLAUSE and len(coordinates) > 0:
+                element.features[feature.SUPPRESSED_COMPLEMENTISER] = True
+        element.parent = self
+        coordinates.append(element)
+        self.features[internal.COORDINATES] = coordinates
+
+    def get_children(self):
+        return self.features.get(internal.COORDINATES, [])
+
+    def add_pre_modifier(self, new_pre_modifier):
+        """Add the argument pre_modifer as the phrase pre modifier,
+        and set the parent of the pre modifier as the current sentence.
+
+        """
+        if isinstance(new_pre_modifier, str):
+            new_pre_modifier = StringElement(new_pre_modifier, lexicon=self.lexicon)
+        new_pre_modifier.parent = self
+        current_pre_modifiers = self.premodifiers or []
+        current_pre_modifiers.append(new_pre_modifier)
+        self.premodifiers = current_pre_modifiers
+
+    def add_post_modifier(self, new_post_modifier):
+        """Add the argument post_modifer as the phrase post modifier,
+        and set the parent of the post modifier as the current sentence.
+
+        """
+        if isinstance(new_post_modifier, str):
+            new_post_modifier = StringElement(new_post_modifier, lexicon=self.lexicon)
+        new_post_modifier.parent = self
+        current_post_modifiers = self.postmodifiers or []
+        current_post_modifiers.append(new_post_modifier)
+        self.postmodifiers = current_post_modifiers
+
+    def add_complement(self, complement):
+        """Adds a new complement to the phrase element.
+
+        Complements will be realised in the syntax after the head
+        element of the phrase. Complements differ from post-modifiers
+        in that complements are crucial to the understanding of a phrase
+        whereas post-modifiers are optional.
+
+        If the new complement being added is a clause or a
+        CoordinatedPhraseElement then its clause status feature is set
+        to ClauseStatus.SUBORDINATE and it's discourse function is set
+        to DiscourseFunction.OBJECT by default unless an existing
+        discourse function exists on the complement.
+
+        """
+        if isinstance(complement, str):
+            complement = StringElement(complement, lexicon=self.lexicon)
+        complement.parent = self
+        complements = self.features.get(internal.COMPLEMENTS, [])
+        complements.append(complement)
+        self.features[internal.COMPLEMENTS] = complements
+
+    def get_last_coordinate(self):
+        children = self.get_children()
+        if children:
+            return children[-1]
+        return None
+
+    def realise(self):
+        return self.helper.realise(phrase=self)
 
 
 class PhraseElement(NLGElement):
@@ -47,14 +147,7 @@ class PhraseElement(NLGElement):
             head = StringElement(string=value)
         head.parent = self
         self.features[internal.HEAD] = head
-        # copy head features to the phrase
-        self['gender'] = head.gender
-        self['acronym'] = head.acronym
-        self['number'] = head.number
-        self['person'] = head.person
-        self['possessive'] = head.possessive
-        self['passive'] = head.passive
-        self['discourse_function'] = head.discourse_function
+        self.set_features_from_element(head)
 
     def get_children(self):
         """Return the child components of the phrase.
@@ -104,8 +197,22 @@ class PhraseElement(NLGElement):
         return children
 
     def set_features_from_element(self, element):
-        self.possessive = element.possessive
+        if not element:
+            return
 
+        self.set_feature_from_element(element, feature.IS_COMPARATIVE)
+        self.set_feature_from_element(element, feature.POSSESSIVE)
+        self.set_feature_from_element(element, feature.NUMBER, default_value=number.SINGULAR)
+        self.set_feature_from_element(element, feature.PERSON, default_value=person.THIRD)
+        self.set_feature_from_element(element, feature.lexical.GENDER, default_value=gender.NEUTER)
+        self.set_feature_from_element(element, feature.lexical.EXPLETIVE_SUBJECT)
+
+    def set_feature_from_element(self, element, feature_name, default_value=_sentinel, reset=False):
+        value = getattr(element, feature_name, default_value)
+        if value is not _sentinel:
+            self.features[feature_name] = value
+        if reset:
+            self.features.pop(feature_name, None)
 
     def add_complement(self, complement):
         """Adds a new complement to the phrase element.
@@ -151,6 +258,8 @@ class PhraseElement(NLGElement):
         and set the parent of the pre modifier as the current sentence.
 
         """
+        if isinstance(new_pre_modifier, str):
+            new_pre_modifier = StringElement(new_pre_modifier, lexicon=self.lexicon)
         new_pre_modifier.parent = self
         current_pre_modifiers = self.premodifiers or []
         current_pre_modifiers.append(new_pre_modifier)
@@ -183,7 +292,16 @@ class AdjectivePhraseElement(PhraseElement):
         if isinstance(adjective, str):
             # Create a word, if not found in lexicon
             adjective = self.lexicon.first(adjective, category=cat.ADJECTIVE)
+        adjective.parent = self
         self.features[internal.HEAD] = adjective
+        self.set_features_from_element(adjective)
+
+    def set_features_from_element(self, element):
+        if not element:
+            return
+
+        self.set_feature_from_element(element, feature.IS_COMPARATIVE)
+        self.set_feature_from_element(element, feature.IS_SUPERLATIVE)
 
 
 class NounPhraseElement(PhraseElement):
@@ -452,6 +570,17 @@ class VerbPhraseElement(PhraseElement):
     #
     #     # default case
     #     addPostModifier(modifierElement)
+
+
+def make_adjective_phrase(lexicon, adjective, modifiers=None):
+    phrase = AdjectivePhraseElement(lexicon)
+    phrase.adjective = adjective
+    if modifiers:
+        if not isinstance(modifiers, list):
+            modifiers = [modifiers]
+        for modifier in modifiers:
+            phrase.add_modifier(modifier)
+    return phrase
 
 
 def make_noun_phrase(lexicon, specifier, noun, modifiers=None):

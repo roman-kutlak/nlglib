@@ -1,6 +1,6 @@
 import unittest
 
-from nlglib.features import Number
+from nlglib.lexicon.feature import number
 from nlglib.microplanning import *
 from nlglib.aggregation import SentenceAggregator
 
@@ -23,7 +23,7 @@ class TestAggregation(unittest.TestCase):
         )
         expected = NP('the', 'small',
                       CC(Noun('boy'), Noun('girl'),
-                         features=[Number.plural]))
+                         features=[number.PLURAL]))
         self.assertEqual(expected, res)
 
     def test_add_elements_3(self):
@@ -34,7 +34,7 @@ class TestAggregation(unittest.TestCase):
         expected = CC(
             NP('the', 'small', 'boy'),
             NP('the', 'happy', 'girl'),
-            features=[Number.plural]
+            features=[number.PLURAL]
         )
         self.assertEqual(expected, res)
 

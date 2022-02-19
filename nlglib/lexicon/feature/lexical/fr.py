@@ -694,40 +694,6 @@ FEMININE_PAST_PARTICIPLE = "feminine_past_participle"
 
 #
 #    * <p>
-#    * This feature determines of what type is a pronoun.
-#    * </p>
-#    * <table border="1">
-#    * <tr>
-#    * <td><b>Feature name</b></td>
-#    * <td><em>pronoun_type</em></td>
-#    * </tr>
-#    * <tr>
-#    * <td><b>Expected type</b></td>
-#    * <td><code>PronounType</code></td>
-#    * </tr>
-#    * <tr>
-#    * <td><b>Created by</b></td>
-#    * <td>The lexicon.</td>
-#    * </tr>
-#    * <tr>
-#    * <td><b>Used by</b></td>
-#    * <td>The morphology processing methods uses pronoun type to determine the
-#    * appropriate form for pronouns.</td>
-#    * </tr>
-#    * <tr>
-#    * <td><b>Applies to</b></td>
-#    * <td>Pronouns.</td>
-#    * </tr>
-#    * <tr>
-#    * <td><b>Default</b></td>
-#    * <td><code>null</code></td>
-#    * </tr>
-#    * </table>
-#
-PRONOUN_TYPE = "pronoun_type"
-
-#
-#    * <p>
 #    * These features give the subjunctive present form of a verb.
 #    * </p>
 #    * <table border="1">

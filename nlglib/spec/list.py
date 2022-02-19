@@ -3,6 +3,7 @@
 """Definition of the ListElement container class."""
 
 from .base import NLGElement
+from .string import StringElement
 from nlglib.lexicon.feature.internal import COMPONENTS
 
 
@@ -60,13 +61,23 @@ class ListElement(NLGElement):
         return iter(self.features[COMPONENTS])
 
     def append(self, element):
-        self.features[COMPONENTS].append(element)
+        if not isinstance(element, NLGElement):
+            element = StringElement(str(element))
         element.parent = self
+        self.features[COMPONENTS].append(element)
 
     def extend(self, elements):
-        self.features[COMPONENTS].extend(elements)
         for element in elements:
+            if not isinstance(element, NLGElement):
+                element = StringElement(str(element))
             element.parent = self
+            self.features[COMPONENTS].append(element)
+
+    def insert(self, index, element):
+        if not isinstance(element, NLGElement):
+            element = StringElement(str(element))
+        element.parent = self
+        self.features[COMPONENTS].insert(index, element)
 
     @property
     def children(self):

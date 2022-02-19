@@ -22,10 +22,10 @@ class StringElement(NLGElement):
 
     """
 
-    def __init__(self, string=None, word=None, language=DEFAULT_LANG):
-        self.features = {}
+    def __init__(self, string=None, word=None, lexicon=None, language=DEFAULT_LANG):
+        super().__init__(lexicon=lexicon)
         self.features[ELIDED] = False
-        self.lexicon = get_lexicon(language)
+        self.lexicon = lexicon or get_lexicon(language)
         self.children = []
         self.parent = None
         if not word:
@@ -48,6 +48,12 @@ class StringElement(NLGElement):
             and super(StringElement, self).__eq__(other)
             and self.realisation == other.realisation
         )
+
+    def realise_syntax(self):
+        return self
+
+    def realise_morphology(self):
+        return self
 
     def realise_morphophonology(self, next_word):
         ruleset = get_morphophonology_rules(self.language)

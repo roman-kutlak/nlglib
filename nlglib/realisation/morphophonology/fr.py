@@ -21,7 +21,8 @@ from nlglib.lexicon.feature import person
 from nlglib.lexicon.feature.number import SINGULAR
 from nlglib.lexicon.feature import ELIDED
 from nlglib.lexicon.feature.gender import FEMININE
-from nlglib.lexicon.feature.lexical.fr import PRONOUN_TYPE, DETACHED
+from nlglib.lexicon.feature.lexical import PRONOUN_TYPE
+from nlglib.lexicon.feature.lexical.fr import DETACHED
 
 # noinspection RegExpSingleCharAlternation
 VOWELS_RE = re.compile(

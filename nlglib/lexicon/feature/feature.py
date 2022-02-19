@@ -935,7 +935,7 @@ SUPPRESS_GENITIVE_IN_GERUND = "suppress_genitive_in_gerund"
 #    * </tr>
 #    * </table>
 #
-SUPRESSED_COMPLEMENTISER = "suppressed_complementiser"
+SUPPRESSED_COMPLEMENTISER = "suppressed_complementiser"
 
 #
 #    * <p>

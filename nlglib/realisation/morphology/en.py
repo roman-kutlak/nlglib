@@ -166,7 +166,7 @@ PRONOUNS = {
             }
         },
     },
-    number.BOTH: {}
+    number.BOTH: "both"
 }
 
 

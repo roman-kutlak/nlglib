@@ -13,9 +13,9 @@ from nlglib.lexicon.feature.discourse import (
     OBJECT, COMPLEMENT, SUBJECT, INDIRECT_OBJECT)
 from nlglib.lexicon.feature.category import (
     VERB_PHRASE, NOUN, VERB, PREPOSITIONAL_PHRASE, NOUN_PHRASE, PRONOUN, CLAUSE)
-from nlglib.lexicon.feature.lexical import REFLEXIVE, GENDER
+from nlglib.lexicon.feature.lexical import REFLEXIVE, GENDER, PRONOUN_TYPE
 from nlglib.lexicon.feature.pronoun import PERSONAL, RELATIVE
-from nlglib.lexicon.feature.lexical.fr import PRONOUN_TYPE, DETACHED
+from nlglib.lexicon.feature.lexical.fr import DETACHED
 from nlglib.lexicon.feature.person import FIRST, SECOND, THIRD
 from nlglib.lexicon.feature.form import IMPERATIVE
 from nlglib.lexicon.feature.number import SINGULAR, PLURAL, BOTH
