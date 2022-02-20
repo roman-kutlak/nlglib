@@ -597,9 +597,15 @@ class VerbPhraseElement(PhraseElement):
     #     addPostModifier(modifierElement)
 
 
+def to_word(lexicon, string, category=cat.ANY):
+    if not isinstance(string, NLGElement):
+        return lexicon.first(str(string), category)
+    return string
+
+
 def make_adjective_phrase(lexicon, adjective, modifiers=None):
     phrase = AdjectivePhraseElement(lexicon)
-    phrase.adjective = adjective
+    phrase.adjective = to_word(lexicon, adjective, cat.ADJECTIVE)
     if modifiers:
         if not isinstance(modifiers, list):
             modifiers = [modifiers]
@@ -610,11 +616,22 @@ def make_adjective_phrase(lexicon, adjective, modifiers=None):
 
 def make_noun_phrase(lexicon, specifier, noun, modifiers=None):
     phrase = NounPhraseElement(lexicon)
-    phrase.head = noun
-    phrase.specifier = specifier
+    phrase.head = to_word(lexicon, noun, cat.NOUN)
+    phrase.specifier = to_word(lexicon, specifier, cat.DETERMINER)
     if modifiers:
         if not isinstance(modifiers, list):
             modifiers = [modifiers]
         for modifier in modifiers:
-            phrase.add_modifier(modifier)
+            phrase.add_modifier(to_word(lexicon, modifier, cat.ADJECTIVE))
+    return phrase
+
+
+def make_verb_phrase(lexicon, verb, complements=None):
+    phrase = VerbPhraseElement(lexicon)
+    phrase.verb = to_word(lexicon, verb, cat.VERB)
+    if complements:
+        if not isinstance(complements, list):
+            complements = [complements]
+        for complement in complements:
+            phrase.add_complement(to_word(lexicon, complement))
     return phrase

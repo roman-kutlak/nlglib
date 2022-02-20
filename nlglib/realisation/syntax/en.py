@@ -10,8 +10,6 @@ from nlglib.lexicon.feature import category, number, person, gender, tense
 
 __all__ = ['EnglishPhraseHelper', 'EnglishNounPhraseHelper']
 
-from ...microplanning import Clause
-
 
 class EnglishPhraseHelper(PhraseHelper):
     """A syntax defining specific behaviour for English sentences."""
@@ -311,7 +309,7 @@ class VerbPhraseHelper(PhraseHelper):
 
     def _push_particles(self, phrase, vg_components):
         particle = phrase.particle
-        if isinstance(particle, str):
+        if particle and isinstance(particle, str):
             vg_components.append(StringElement(particle))
         elif isinstance(particle, NLGElement):
             vg_components.append(particle.realise())
@@ -404,10 +402,10 @@ class VerbPhraseHelper(PhraseHelper):
             return element.base_form == 'be'
         if isinstance(element, PhraseElement):
             # get the head and check if it's "be"
-            if isinstance(element, Clause):
-                head = element.verb
-            else:
-                head = element.head
+            # if isinstance(element, Clause):
+            #     head = element.verb
+            # else:
+            head = element.head
             if head:
                 return isinstance(head, (InflectedWordElement, WordElement)) and head.base_form == 'be'
         return False
@@ -512,7 +510,7 @@ class VerbPhraseHelper(PhraseHelper):
         while main_verb_realisation:
             main = main_verb_realisation.pop()
             main.interrogative_type = phrase.interrogative_type
-            current_element = main.realise()
+            current_element = main.realise_syntax()
             if current_element:
                 realised_element.append(current_element)
 

@@ -11,7 +11,7 @@ from nlglib.lexicon.feature import number
 from nlglib.lexicon.feature import gender
 
 from nlglib.spec.phrase import make_adjective_phrase, CoordinatedPhraseElement
-from nlglib.spec.phrase import make_noun_phrase
+from nlglib.spec.phrase import make_noun_phrase, make_verb_phrase
 
 #
 # lexicon = new
@@ -81,6 +81,13 @@ from nlglib.spec.phrase import make_noun_phrase
 #     assert actual == expected
 
 
+def check_and_return_realisation(element, expected):
+    realisation = element.realise()
+    actual = [x.realisation for x in realisation.components]
+    assert actual == expected
+    return realisation
+
+
 def test_adjectives(lexicon_en):
     """AdjectivePhraseTest from simplenlg"""
     salacious = make_adjective_phrase(lexicon_en, 'salacious')
@@ -145,4 +152,20 @@ def test_adjectives(lexicon_en):
     # coordap.addCoordinate(this.stunning);
     # Assert.assertEquals("incredibly salacious, amazingly beautiful or stunning", //$NON-NLS-1$
     #     this.realiser.realise(coordap).getRealisation());
-    #
+
+
+def test_noun_phrase(lexicon_en):
+    house = make_noun_phrase(lexicon_en, "the", "house")
+    check_and_return_realisation(house, ["the", "house"])
+
+    house.number = feature.number.PLURAL
+    realisation = check_and_return_realisation(house, ["the", "house"])
+    assert realisation.components[1].number == number.PLURAL
+
+    house.add_modifier("small")
+    check_and_return_realisation(house, ["the", "small", "house"])
+
+
+def test_verb_phrase(lexicon_en):
+    run = make_verb_phrase(lexicon_en, "run")
+    check_and_return_realisation(run, ["run"])
