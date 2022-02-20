@@ -140,9 +140,11 @@ class CoordinatedPhraseHelper(PhraseHelper):
         if not coordinates:
             return
 
-        cc = CoordinatedPhraseElement()
-        cc.conjunction = phrase.conjunction
-        cc.conjunction_type = phrase.conjunction_type
+        realisation = ListElement()
+
+        conjunction = phrase.lexicon.first(phrase.conjunction, category=category.CONJUNCTION).inflex(
+            discourse_function=discourse.CONJUNCTION
+        ) if phrase.conjunction else None
 
         if phrase.raise_specifier:
             self.raise_specifier(coordinates)
@@ -150,7 +152,7 @@ class CoordinatedPhraseHelper(PhraseHelper):
         coordinates[-1].possessive = phrase.possessive
         coordinate = coordinates[0]
         self._set_child_features(coordinate, phrase)
-        cc.add_coordinate(coordinate.realise_syntax())
+        realisation.append(coordinate.realise())
 
         for coordinate in coordinates[1:]:
             self._set_child_features(coordinate, phrase)
@@ -165,14 +167,12 @@ class CoordinatedPhraseHelper(PhraseHelper):
                 continue
 
             # don't add conjunction if empty
-            if cc.conjunction:
-                conjunction = InflectedWordElement(cc.conjunction, category=category.CONJUNCTION)
-                conjunction.discourse_function = discourse.CONJUNCTION
-                cc.add_coordinate(conjunction)
-            cc.add_coordinate(element)
+            if conjunction:
+                realisation.append(conjunction)
+            realisation.append(element)
 
         # add the entire new cc to the list of realised elements
-        realised_element.append(cc)
+        realised_element.append(realisation)
         return realised_element
 
     def raise_specifier(self, children):
@@ -205,7 +205,7 @@ class CoordinatedPhraseHelper(PhraseHelper):
         child.specifier = phrase.specifier
         child.gender = phrase.gender
         child.number = phrase.number
-        child.tense = phrase.gense
+        child.tense = phrase.tense
         child.person = phrase.person
         child.negated = phrase.negated
         child.modal = phrase.modal

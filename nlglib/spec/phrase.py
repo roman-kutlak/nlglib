@@ -37,7 +37,7 @@ class CoordinatedPhraseElement(NLGElement):
     def __init__(self, *coordinates, lexicon=None):
         super().__init__(lexicon=lexicon)
         self.features[ELIDED] = False
-        self.features[discourse.CONJUNCTION] = StringElement("and", lexicon=self.lexicon)
+        self.features[discourse.CONJUNCTION] = "and"
         for c in coordinates:
             self.add_coordinate(c)
         self.helper = get_phrase_helper(language=self.lexicon.language,
@@ -67,7 +67,32 @@ class CoordinatedPhraseElement(NLGElement):
         self.features[internal.COORDINATES] = coordinates
 
     def get_children(self):
-        return self.features.get(internal.COORDINATES, [])
+        """Return the child components of the coordinated phrase.
+
+        The returned list will depend of the category of the element:
+        - Clauses consist of cue phrases, front modifiers, pre-modifiers
+        subjects, verb phrases and complements.
+        - Noun phrases consist of the specifier, pre-modifiers, the noun
+        subjects, complements and post-modifiers.
+        - Verb phrases consist of pre-modifiers, the verb group,
+        complements and post-modifiers.
+        - Canned text phrases have no children.
+        - All other phrases consist of pre-modifiers, the main phrase
+        element, complements and post-modifiers.
+
+        """
+        children = []
+        children.extend(self.premodifiers or [])
+        children.append(self.coordinates or [])
+        children.extend(self.complements or [])
+        children.extend(self.postmodifiers or [])
+
+        children = (child for child in children if child)
+        children = [
+            StringElement(string=child)
+            if not isinstance(child, NLGElement) else child
+            for child in children]
+        return children
 
     def add_pre_modifier(self, new_pre_modifier):
         """Add the argument pre_modifer as the phrase pre modifier,

@@ -102,7 +102,7 @@ def test_adjectives(lexicon_en):
 
     expected = ["incredibly", "salacious", "and", "amazingly", "beautiful"]
     realisation = cc.realise()
-    adjp1, conj, adjp2 = realisation.children
+    adjp1, conj, adjp2 = realisation[0].children
     actual = [x.realisation for x in adjp1.children] + [conj.realisation] + [x.realisation for x in adjp2.children]
     assert actual == expected
 
