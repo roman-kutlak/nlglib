@@ -3,8 +3,6 @@
 """Definition of person related features"""
 
 
-
-
 FIRST = "first"
 SECOND = "second"
 THIRD = "third"

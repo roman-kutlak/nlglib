@@ -3,7 +3,6 @@
 """Definition of number-related features"""
 
 
-
 BOTH = "both"
 PLURAL = "plural"
 SINGULAR = "singular"

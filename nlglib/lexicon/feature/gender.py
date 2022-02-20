@@ -3,7 +3,6 @@
 """Definition of gender features."""
 
 
-
 FEMININE = 'feminine'
 MASCULINE = 'masculine'
 NEUTER = 'neuter'
