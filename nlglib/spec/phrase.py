@@ -24,10 +24,33 @@ from nlglib.lexicon.feature import person
 from nlglib.lexicon.feature import number
 from nlglib.lexicon.feature import gender
 
-__all__ = ['CoordinatedPhraseElement', 'PhraseElement', 'AdjectivePhraseElement', 'NounPhraseElement']
+__all__ = [
+    "CoordinatedPhraseElement",
+    "PhraseElement",
+    "AdjectivePhraseElement",
+    "NounPhraseElement",
+    "PrepositionPhraseElement",
+    "VerbPhraseElement",
+    "Clause",
+]
 
 
 _sentinel = object()
+
+VP_FEATURES = (
+    feature.MODAL,
+    feature.TENSE,
+    feature.NEGATED,
+    feature.NUMBER,
+    feature.PASSIVE,
+    feature.PERFECT,
+    feature.PARTICLE,
+    feature.PERSON,
+    feature.PROGRESSIVE,
+    feature.FORM,
+    feature.INTERROGATIVE_TYPE,
+    internal.REALISE_AUXILIARY,
+)
 
 
 class CoordinatedPhraseElement(NLGElement):
@@ -404,6 +427,32 @@ class NounPhraseElement(PhraseElement):
         return self.specifier.ne_only_negation or self.head.ne_only_negation
 
 
+class PrepositionPhraseElement(PhraseElement):
+    """This class defines a preposition phrase.
+
+    It is essentially a wrapper around the
+    PhraseElement class, with methods for setting common constituents
+    such as pre_modifiers.
+
+    """
+
+    def __init__(self, lexicon):
+        super(PrepositionPhraseElement, self).__init__(
+            category=cat.ADJECTIVE_PHRASE, lexicon=lexicon)
+
+    @property
+    def preposition(self):
+        return self.head
+
+    @preposition.setter
+    def preposition(self, preposition):
+        if isinstance(preposition, str):
+            # Create a word, if not found in lexicon
+            preposition = self.lexicon.first(preposition, category=cat.PREPOSITION)
+        preposition.parent = self
+        self.features[internal.HEAD] = preposition
+
+
 class VerbPhraseElement(PhraseElement):
     """This class defines a verb phrase
     
@@ -595,6 +644,57 @@ class VerbPhraseElement(PhraseElement):
     #
     #     # default case
     #     addPostModifier(modifierElement)
+
+
+class Clause(PhraseElement):
+    """Clause - sentence.
+    From simplenlg:
+
+    * FrontModifier (eg, "Yesterday")
+    * Subject (eg, "John")
+    * PreModifier (eg, "reluctantly")
+    * Verb (eg, "gave")
+    * IndirectObject (eg, "Mary")
+    * Object (eg, "an apple")
+    * PostModifier (eg, "before school")
+
+    Note that verb, indirect object, and object
+    are propagated to the underlying verb phrase
+
+    """
+
+    def __init__(self, lexicon=None):
+        super().__init__(lexicon=lexicon, category=cat.CLAUSE)
+        self.helper = get_phrase_helper(language=self.lexicon.language,
+                                        phrase_type=cat.CLAUSE)()
+        self.features[ELIDED] = False
+        self.features[internal.CLAUSE_STATUS] = clause.MATRIX
+        self.features[feature.SUPPRESSED_COMPLEMENTISER] = False
+        self.features[lexical.EXPLETIVE_SUBJECT] = False
+        self.features[feature.COMPLEMENTISER] = lexicon.first("that", cat.COMPLEMENTISER)
+
+    def __setitem__(self, feature_name, feature_value):
+        """Set the feature name/value in the element feature dict."""
+        self.features[feature_name] = feature_value
+        if self.verb_phrase and isinstance(self.verb_phrase, VerbPhraseElement):
+            # propagate relevant features to the VP
+            if feature_name in VP_FEATURES:
+                self.verb_phrase[feature_name] = feature_value
+
+    def __delitem__(self, feature_name):
+        """Remove the argument feature name and its associated value from
+        the element feature dict.
+
+        If the feature name was not initially present in the feature dict,
+        a KeyError will be raised.
+
+        """
+        if feature_name in self.features:
+            del self.features[feature_name]
+            if (self.verb_phrase and
+                    isinstance(self.verb_phrase, VerbPhraseElement) and
+                    feature_name in self.verb_phrase):
+                del self.verb_phrase[feature_name]
 
 
 def to_word(lexicon, string, category=cat.ANY):

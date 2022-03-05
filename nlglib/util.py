@@ -36,6 +36,7 @@ phrase_helper_router = {
         category.COORDINATED_PHRASE: 'CoordinatedPhraseHelper',
         category.NOUN_PHRASE: 'EnglishNounPhraseHelper',
         category.VERB_PHRASE: 'VerbPhraseHelper',
+        category.CLAUSE: 'ClauseHelper',
         'phrase': 'EnglishPhraseHelper',
     },
 }
