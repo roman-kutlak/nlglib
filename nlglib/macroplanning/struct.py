@@ -1,7 +1,9 @@
 import inspect
 
-from nlglib.features import category, Negated
-from nlglib.microplanning import String, Element
+from nlglib.lexicon import feature
+from nlglib.lexicon.feature import category
+from nlglib.spec.string import StringElement as String
+from nlglib.spec.base import NLGElement
 
 
 class SignatureError(Exception):
@@ -381,7 +383,7 @@ class PredicateMsg(MsgSpec):
             return self.name
         else:
             neg = ''
-            if Negated.true in self.features:
+            if self.features.get(feature.NEGATED):
                 neg = '-'
             return neg + self.name + '(' + ', '.join([str(x) for x in self.args]) + ')'
 
@@ -427,6 +429,6 @@ def promote_to_string(s):
     """Convert non-nlglib classes (e.g., str) to String and return."""
     if not s:
         return String('')
-    if isinstance(s, (Document, Paragraph, Element, RhetRel, MsgSpec)):
+    if isinstance(s, (Document, Paragraph, NLGElement, RhetRel, MsgSpec)):
         return s
     return String(s)

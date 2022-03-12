@@ -44,6 +44,7 @@ from nlglib.lexicon.feature import number
 from nlglib.lexicon.feature import person
 from nlglib.lexicon.feature import pronoun  # noqa
 from nlglib.spec.string import StringElement
+from nlglib.realisation.processor import BaseProcessor
 
 
 # INFLECTIONS
@@ -173,7 +174,7 @@ PRONOUNS = {
 WH_PRONOUNS = {"who", "what", "which", "where", "why", "how", "how many"}
 
 
-class EnglishMorphologyRules(object):
+class MorphologyProcessor(BaseProcessor):
 
     """Class in charge of performing English morphology rules for any
     type of words: verbs, nouns, determiners, etc.
@@ -200,7 +201,7 @@ class EnglishMorphologyRules(object):
             elif base_word:
                 return base_word.base_form
 
-    def morph_adjective(self, element, base_word=None):
+    def adjective(self, element, base_word=None):
         """Perform the morphology for adjectives."""
         base_word = element.base_word or base_word
         base_form = self.get_base_form(element, base_word)
@@ -230,7 +231,7 @@ class EnglishMorphologyRules(object):
         # NOTE: simplenlg copies over just DISCOURSE_FUNCTION feature
         return StringElement(string=realised, word=element)
 
-    def morph_adverb(self, element, base_word=None):
+    def adverb(self, element, base_word=None):
         """Perform the morphology for adverbs."""
         base_word = element.base_word or base_word
         base_form = self.get_base_form(element, base_word)
@@ -260,7 +261,7 @@ class EnglishMorphologyRules(object):
         # NOTE: simplenlg copies over just DISCOURSE_FUNCTION feature
         return StringElement(string=realised, word=element)
 
-    def morph_determiner(self, element, np_realisation=None):
+    def determiner(self, element, np_realisation=None):
         # NOTE: implementation differs from SimpleNLG: it doesn't require np_realisation
         rv = StringElement(string=element.base_form, word=element)
         if element.is_plural:
@@ -283,7 +284,7 @@ class EnglishMorphologyRules(object):
                 rv.realisation = 'an'
         return rv
 
-    def morph_noun(self, element, base_word=None):
+    def noun(self, element, base_word=None):
         """This method performs the morphology for nouns.
         @param element  the `InflectedWordElement`.
         @param base_word the `WordElement` as created from the lexicon entry.
@@ -324,7 +325,7 @@ class EnglishMorphologyRules(object):
 
         return StringElement(string=realised, word=element)
 
-    def morph_pronoun(self, element):
+    def pronoun(self, element):
         if element.features.get(internal.NON_MORPH):
             realised = element.base_form
         elif is_wh_pronoun(element):
@@ -366,7 +367,7 @@ class EnglishMorphologyRules(object):
 
         return StringElement(string=realised, word=element)
 
-    def morph_verb(self, element, base_word):
+    def verb(self, element, base_word):
         """This method performs the morphology for verbs.
 
         @param element  the `InflectedWordElement`.
@@ -453,6 +454,14 @@ class EnglishMorphologyRules(object):
                 realised = base_form
 
         return StringElement(string=realised or base_form, word=element)
+
+    def element(self, elt, **kwargs):
+        """Don't morph anything else"""
+        return StringElement(string=elt.realisation or elt.base_form)
+
+    def phrase(self, elt, **kwargs):
+        """Don't morph phrases"""
+        return elt
 
 
 def build_regular_plural_noun(base_form: str):

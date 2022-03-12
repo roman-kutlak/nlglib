@@ -12,12 +12,12 @@ from nlglib.lexicon.feature.lexical import REFLEXIVE, GENDER
 from nlglib.lexicon.feature.number import PLURAL, SINGULAR
 from nlglib.lexicon.feature.person import FIRST, SECOND, THIRD
 from nlglib.lexicon.feature.tense import PRESENT, PAST
-from nlglib.realisation.morphology.en import EnglishMorphologyRules
+from nlglib.realisation.morphology.en import MorphologyProcessor
 
 
 @pytest.fixture
-def morph_rules_en():
-    return EnglishMorphologyRules()
+def processor():
+    return MorphologyProcessor()
 
 
 @pytest.mark.parametrize('word, expected', [
@@ -28,10 +28,10 @@ def morph_rules_en():
     ('person', 'people'),
     ('sheep', 'sheep'),
 ])
-def test_pluralize(lexicon_en, morph_rules_en, word, expected):
+def test_pluralize(lexicon_en, processor, word, expected):
     element = lexicon_en.first(word)
     element.features[NUMBER] = PLURAL
-    assert morph_rules_en.morph_noun(element).realisation == expected
+    assert processor.noun(element).realisation == expected
 
 
 @pytest.mark.parametrize('determiner, features, expected', [
@@ -47,11 +47,11 @@ def test_pluralize(lexicon_en, morph_rules_en, word, expected):
     ('these', {NUMBER: SINGULAR}, 'this'),
     ('those', {NUMBER: SINGULAR}, 'that'),
 ])
-def test_morph_determiner(lexicon_en, morph_rules_en, determiner, features, expected):
+def test_morph_determiner(lexicon_en, processor, determiner, features, expected):
     element = lexicon_en.first(determiner)
     for k, v in features.items():
         element.features[k] = v
-    inflected_form = morph_rules_en.morph_determiner(element)
+    inflected_form = processor.determiner(element)
     assert inflected_form.realisation == expected
 
 
@@ -90,11 +90,11 @@ def test_morph_determiner(lexicon_en, morph_rules_en, determiner, features, expe
     ('tangled', {IS_COMPARATIVE: True}, 'more tangled'),
     ('tangled', {IS_SUPERLATIVE: True}, 'most tangled'),
 ])
-def test_morph_adjective(lexicon_en, morph_rules_en, word, features, expected):
+def test_morph_adjective(lexicon_en, processor, word, features, expected):
     element = lexicon_en.first(word)
     for k, v in features.items():
         element.features[k] = v
-    inflected_form = morph_rules_en.morph_adjective(element)
+    inflected_form = processor.adjective(element)
     assert inflected_form.realisation == expected
 
 
@@ -133,11 +133,11 @@ def test_morph_adjective(lexicon_en, morph_rules_en, word, features, expected):
     ('well', {IS_COMPARATIVE: True}, 'better'),
     ('well', {IS_SUPERLATIVE: True}, 'best'),
 ])
-def test_morph_adverb(lexicon_en, morph_rules_en, word, features, expected):
+def test_morph_adverb(lexicon_en, processor, word, features, expected):
     element = lexicon_en.first(word, category=ADVERB)
     for k, v in features.items():
         element.features[k] = v
-    inflected_form = morph_rules_en.morph_adverb(element)
+    inflected_form = processor.adverb(element)
     assert inflected_form.realisation == expected
 
 
@@ -153,10 +153,10 @@ def test_morph_adverb(lexicon_en, morph_rules_en, word, features, expected):
     # Possessive
     ('John', {POSSESSIVE: True}, "John's")
 ])
-def test_morph_noun(lexicon_en, morph_rules_en, word, features, expected):
+def test_morph_noun(lexicon_en, processor, word, features, expected):
     base_word = lexicon_en.first(word)
     element = base_word.inflex(category=NOUN, **features)
-    inflected_form = morph_rules_en.morph_noun(element, base_word)
+    inflected_form = processor.noun(element, base_word)
     assert inflected_form.realisation == expected
 
 
@@ -167,11 +167,11 @@ def test_morph_noun(lexicon_en, morph_rules_en, word, features, expected):
     ('I', {NUMBER: PLURAL, PERSON: FIRST, REFLEXIVE: True}, 'ourselves'),
     ('I', {NUMBER: SINGULAR, PERSON: THIRD, POSSESSIVE: True, GENDER: MASCULINE}, 'his'),
 ])
-def test_morph_pronoun(lexicon_en, morph_rules_en, word, features, expected):
+def test_morph_pronoun(lexicon_en, processor, word, features, expected):
     element = lexicon_en.first(word, PRONOUN)
     for k, v in features.items():
         element.features[k] = v
-    inflected_form = morph_rules_en.morph_pronoun(element)
+    inflected_form = processor.pronoun(element)
     assert inflected_form.realisation == expected
 
 
@@ -199,8 +199,8 @@ def test_morph_pronoun(lexicon_en, morph_rules_en, word, features, expected):
     ('walk', {FORM: form.PRESENT_PARTICIPLE}, 'walking'),
     ('walk', {FORM: form.PAST_PARTICIPLE}, 'walked'),
 ])
-def test_morph_verb(lexicon_en, morph_rules_en, word, features, expected):
+def test_morph_verb(lexicon_en, processor, word, features, expected):
     base_word = lexicon_en.first(word, VERB)
     element = base_word.inflex(category=VERB, **features)
-    inflected_form = morph_rules_en.morph_verb(element, base_word)
+    inflected_form = processor.verb(element, base_word)
     assert inflected_form.realisation == expected

@@ -15,13 +15,28 @@ class English:
         f.category.VERB_PHRASE: VerbPhraseElement,
     }
 
-    def __init__(self, lexicon, syntax=None, morphology=None, ortography=None, format=None):
+    def __init__(self, lexicon, processor_order=None, **processors):
         self.lexicon = lexicon
-        self.syntax = syntax
-        self.morphology = morphology
-        self.ortography = ortography
-        self.format = format
-        
+        self.processors = processors
+        self.processor_order = processor_order
+        for processor, instance in processors.items():
+            setattr(self, processor, instance)
+
+    def __call__(self, element, **kwargs):
+        return self.process(element, **kwargs)
+
+    def process(self, element, **kwargs):
+        value = element
+        processor_order = self.processor_order or self.processors.keys()
+        for processor_name in processor_order:
+            processor = self.processors.get(processor_name)
+            if not processor:
+                continue
+            value = processor(value, **kwargs)
+            if not value:
+                return ''
+        return value
+
     # simple element constructors
     
     def word(self, string, category=f.category.ANY, **features):
@@ -120,3 +135,9 @@ class English:
             c.verb_phrase.add_complement(o)
         c.features.update(features)
         return c
+
+    def coordination(self, *coordinates, **features):
+        cc = CoordinatedPhraseElement(lexicon=self.lexicon)
+        cc.features.update(**features)
+        for c in coordinates:
+            cc.add_coordinate(c)

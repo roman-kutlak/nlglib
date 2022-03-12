@@ -50,7 +50,7 @@ class PhraseHelper(object):
         return realised
 
     def realise_list(self, realised_element, element_list, discourse_function):
-        """Realise each memeber of the element_list and add their
+        """Realise each member of the element_list and add their
         realisation to the realised_element.
 
         Each element in the list is to take the argument discourse function.

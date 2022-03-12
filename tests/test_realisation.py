@@ -16,6 +16,11 @@ def realiser(lexicon_en):
     return Realiser(lexicon_en)
 
 
+@pytest.fixture
+def en(lexicon_en):
+    return English(lexicon=lexicon_en)
+
+
 class TestElementRealisation:
 
     def test_string(self, realiser):
@@ -37,27 +42,23 @@ class TestElementRealisation:
         assert expected == actual
 
 
-# class TestPhraseRealisation:
-#
-#     def test_singular_np(self, lexicon_en):
-#         realiser = Realiser(lexicon_en)
-#         expected = 'the monkey'
-#         monkey = NounPhraseElement(lexicon=lexicon_en)
-#         monkey.noun = lexicon_en.first('monkey', category=category.NOUN)
-#         monkey.specifier = lexicon_en.first('the', category=category.DETERMINER)
-#         actual = realiser(monkey)
-#         assert actual == expected
-#
-#     def test_plural_np(self, lexicon_en):
-#         realiser = Realiser(lexicon_en)
-#         expected = 'the monkeys'
-#         monkey = NounPhraseElement(lexicon=lexicon_en)
-#         monkey.noun = lexicon_en.first('monkey', category=category.NOUN).inflex(number=f.number.PLURAL)
-#         monkey.specifier = lexicon_en.first('the', category=category.DETERMINER)
-#         actual = realiser(monkey)
-#         assert actual == expected
-#
-#
+class TestPhraseRealisation:
+
+    def test_singular_np(self, en):
+        realiser = Realiser(en.lexicon)
+        expected = 'the house'
+        phrase = en.noun_phrase("the", "house")
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_plural_np(self, en):
+        realiser = Realiser(en.lexicon)
+        expected = 'the houses'
+        phrase = en.noun_phrase("the", "house", number=f.number.PLURAL)
+        actual = realiser(phrase)
+        assert actual == expected
+
+
 # class TestDocumentRealisation:
 #
 #     def test_singular_np(self, lexicon_en):

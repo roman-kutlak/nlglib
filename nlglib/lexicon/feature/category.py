@@ -3,6 +3,8 @@
 """Definition of the lexical categories."""
 
 
+# Lexical categories
+
 #  A default value, indicating an unspecified category.
 ANY = "ANY"
 
@@ -45,6 +47,9 @@ MODAL = "MODAL"
 #  An auxiliary verb element.
 AUXILIARY = "AUXILIARY"
 
+
+# Phrase categories
+
 CLAUSE = "CLAUSE"
 ADJECTIVE_PHRASE = "ADJECTIVE_PHRASE"
 ADVERB_PHRASE = "ADVERB_PHRASE"
@@ -53,3 +58,55 @@ PREPOSITIONAL_PHRASE = "PREPOSITIONAL_PHRASE"
 VERB_PHRASE = "VERB_PHRASE"
 CANNED_TEXT = "CANNED_TEXT"
 COORDINATED_PHRASE = "COORDINATED_PHRASE"
+
+# Document categories
+
+DOCUMENT = 'DOCUMENT'
+PARAGRAPH = 'PARAGRAPH'
+
+
+# Content categories
+
+MSG = 'MSG'
+RST = 'RST'
+
+
+# Groupings for easy lookup
+
+LEXICAL_CATEGORIES = [
+    ANY,
+    SYMBOL,
+    NOUN,
+    ADJECTIVE,
+    ADVERB,
+    VERB,
+    DETERMINER,
+    PRONOUN,
+    CONJUNCTION,
+    PARTICLE,
+    PREPOSITION,
+    COMPLEMENTISER,
+    MODAL,
+    AUXILIARY,
+]
+
+PHRASE_CATEGORIES = [
+    CLAUSE,
+    ADJECTIVE_PHRASE,
+    ADVERB_PHRASE,
+    NOUN_PHRASE,
+    PREPOSITIONAL_PHRASE,
+    VERB_PHRASE,
+    CANNED_TEXT,
+    COORDINATED_PHRASE,
+]
+
+DOCUMENT_CATEGORIES = [
+    DOCUMENT,
+    PARAGRAPH,
+]
+
+CONTENT_CATEGORIES = [
+    MSG,
+    RST,
+]
