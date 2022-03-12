@@ -85,7 +85,10 @@ class PhraseHelper(object):
         """Realises the complements of the phrase."""
         complements = phrase.complements or []
         for i, complement in enumerate(complements):
-            element = complement.realise_syntax()
+            if hasattr(complement, 'realise'):
+                element = complement.realise()
+            else:
+                element = complement.realise_syntax()
             if not element:
                 continue
             element.features[internal.DISCOURSE_FUNCTION] = COMPLEMENT

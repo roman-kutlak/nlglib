@@ -5,11 +5,22 @@
 
 from .base import NLGElement
 from .string import StringElement
-from nlglib.lexicon.feature.lexical import (DEFAULT_INFL, DEFAULT_SPELL, INFLECTIONS,
-                                       SPELL_VARS)
+from nlglib.lexicon.feature.lexical import (
+    DEFAULT_INFL,
+    DEFAULT_SPELL,
+    INFLECTIONS,
+    SPELL_VARS,
+)
 from nlglib.lexicon.feature.internal import DISCOURSE_FUNCTION
-from nlglib.lexicon.feature.category import (ANY, NOUN, ADJECTIVE, DETERMINER, VERB,
-                                        ADVERB, PRONOUN)
+from nlglib.lexicon.feature.category import (
+    ANY,
+    NOUN,
+    ADJECTIVE,
+    DETERMINER,
+    VERB,
+    ADVERB,
+    PRONOUN,
+)
 from nlglib.util import get_morphology_rules
 
 
@@ -102,15 +113,15 @@ class WordElement(NLGElement):
 class InflectedWordElement(NLGElement):
 
     """An InflectedWordElement wraps a base WordElement and some features,
-    and is in charge of the realisation of the word, given the features.
+        and is in charge of the realisation of the word, given the features.
 
-    Example:
-    >>> w = lex.first('voiture')
-    >>> iw = InflectedWordElement(w, number=PLURAL)
-    >>> iw.realise_morphology().realisation
-    'voitures'
+        Example:
+        > w = lex.first('voiture')
+        > iw = InflectedWordElement(w, number=PLURAL)
+        > iw.realise_morphology().realisation
+        'voitures'
 
-    """
+        """
 
     def __init__(self, word, category=None, features=None):
         """Constructs a new inflected word using the argument word as
@@ -133,9 +144,9 @@ class InflectedWordElement(NLGElement):
         if not category:
             #  the inflected word inherits the base word category
             #  (moved from WordElement.realise_syntax())
-            self.category = word.category
+            self.category = word.category or ANY
         else:
-            self.category = ANY
+            self.category = category
 
     def __unicode__(self):
         return "<%s [%s:%s]>" % (

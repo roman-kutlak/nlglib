@@ -28,6 +28,7 @@ __all__ = [
     "CoordinatedPhraseElement",
     "PhraseElement",
     "AdjectivePhraseElement",
+    "AdverbPhraseElement",
     "NounPhraseElement",
     "PrepositionPhraseElement",
     "VerbPhraseElement",
@@ -318,7 +319,6 @@ class PhraseElement(NLGElement):
 
 
 class AdjectivePhraseElement(PhraseElement):
-
     """This class defines a adjective phrase.
 
     It is essentially a wrapper around the
@@ -332,6 +332,14 @@ class AdjectivePhraseElement(PhraseElement):
             category=cat.ADJECTIVE_PHRASE, lexicon=lexicon)
 
     @property
+    def head(self):
+        return self.features.get(internal.HEAD)
+
+    @head.setter
+    def head(self, value):
+        self.adjective = value
+
+    @property
     def adjective(self):
         return self.head
 
@@ -343,6 +351,47 @@ class AdjectivePhraseElement(PhraseElement):
         adjective.parent = self
         self.features[internal.HEAD] = adjective
         self.set_features_from_element(adjective)
+
+    def set_features_from_element(self, element):
+        if not element:
+            return
+
+        self.set_feature_from_element(element, feature.IS_COMPARATIVE)
+        self.set_feature_from_element(element, feature.IS_SUPERLATIVE)
+
+
+class AdverbPhraseElement(PhraseElement):
+    """This class defines an adverb phrase.
+
+    It is essentially a wrapper around the
+    PhraseElement class, with methods for setting common constituents
+    such as pre_modifiers.
+
+    """
+
+    def __init__(self, lexicon):
+        super(AdverbPhraseElement, self).__init__(
+            category=cat.ADVERB_PHRASE, lexicon=lexicon)
+
+    @property
+    def head(self):
+        return self.features.get(internal.HEAD)
+
+    @head.setter
+    def head(self, value):
+        self.adverb = value
+
+    @property
+    def adverb(self):
+        return self.head
+
+    @adverb.setter
+    def adverb(self, adverb):
+        if isinstance(adverb, str):
+            adverb = self.lexicon.first(adverb, category=cat.ADVERB)
+        adverb.parent = self
+        self.features[internal.HEAD] = adverb
+        self.set_features_from_element(adverb)
 
     def set_features_from_element(self, element):
         if not element:
@@ -378,6 +427,15 @@ class NounPhraseElement(PhraseElement):
         if phrase:
             self.features.update(phrase.features)
             self.parent = phrase.parent
+        self.features[internal.SPECIFIER] = None
+
+    @property
+    def head(self):
+        return self.features.get(internal.HEAD)
+
+    @head.setter
+    def head(self, value):
+        self.noun = value
 
     @property
     def noun(self):
@@ -385,6 +443,9 @@ class NounPhraseElement(PhraseElement):
 
     @noun.setter
     def noun(self, value):
+        if isinstance(value, str):
+            value = self.lexicon.first(value, category=cat.NOUN)
+        value.parent = self
         self.features[cat.NOUN] = value
         self.features[internal.HEAD] = value
 
@@ -394,6 +455,9 @@ class NounPhraseElement(PhraseElement):
 
     @pronoun.setter
     def pronoun(self, value):
+        if isinstance(value, str):
+            value = self.lexicon.first(value, category=cat.PRONOUN)
+        value.parent = self
         self.features[cat.PRONOUN] = value
         self.features[internal.HEAD] = value
 
@@ -404,19 +468,20 @@ class NounPhraseElement(PhraseElement):
     @specifier.setter
     def specifier(self, value):
         if value is None:
+            self.features[internal.SPECIFIER] = None
             return
-        if isinstance(value, NLGElement):
-            specifier = value
-        else:
-            specifier = self.lexicon.first(value, category=cat.DETERMINER)
 
-        if specifier:
-            specifier.features[internal.DISCOURSE_FUNCTION] = discourse.SPECIFIER
-            specifier.parent = self
-            if isinstance(self.head, WordElement) and self.head.category == cat.PRONOUN:
-                self.noun = self.lexicon.first(self.head.base_form, category=cat.NOUN)
-            if specifier.number:
-                self.features[NUMBER] = specifier.number
+        if isinstance(value, str):
+            specifier = self.lexicon.first(value, category=cat.DETERMINER)
+        else:
+            specifier = value
+
+        specifier.features[internal.DISCOURSE_FUNCTION] = discourse.SPECIFIER
+        specifier.parent = self
+        if isinstance(self.head, WordElement) and self.head.category == cat.PRONOUN:
+            self.noun = self.lexicon.first(self.head.base_form, category=cat.NOUN)
+        if specifier.number:
+            self.features[NUMBER] = specifier.number
 
         self.features[internal.SPECIFIER] = specifier
 
@@ -438,7 +503,15 @@ class PrepositionPhraseElement(PhraseElement):
 
     def __init__(self, lexicon):
         super(PrepositionPhraseElement, self).__init__(
-            category=cat.ADJECTIVE_PHRASE, lexicon=lexicon)
+            category=cat.PREPOSITIONAL_PHRASE, lexicon=lexicon)
+
+    @property
+    def head(self):
+        return self.features.get(internal.HEAD)
+
+    @head.setter
+    def head(self, value):
+        self.preposition = value
 
     @property
     def preposition(self):
@@ -522,6 +595,14 @@ class VerbPhraseElement(PhraseElement):
         self.features[internal.REALISE_AUXILIARY] = True
 
     @property
+    def head(self):
+        return self.features.get(internal.HEAD)
+
+    @head.setter
+    def head(self, value):
+        self.verb = value
+
+    @property
     def verb(self):
         return self.head
 
@@ -529,16 +610,14 @@ class VerbPhraseElement(PhraseElement):
     def verb(self, verb):
         """Sets the verb (head) of a verb phrase; extract particle from verb if necessary"""
         if isinstance(verb, str):  # if String given, check for particle
-            space = verb.find(" ")
-
-            if space == -1:  # no space, so no particle
+            if " " not in verb:  # no space, so no particle
                 verb_element = self.lexicon.first(verb, category=cat.VERB)
-
             else:  # space, so break up into verb and particle
                 verb, _, particle = verb.partition(" ")
                 verb_element = self.lexicon.first(verb, category=cat.VERB)
                 self.features[feature.PARTICLE] = particle
-
+        elif not isinstance(verb, NLGElement):
+            raise ValueError('Unknown verb type')
         else:  # Object is not a String
             verb_element = verb
 
@@ -557,11 +636,7 @@ class VerbPhraseElement(PhraseElement):
         """Set the direct object of a clause (assumes this is the only direct object)"""
         if not direct_object:
             return
-        if (
-                direct_object.category == cat.CLAUSE
-                # TODO: define CoordinatedPhraseElement
-                # or isinstance(direct_object, CoordinatedPhraseElement)
-        ):
+        if isinstance(direct_object, (PhraseElement, CoordinatedPhraseElement)):
             object_phrase = direct_object
         else:
             object_phrase = NounPhraseElement(self.lexicon)

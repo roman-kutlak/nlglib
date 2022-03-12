@@ -30,6 +30,9 @@ PRONOUN = "PRONOUN"
 #  A conjunction element.
 CONJUNCTION = "CONJUNCTION"
 
+#  A particle element (not in SimpleNLG).
+PARTICLE = "PARTICLE"
+
 #  A preposition element.
 PREPOSITION = "PREPOSITION"
 
