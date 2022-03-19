@@ -56,10 +56,7 @@ class WordElement(NLGElement):
         return super(WordElement, self).__hash__()
 
     def __unicode__(self):
-        return "<%s [%s:%s]>" % (
-            self.__class__.__name__,
-            self.base_form,
-            self.category if self.category else 'no category')
+        return f"<{self.__class__.__name__} [{self.base_form}:{self.category or 'no category'}]>"
 
     @property
     def default_inflection_variant(self):
@@ -137,22 +134,14 @@ class InflectedWordElement(NLGElement):
         """
         self.base_word = word
         self.base_form = word.default_spelling_variant
+        self.category = category or word.category or ANY
         self.realisation = self.base_form
         self.features = word.features.copy()
         if features:
             self.features.update(features)
-        if not category:
-            #  the inflected word inherits the base word category
-            #  (moved from WordElement.realise_syntax())
-            self.category = word.category or ANY
-        else:
-            self.category = category
 
     def __unicode__(self):
-        return "<%s [%s:%s]>" % (
-            self.__class__.__name__,
-            self.base_form,
-            self.category if self.category else 'no category')
+        return f"<{self.__class__.__name__} [{self.base_form}:{self.category or 'no category'}]>"
 
     @property
     def parent(self):
@@ -167,10 +156,13 @@ class InflectedWordElement(NLGElement):
         return self.base_word.lexicon
 
     def realise_syntax(self):
-        if not self.elided and self.lexicon and self.base_form:
-            if not self.base_word:
-                self.base_word = self.lexicon.first(
-                    self.base_form, category=self.category)
+        if (
+            not self.elided
+            and self.lexicon
+            and self.base_form
+            and not self.base_word
+        ):
+            self.base_word = self.lexicon.first(self.base_form, category=self.category)
         return self
 
     def realise_morphology(self):

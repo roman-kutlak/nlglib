@@ -16,11 +16,57 @@ from nlglib.lexicon import feature as f
 from nlglib.lexicon.feature import category, number, person, gender, tense
 from nlglib.lexicon.feature import interrogative_type, discourse
 
-__all__ = ["EnglishPhraseHelper", "EnglishNounPhraseHelper"]
+from nlglib.realisation.processor import BaseProcessor
+
+__all__ = ["PhraseHelper", "EnglishNounPhraseHelper"]
 
 
-class EnglishPhraseHelper(PhraseHelper):
-    """A syntax defining specific behaviour for English sentences."""
+class SyntaxProcessor(BaseProcessor):
+    """Class in charge of performing English syntactic rules for any type of phrases. """
+
+    def adjective_phrase(self, phrase):
+        """This method performs the syntax for adjective phrases."""
+        helper = PhraseHelper()
+        return helper.realise(phrase)
+
+    def adverb_phrase(self, phrase):
+        """This method performs the syntax for adverb phrases."""
+        helper = PhraseHelper()
+        return helper.realise(phrase)
+    
+    def noun_phrase(self, phrase):
+        """This method performs the syntax for noun phrases."""
+        helper = NounPhraseHelper()
+        return helper.realise(phrase)
+
+    def verb_phrase(self, phrase):
+        """This method performs the syntax for verb phrases."""
+        helper = VerbPhraseHelper()
+        return helper.realise(phrase)
+
+    def preposition_phrase(self, phrase):
+        """This method performs the syntax for adverb phrases."""
+        helper = PhraseHelper()
+        return helper.realise(phrase)
+
+    def coordinated_phrase(self, phrase):
+        """This method performs the syntax for adverb phrases."""
+        helper = CoordinatedPhraseHelper()
+        return helper.realise(phrase)
+
+    def clause(self, phrase):
+        """This method performs the syntax for adverb phrases."""
+        helper = ClauseHelper()
+        return helper.realise(phrase)
+
+    def element(self, elt, **kwargs):
+        """Elements don't have syntactic rules"""
+        return elt
+
+    def phrase(self, phrase, **kwargs):
+        """This method performs the syntax for adverb phrases."""
+        helper = PhraseHelper()
+        return helper.realise(phrase)
 
 
 # noinspection PyMethodMayBeStatic
@@ -580,7 +626,7 @@ def get_head_word_element(element):
         return get_head_word_element(element.head)
 
 
-class ClauseHelper(EnglishPhraseHelper):
+class ClauseHelper(PhraseHelper):
     def realise(self, phrase):
 
         if not phrase:

@@ -34,13 +34,10 @@ class StringElement(NLGElement):
         else:
             self.features.update(word.features.copy())
             self.category = word.category
-            self.realisation = string if string else word.realisation
+            self.realisation = string or word.realisation
 
     def __unicode__(self):
-        return "<%s [%s:%s]>" % (
-            self.__class__.__name__,
-            self.realisation,
-            self.category if self.category else 'no category')
+        return f"<{self.__class__.__name__} [{self.realisation}:{self.category or 'no category'}]>"
 
     def __eq__(self, other):
         return (

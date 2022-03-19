@@ -43,7 +43,7 @@ class NLGElement(metaclass=FeatureModulesLoader):
     """Base spec element class from which all spec element classes inherit."""
 
     def __init__(self, features=None, category='', realisation='', lexicon=None):
-        self.features = features if features else {}
+        self.features = features or {}
         self.category = category
         self.realisation = realisation
         self.lexicon = lexicon
@@ -95,18 +95,11 @@ class NLGElement(metaclass=FeatureModulesLoader):
             del self.features[feature_name]
 
     def __str__(self):
-        return "<{} (realisation={}, category={}, features={})>".format(
-            self.__class__.__name__,
-            self.realisation,
-            self.category,
-            self.features)
+        return (f"<{self.__class__.__name__} (realisation={self.realisation}, "
+                f"category={self.category}, features={self.features})>")
 
     def __repr__(self):
-        _repr = "<{} (realisation={}, category={})>".format(
-            self.__class__.__name__,
-            self.realisation,
-            self.category)
-        return _repr
+        return f"<{self.__class__.__name__} (realisation={self.realisation}, category={self.category})>"
 
     def __getattr__(self, name):
         """When a undefined attribute name is accessed, try to return
