@@ -42,10 +42,12 @@ class English:
     def word(self, string, category=f.category.ANY, **features):
         w = self.lexicon.first(string, category)
         w.features.update(features)
-    
+        return w
+
     def symbol(self, string, **features):
         w = self.lexicon.first(string, category=f.category.SYMBOL, **features)
         w.features.update(features)
+        return w
 
     def adjective(self, string, **features):
         return self.word(string, category=f.category.ADJECTIVE, **features)
@@ -141,3 +143,4 @@ class English:
         cc.features.update(**features)
         for c in coordinates:
             cc.add_coordinate(c)
+        return cc

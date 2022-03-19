@@ -37,7 +37,7 @@ phrase_helper_router = {
         category.NOUN_PHRASE: 'EnglishNounPhraseHelper',
         category.VERB_PHRASE: 'VerbPhraseHelper',
         category.CLAUSE: 'ClauseHelper',
-        'phrase': 'EnglishPhraseHelper',
+        'phrase': 'PhraseHelper',
     },
 }
 

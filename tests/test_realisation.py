@@ -9,50 +9,56 @@ from nlglib.lexicon import feature as f
 from nlglib.lexicon.feature import category
 from nlglib.realisation.realiser.base import Realiser
 from nlglib.language.en import English
-
-
-@pytest.fixture
-def realiser(lexicon_en):
-    return Realiser(lexicon_en)
+from nlglib.realisation.syntax.en import SyntaxProcessor
+from nlglib.realisation.morphology.en import MorphologyProcessor
 
 
 @pytest.fixture
 def en(lexicon_en):
-    return English(lexicon=lexicon_en)
+    return English(lexicon=lexicon_en, syntax=SyntaxProcessor(), morphology=MorphologyProcessor())
+
+
+@pytest.fixture
+def realiser(en):
+    return Realiser(en)
 
 
 class TestElementRealisation:
 
-    def test_string(self, realiser):
+    def test_string(self, en, realiser):
         s = String('hello')
         expected = 'hello'
         actual = realiser(s)
-        assert expected == actual
+        assert actual == expected
 
-    def test_word(self, realiser):
-        s = realiser.lexicon.first('house', 'NOUN')
+    def test_word(self, en, realiser):
+        s = en.noun('house')
         expected = 'house'
         actual = realiser(s)
-        assert expected == actual
+        assert actual == expected
 
-    def test_inflected_word(self, realiser):
-        s = realiser.lexicon.first('house', 'NOUN').inflex(number=f.number.PLURAL)
+    def test_word_with_feature(self, en, realiser):
+        s = en.noun('house', number=f.number.PLURAL)
         expected = 'houses'
         actual = realiser(s)
-        assert expected == actual
+        assert actual == expected
+
+    def test_inflected_word(self, en, realiser):
+        s = en.noun('house').inflex(number=f.number.PLURAL)
+        expected = 'houses'
+        actual = realiser(s)
+        assert actual == expected
 
 
 class TestPhraseRealisation:
 
-    def test_singular_np(self, en):
-        realiser = Realiser(en.lexicon)
+    def test_singular_np(self, en, realiser):
         expected = 'the house'
         phrase = en.noun_phrase("the", "house")
         actual = realiser(phrase)
         assert actual == expected
 
-    def test_plural_np(self, en):
-        realiser = Realiser(en.lexicon)
+    def test_plural_np(self, en, realiser):
         expected = 'the houses'
         phrase = en.noun_phrase("the", "house", number=f.number.PLURAL)
         actual = realiser(phrase)
@@ -111,28 +117,28 @@ class TestPhraseRealisation:
 #         s = String('hello')
 #         expected = 'hello'
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_word(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
 #         s = Word('house', 'NOUN')
 #         expected = 'house'
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         s = Word('house', 'NOUN', {'Number': 'PLURAL'})
 #         expected = 'houses'
 #         actual = realiser(s)
 #         # TODO: implement pluralisation?
-#         # assert expected == actual
+#         # assert actual == expected
 #
 #     def test_var(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
 #         s = Var(0, 'truck1')
 #         expected = 'truck1'
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_coordination(self, lexicon_en):
 #         w1 = Word('truck', 'NOUN')
@@ -143,25 +149,25 @@ class TestPhraseRealisation:
 #         expected = ''
 #         s = Coordination()
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         expected = 'truck'
 #         s = Coordination(w1)
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         expected = 'truck and car'
 #         s = Coordination(w1, w2)
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         expected = 'truck, car and motorbike'
 #         s = Coordination(w1, w2, w3)
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_clause(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
@@ -169,7 +175,7 @@ class TestPhraseRealisation:
 #                    Word('run', 'VERB'))
 #         expected = 'Peter run'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         c = Clause(Word('Peter', 'NOUN'),
@@ -177,7 +183,7 @@ class TestPhraseRealisation:
 #                    front_modifiers=[String('yesterday')])
 #         expected = 'yesterday Peter run'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         c = Clause(Word('Peter', 'NOUN'),
@@ -186,7 +192,7 @@ class TestPhraseRealisation:
 #                    postmodifiers=[String('abundantly')])
 #         expected = 'yesterday Peter run abundantly'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         c = Clause(Word('Peter', 'NOUN'),
@@ -195,7 +201,7 @@ class TestPhraseRealisation:
 #                    postmodifiers=['abundantly'])
 #         expected = 'yesterday Peter run abundantly'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_np(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
@@ -203,7 +209,7 @@ class TestPhraseRealisation:
 #                        Word('this', 'DETERMINER'))
 #         expected = 'this house'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         c = NounPhrase(Word('house', 'NOUN'),
@@ -212,7 +218,7 @@ class TestPhraseRealisation:
 #                        postmodifiers=['that we lived in'])
 #         expected = 'this tall yellow house that we lived in'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_vp(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
@@ -221,7 +227,7 @@ class TestPhraseRealisation:
 #                        String('with the bat'))
 #         expected = 'hit the ball with the bat'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         c = VerbPhrase(Word('hit', 'VERB'),
@@ -229,7 +235,7 @@ class TestPhraseRealisation:
 #                        String('with the bat'))
 #         expected = 'hit the ball with the bat'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_pp(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
@@ -237,28 +243,28 @@ class TestPhraseRealisation:
 #                               String('the house'))
 #         expected = 'in the house'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #         realiser = Realiser(lexicon_en)
 #         c = PrepositionPhrase(Word('in', 'PREPOSITION'),
 #                               NounPhrase(Word('house', 'NOUN'), Word('the', 'DETERMINER')))
 #         expected = 'in the house'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_adjp(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
 #         c = AdjectivePhrase(Word('green', 'ADJECTIVE'))
 #         expected = 'green'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_advp(self, lexicon_en):
 #         realiser = Realiser(lexicon_en)
 #         c = AdverbPhrase(Word('rarely', 'ADVERB'))
 #         expected = 'rarely'
 #         actual = realiser(c)
-#         assert expected == actual
+#         assert actual == expected
 #
 #     def test_complex(self, lexicon_en):
 #         house = NounPhrase('house', 'the')
@@ -268,7 +274,7 @@ class TestPhraseRealisation:
 #         expected = 'Peter put the shopping in the house'
 #         realiser = Realiser(lexicon_en)
 #         actual = realiser(s)
-#         assert expected == actual
+#         assert actual == expected
 
 
 if __name__ == '__main__':

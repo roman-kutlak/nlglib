@@ -4,6 +4,7 @@
 
 from .base import NLGElement
 from .string import StringElement
+from nlglib.lexicon.feature import category
 from nlglib.lexicon.feature.internal import COMPONENTS
 
 
@@ -30,7 +31,7 @@ class ListElement(NLGElement):
         from the phrase.
 
         """
-        super(ListElement, self).__init__()
+        super(ListElement, self).__init__(category=category.LIST_ELEMENT)
         self.features = {COMPONENTS: []}
         if element:
             if isinstance(element, list):

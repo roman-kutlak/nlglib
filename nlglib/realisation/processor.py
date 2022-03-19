@@ -30,7 +30,7 @@ class BaseProcessor:
         elif cat in category.LEXICAL_CATEGORIES:
             return self.element(nlg_element, **kwargs)
         elif isinstance(nlg_element, (list, set, tuple)):
-            return self.element_list(nlg_element, **kwargs)
+            return self.list_element(nlg_element, **kwargs)
         else:
             raise NotImplementedError(f'Unknown category "{cat}"')
 
@@ -51,13 +51,16 @@ class BaseProcessor:
         sentences = [self.process(x, **kwargs) for x in nlg_element.sentences]
         return Paragraph(*sentences)
 
-    def element_list(self, elt, **kwargs):
+    def list_element(self, elt, **kwargs):
         """Process a list"""
         logger.debug('Processing a list')
-        return ' '.join(self.process(x, **kwargs) for x in elt)
+        return [self.process(x, **kwargs) for x in elt]
 
     def phrase(self, elt, **kwargs):
         raise NotImplementedError()
 
     def element(self, elt, **kwargs):
         raise NotImplementedError()
+
+    def canned_text(self, elt, **kwargs):
+        return elt
