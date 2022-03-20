@@ -41,6 +41,7 @@ class WordElement(NLGElement):
         super(WordElement, self).__init__(
             category=category, lexicon=lexicon, realisation=realisation)
         self.base_form = base_form
+        self.base_word = None
         self.id = id
 
     def __eq__(self, other):
@@ -57,6 +58,13 @@ class WordElement(NLGElement):
 
     def __unicode__(self):
         return f"<{self.__class__.__name__} [{self.base_form}:{self.category or 'no category'}]>"
+
+    # noinspection PyDefaultArgument
+    def __deepcopy__(self, memodict={}):
+        copyobj = super().__deepcopy__(memodict)
+        copyobj.base_word = self.base_word
+        copyobj.base_form = self.base_form
+        return copyobj
 
     @property
     def default_inflection_variant(self):
@@ -96,7 +104,7 @@ class WordElement(NLGElement):
     def realise_syntax(self):
         if not self.elided:
             infl = InflectedWordElement(word=self)
-            return infl.realise_syntax()
+            return infl
 
     def realise_morphology(self):
         if self.default_spelling_variant:
@@ -132,16 +140,23 @@ class InflectedWordElement(NLGElement):
         :param features: an optional feature dict
 
         """
+        self.features = word.features.copy()
+        if features:
+            self.features.update(features)
         self.base_word = word
         self.base_form = word.default_spelling_variant
         self.category = category or word.category or ANY
         self.realisation = self.base_form
-        self.features = word.features.copy()
-        if features:
-            self.features.update(features)
 
     def __unicode__(self):
         return f"<{self.__class__.__name__} [{self.base_form}:{self.category or 'no category'}]>"
+
+    # noinspection PyDefaultArgument
+    def __deepcopy__(self, memodict={}):
+        copyobj = super().__deepcopy__(memodict)
+        copyobj.base_word = self.base_word
+        copyobj.base_form = self.base_form
+        return copyobj
 
     @property
     def parent(self):

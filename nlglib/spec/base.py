@@ -47,9 +47,7 @@ class NLGElement(metaclass=FeatureModulesLoader):
         self.category = category
         self.realisation = realisation
         self.lexicon = lexicon
-        self.base_form = None
         self.parent = None
-        self.children = []
 
     def __eq__(self, other):
         if isinstance(other, NLGElement):
@@ -58,13 +56,12 @@ class NLGElement(metaclass=FeatureModulesLoader):
         elif isinstance(other, str):
             return self.realisation == other
         else:
-            raise TypeError("Can't compare NLGElement to %s" % (
-                str(type(other))))
+            raise TypeError(f"Can't compare NLGElement to {type(other)}")
 
     def __hash__(self):
         feat = {k: v for k, v in self.features.items() if not isinstance(v, (list, tuple))}
         features = tuple(sorted(tuple(feat)))
-        return hash((features, self.realisation, self.category, self.base_form))
+        return hash((features, self.realisation, self.category))
 
     def __contains__(self, feature_name):
         """Check if the argument feature name is contained in the element."""
@@ -141,7 +138,6 @@ class NLGElement(metaclass=FeatureModulesLoader):
         copyobj.category = self.category
         copyobj.realisation = self.realisation
         copyobj.lexicon = self.lexicon
-        copyobj.base_form = self.base_form
         return copyobj
 
     @property

@@ -91,7 +91,7 @@ def check_and_return_realisation(element, expected):
 def test_adjectives(lexicon_en):
     """AdjectivePhraseTest from simplenlg"""
     salacious = make_adjective_phrase(lexicon_en, 'salacious')
-    salacious.add_pre_modifier("incredibly")
+    salacious.add_premodifier("incredibly")
     
     realisation = salacious.realise()
     expected = ['incredibly', 'salacious']
@@ -99,7 +99,7 @@ def test_adjectives(lexicon_en):
     assert actual == expected
     
     beautiful = make_adjective_phrase(lexicon_en, 'beautiful')
-    beautiful.add_pre_modifier("amazingly")
+    beautiful.add_premodifier("amazingly")
     
     expected = ['amazingly', 'beautiful']
     actual = [x.realisation for x in beautiful.realise().components]

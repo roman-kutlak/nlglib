@@ -61,14 +61,14 @@ def test_is_ordinal(word, expected):
 
 
 def test_add_null_modifier(lexicon_fr, noun_helper_fr, phrase):
-    with mock.patch.object(PhraseElement, 'add_pre_modifier', autospec=True):
-        with mock.patch.object(PhraseElement, 'add_post_modifier', autospec=True):
+    with mock.patch.object(PhraseElement, 'add_premodifier', autospec=True):
+        with mock.patch.object(PhraseElement, 'add_postmodifier', autospec=True):
             noun_helper_fr.add_modifier(phrase, modifier=None)
-            assert phrase.add_pre_modifier.call_count == 0
-            assert phrase.add_post_modifier.call_count == 0
+            assert phrase.add_premodifier.call_count == 0
+            assert phrase.add_postmodifier.call_count == 0
 
 
-def test_add_post_modifier_word_element(lexicon_fr, noun_helper_fr, phrase):
+def test_add_postmodifier_word_element(lexicon_fr, noun_helper_fr, phrase):
     adj = lexicon_fr.first('meilleur', category=ADJECTIVE)
     noun_helper_fr.add_modifier(phrase, modifier=adj)
     assert not phrase.premodifiers
@@ -76,7 +76,7 @@ def test_add_post_modifier_word_element(lexicon_fr, noun_helper_fr, phrase):
     assert phrase.postmodifiers[0].base_form == 'meilleur'
 
 
-def test_add_post_modifier_unknown_string_element(lexicon_fr, noun_helper_fr, phrase):
+def test_add_postmodifier_unknown_string_element(lexicon_fr, noun_helper_fr, phrase):
     assert 'badass' not in lexicon_fr
     noun_helper_fr.add_modifier(phrase, modifier='badass')
     assert 'badass' in lexicon_fr
@@ -85,7 +85,7 @@ def test_add_post_modifier_unknown_string_element(lexicon_fr, noun_helper_fr, ph
     assert phrase.postmodifiers[0].base_form == 'badass'
 
 
-def test_add_post_modifier_unknown_complex_string_element(
+def test_add_postmodifier_unknown_complex_string_element(
         lexicon_fr, noun_helper_fr, phrase):
     assert 'totalement badass' not in lexicon_fr
     noun_helper_fr.add_modifier(phrase, modifier='totalement badass')
@@ -95,7 +95,7 @@ def test_add_post_modifier_unknown_complex_string_element(
     assert phrase.postmodifiers[0].realisation == 'totalement badass'
 
 
-def test_add_pre_modifier_ordinal_word(lexicon_fr, noun_helper_fr, phrase):
+def test_add_premodifier_ordinal_word(lexicon_fr, noun_helper_fr, phrase):
     adj = lexicon_fr.first('deuxième', category=ADJECTIVE)
     noun_helper_fr.add_modifier(phrase, modifier=adj)
     assert isinstance(phrase.premodifiers[0], WordElement)
@@ -103,7 +103,7 @@ def test_add_pre_modifier_ordinal_word(lexicon_fr, noun_helper_fr, phrase):
     assert not phrase.postmodifiers
 
 
-def test_add_pre_modifier_inflected_word(lexicon_fr, noun_helper_fr, phrase):
+def test_add_premodifier_inflected_word(lexicon_fr, noun_helper_fr, phrase):
     word = lexicon_fr.first('même')  # meme is preposed
     infl = word.inflex(number='plural')
     noun_helper_fr.add_modifier(phrase, modifier=infl)
@@ -116,7 +116,7 @@ def test_add_pre_modifier_inflected_word(lexicon_fr, noun_helper_fr, phrase):
     'deuxième',  # ordinal
     'même'  # preposed
 ])
-def test_add_pre_modifier_adjective_phrase(lexicon_fr, noun_helper_fr, phrase, word):
+def test_add_premodifier_adjective_phrase(lexicon_fr, noun_helper_fr, phrase, word):
     adj_phrase = AdjectivePhraseElement(lexicon_fr)
     adj = lexicon_fr.first(word, category=ADJECTIVE)
     adj_phrase.head = adj

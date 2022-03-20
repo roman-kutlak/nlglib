@@ -43,7 +43,7 @@ def test_set_unknown_str_adjective(lexicon_fr, adj_phrase):
 def test_adj_phrase_children(lexicon_fr, adj_phrase):
     adj = lexicon_fr.first('meilleur')
     adj_phrase.adjective = 'meilleur'
-    assert adj_phrase.get_children() == [adj]
+    assert adj_phrase.children() == [adj]
 
 
 def test_noun_phrase_children(lexicon_fr, noun_phrase):
@@ -55,7 +55,7 @@ def test_noun_phrase_children(lexicon_fr, noun_phrase):
     noun_phrase.specifier = un
     noun_phrase.add_modifier(beau)  # 'beau' is preposed, as indicated in lexicon
     noun_phrase.add_modifier(perdu)
-    assert noun_phrase.get_children() == [un, beau, endroit, perdu]
+    assert noun_phrase.children() == [un, beau, endroit, perdu]
     assert noun_phrase.premodifiers == [beau]
     assert noun_phrase.postmodifiers == [perdu]
     assert un.parent == noun_phrase

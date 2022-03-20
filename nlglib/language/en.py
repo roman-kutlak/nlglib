@@ -2,6 +2,7 @@
 from nlglib.lexicon import feature as f
 from nlglib.spec.phrase import CoordinatedPhraseElement, AdjectivePhraseElement, AdverbPhraseElement
 from nlglib.spec.phrase import NounPhraseElement, VerbPhraseElement, PrepositionPhraseElement, Clause
+from nlglib.spec.string import StringElement
 
 
 class English:
@@ -38,14 +39,17 @@ class English:
         return value
 
     # simple element constructors
+
+    def text(self, value):
+        return StringElement(value)
     
     def word(self, string, category=f.category.ANY, **features):
-        w = self.lexicon.first(string, category)
+        w = self.lexicon.first(string, category=category)
         w.features.update(features)
         return w
 
     def symbol(self, string, **features):
-        w = self.lexicon.first(string, category=f.category.SYMBOL, **features)
+        w = self.lexicon.first(string, category=f.category.SYMBOL)
         w.features.update(features)
         return w
 
@@ -99,10 +103,14 @@ class English:
         return p
     
     def adjective_phrase(self, head, *complements, **features):
-        return self._phrase(f.category.ADJECTIVE_PHRASE, head, *complements, **features)
+        phrase = self._phrase(f.category.ADJECTIVE_PHRASE, None, *complements, **features)
+        phrase.adjective = head
+        return phrase
 
     def adverb_phrase(self, head, *complements, **features):
-        return self._phrase(f.category.ADVERB_PHRASE, head, *complements, **features)
+        phrase = self._phrase(f.category.ADVERB_PHRASE, None, *complements, **features)
+        phrase.adverb = head
+        return phrase
 
     def noun_phrase(self, *words, **features):
         p = NounPhraseElement(lexicon=self.lexicon)
@@ -110,14 +118,14 @@ class English:
         if not words:
             return p
         if len(words) == 1:
-            p.head = words[0]
+            p.noun = words[0]
         elif len(words) == 2:
-            p.specifier, p.head = words
+            p.specifier, p.noun = words
         else:
             spec = words[0]
             noun = words[-1]
             modifiers = words[1:-1]
-            p.specifier, p.head = spec, noun
+            p.specifier, p.noun = spec, noun
             for m in modifiers:
                 p.add_modifier(m)
         p.features.update(features)

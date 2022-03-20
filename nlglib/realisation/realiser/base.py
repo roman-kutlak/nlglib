@@ -12,7 +12,7 @@ class Realiser:
         if not rv:
             return ''
         if isinstance(rv, (ListElement, list, tuple)):
-            rv = ' '.join([x.realisation for x in rv])
+            rv = ' '.join([x.realisation if hasattr(x, 'realisation') else str(x) for x in rv])
         elif hasattr(rv, 'realisation'):
             rv = rv.realisation
         return rv

@@ -116,7 +116,7 @@ class FrenchNounPhraseHelper(NounPhraseHelper):
         # if no modifier element was found, it must be a complex string,
         # add it as postModifier
         if not modifier_element:
-            phrase.add_post_modifier(StringElement(string=modifier))
+            phrase.add_postmodifier(StringElement(string=modifier))
             return
         #  adjective phrase is a premodifer
         elif isinstance(modifier_element, AdjectivePhraseElement):
@@ -125,7 +125,7 @@ class FrenchNounPhraseHelper(NounPhraseHelper):
                 (head.preposed or self.is_ordinal(head))
                 and not modifier_element.complements
             ):
-                phrase.add_pre_modifier(modifier_element)
+                phrase.add_premodifier(modifier_element)
                 return
         # Extract WordElement if modifier is a single word
         else:
@@ -137,10 +137,10 @@ class FrenchNounPhraseHelper(NounPhraseHelper):
                     and modifier_element.preposed
                     or self.is_ordinal(modifier_word)
             ):
-                phrase.add_pre_modifier(modifier_word)
+                phrase.add_premodifier(modifier_word)
                 return
         #  default case
-        phrase.add_post_modifier(modifier_element)
+        phrase.add_postmodifier(modifier_element)
 
     def realise(self, phrase):
         realised = ListElement()

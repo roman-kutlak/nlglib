@@ -13,7 +13,7 @@ from nlglib.lexicon.feature import NUMBER, IS_COMPARATIVE
 from nlglib.lexicon.feature.gender import MASCULINE, FEMININE
 from nlglib.lexicon.feature.number import PLURAL, SINGULAR, BOTH
 from nlglib.lexicon.feature.discourse import OBJECT, PRE_MODIFIER, FRONT_MODIFIER, POST_MODIFIER
-from nlglib.lexicon.feature.internal import DISCOURSE_FUNCTION, COMPLEMENTS
+from nlglib.lexicon.feature.internal import DISCOURSE_FUNCTION
 from nlglib.lexicon.feature.person import FIRST, SECOND, THIRD
 from nlglib.lexicon.feature.tense import PRESENT, PAST, FUTURE, CONDITIONAL
 from nlglib.lexicon.feature.form import (
@@ -188,7 +188,7 @@ def test_get_verb_parent5(lexicon_fr, morph_rules_fr, mod_func):
     p = PhraseElement(lexicon=lexicon_fr, category=NOUN_PHRASE)
     w = lexicon_fr.first('cheval')
     w.features[DISCOURSE_FUNCTION] = OBJECT
-    p.features[COMPLEMENTS] = [w]
+    p.complements = [w]
     verb.parent = p
     parent, agreement = morph_rules_fr.get_verb_parent(verb)
     assert parent == w

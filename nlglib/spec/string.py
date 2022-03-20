@@ -26,7 +26,6 @@ class StringElement(NLGElement):
         super().__init__(lexicon=lexicon)
         self.features[ELIDED] = False
         self.lexicon = lexicon or get_lexicon(language)
-        self.children = []
         self.parent = None
         if not word:
             self.category = CANNED_TEXT

@@ -60,12 +60,17 @@ class CoordinatedPhraseElement(NLGElement):
 
     def __init__(self, *coordinates, lexicon=None):
         super().__init__(lexicon=lexicon)
+        self.helper = get_phrase_helper(language=self.lexicon.language,
+                                        phrase_type=cat.COORDINATED_PHRASE)()
+        self.premodifiers = []
+        self.coordinates = []
+        self.postmodifiers = []
+        self.complements = []
+
         self.features[ELIDED] = False
         self.features[discourse.CONJUNCTION] = "and"
         for c in coordinates:
             self.add_coordinate(c)
-        self.helper = get_phrase_helper(language=self.lexicon.language,
-                                        phrase_type=cat.COORDINATED_PHRASE)()
 
     def add_coordinate(self, element):
         """Adds a new coordinate to the phrase element.
@@ -79,18 +84,17 @@ class CoordinatedPhraseElement(NLGElement):
         first element in the coordination.
 
         """
-        coordinates = self.features.get(internal.COORDINATES, [])
         if isinstance(element, str):
             element = StringElement(string=element, lexicon=self.lexicon)
             element.features[feature.SUPPRESSED_COMPLEMENTISER] = True
         else:
-            if element.category == cat.CLAUSE and len(coordinates) > 0:
+            if element.category == cat.CLAUSE and len(self.coordinates) > 0:
                 element.features[feature.SUPPRESSED_COMPLEMENTISER] = True
         element.parent = self
-        coordinates.append(element)
-        self.features[internal.COORDINATES] = coordinates
+        self.coordinates.append(element)
 
-    def get_children(self):
+    @property
+    def children(self):
         """Return the child components of the coordinated phrase.
 
         The returned list will depend of the category of the element:
@@ -118,8 +122,8 @@ class CoordinatedPhraseElement(NLGElement):
             for child in children]
         return children
 
-    def add_pre_modifier(self, new_pre_modifier):
-        """Add the argument pre_modifer as the phrase pre modifier,
+    def add_premodifier(self, new_pre_modifier):
+        """Add the argument premodifier as the phrase pre modifier,
         and set the parent of the pre modifier as the current sentence.
 
         """
@@ -130,8 +134,8 @@ class CoordinatedPhraseElement(NLGElement):
         current_pre_modifiers.append(new_pre_modifier)
         self.premodifiers = current_pre_modifiers
 
-    def add_post_modifier(self, new_post_modifier):
-        """Add the argument post_modifer as the phrase post modifier,
+    def add_postmodifier(self, new_post_modifier):
+        """Add the argument postmodifier as the phrase post modifier,
         and set the parent of the post modifier as the current sentence.
 
         """
@@ -160,12 +164,10 @@ class CoordinatedPhraseElement(NLGElement):
         if isinstance(complement, str):
             complement = StringElement(complement, lexicon=self.lexicon)
         complement.parent = self
-        complements = self.features.get(internal.COMPLEMENTS, [])
-        complements.append(complement)
-        self.features[internal.COMPLEMENTS] = complements
+        self.complements.append(complement)
 
     def get_last_coordinate(self):
-        children = self.get_children()
+        children = self.children
         if children:
             return children[-1]
         return None
@@ -182,23 +184,30 @@ class PhraseElement(NLGElement):
         self.features[ELIDED] = False
         self.helper = get_phrase_helper(language=self.lexicon.language,
                                         phrase_type='phrase')()
-        self.features[internal.COMPLEMENTS] = []
+        self._head = None
+        self.premodifiers = []
+        self.postmodifiers = []
+        self.complements = []
 
     @property
     def head(self):
-        return self.features.get(internal.HEAD)
+        return self._head
 
     @head.setter
     def head(self, value):
+        if value is None:
+            self._head = None
+            return
         if isinstance(value, NLGElement):
             head = value
         else:
-            head = StringElement(string=value)
+            head = StringElement(string=value)  # TODO: search for a noun in the lexicon?
         head.parent = self
-        self.features[internal.HEAD] = head
+        self._head = head
         self.set_features_from_element(head)
 
-    def get_children(self):
+    @property
+    def children(self):
         """Return the child components of the phrase.
 
         The returned list will depend of the category of the element:
@@ -232,6 +241,7 @@ class PhraseElement(NLGElement):
             children.append(self.head or [])
             children.extend(self.complements or [])
             children.extend(self.postmodifiers or [])
+        # TODO: add coordination
         else:
             children.extend(self.premodifiers or [])
             children.append(self.head or [])
@@ -248,7 +258,7 @@ class PhraseElement(NLGElement):
     def set_features_from_element(self, element):
         if not element:
             return
-
+        # TODO: make sure it's done in subclasses based on actual features
         self.set_feature_from_element(element, feature.IS_COMPARATIVE)
         self.set_feature_from_element(element, feature.POSSESSIVE)
         self.set_feature_from_element(element, feature.NUMBER, default_value=number.SINGULAR)
@@ -278,7 +288,6 @@ class PhraseElement(NLGElement):
         discourse function exists on the complement.
 
         """
-        complements = self.features.get(internal.COMPLEMENTS, [])
         if (
                 complement.category == cat.CLAUSE
                 # TODO: define CoordinatedPhraseElement
@@ -289,24 +298,25 @@ class PhraseElement(NLGElement):
                 complement[internal.DISCOURSE_FUNCTION] = discourse.OBJECT
 
             complement.parent = self
-        complements.append(complement)
-        self.features[internal.COMPLEMENTS] = complements
+        self.complements.append(complement)
 
-    def add_post_modifier(self, new_post_modifier):
+    def add_postmodifier(self, new_post_modifier):
         """Add the argument post_modifer as the phrase post modifier,
         and set the parent of the post modifier as the current sentence.
 
         """
+        # TODO: look up word?
+        if isinstance(new_post_modifier, str):
+            new_pre_modifier = StringElement(new_post_modifier, lexicon=self.lexicon)
         new_post_modifier.parent = self
-        current_post_modifiers = self.postmodifiers or []
-        current_post_modifiers.append(new_post_modifier)
-        self.postmodifiers = current_post_modifiers
+        self.postmodifiers.append(new_post_modifier)
 
-    def add_pre_modifier(self, new_pre_modifier):
+    def add_premodifier(self, new_pre_modifier):
         """Add the argument pre_modifer as the phrase pre modifier,
         and set the parent of the pre modifier as the current sentence.
 
         """
+        # TODO: look up word?
         if isinstance(new_pre_modifier, str):
             new_pre_modifier = StringElement(new_pre_modifier, lexicon=self.lexicon)
         new_pre_modifier.parent = self
@@ -332,25 +342,14 @@ class AdjectivePhraseElement(PhraseElement):
             category=cat.ADJECTIVE_PHRASE, lexicon=lexicon)
 
     @property
-    def head(self):
-        return self.features.get(internal.HEAD)
-
-    @head.setter
-    def head(self, value):
-        self.adjective = value
-
-    @property
     def adjective(self):
         return self.head
 
     @adjective.setter
     def adjective(self, adjective):
         if isinstance(adjective, str):
-            # Create a word, if not found in lexicon
             adjective = self.lexicon.first(adjective, category=cat.ADJECTIVE)
-        adjective.parent = self
-        self.features[internal.HEAD] = adjective
-        self.set_features_from_element(adjective)
+        self.head = adjective
 
     def set_features_from_element(self, element):
         if not element:
@@ -374,14 +373,6 @@ class AdverbPhraseElement(PhraseElement):
             category=cat.ADVERB_PHRASE, lexicon=lexicon)
 
     @property
-    def head(self):
-        return self.features.get(internal.HEAD)
-
-    @head.setter
-    def head(self, value):
-        self.adverb = value
-
-    @property
     def adverb(self):
         return self.head
 
@@ -389,9 +380,7 @@ class AdverbPhraseElement(PhraseElement):
     def adverb(self, adverb):
         if isinstance(adverb, str):
             adverb = self.lexicon.first(adverb, category=cat.ADVERB)
-        adverb.parent = self
-        self.features[internal.HEAD] = adverb
-        self.set_features_from_element(adverb)
+        self.head = adverb
 
     def set_features_from_element(self, element):
         if not element:
@@ -427,15 +416,7 @@ class NounPhraseElement(PhraseElement):
         if phrase:
             self.features.update(phrase.features)
             self.parent = phrase.parent
-        self.features[internal.SPECIFIER] = None
-
-    @property
-    def head(self):
-        return self.features.get(internal.HEAD)
-
-    @head.setter
-    def head(self, value):
-        self.noun = value
+        self._specifier = None
 
     @property
     def noun(self):
@@ -445,30 +426,30 @@ class NounPhraseElement(PhraseElement):
     def noun(self, value):
         if isinstance(value, str):
             value = self.lexicon.first(value, category=cat.NOUN)
-        value.parent = self
+        # TODO: figure out features.noun and features.pronoun and how they are used
         self.features[cat.NOUN] = value
-        self.features[internal.HEAD] = value
+        self.head = value
 
     @property
     def pronoun(self):
-        return self.features[cat.PRONOUN]
+        return self.features.get(cat.PRONOUN)
 
     @pronoun.setter
     def pronoun(self, value):
         if isinstance(value, str):
             value = self.lexicon.first(value, category=cat.PRONOUN)
-        value.parent = self
+        # TODO: figure out features.noun and features.pronoun and how they are used
         self.features[cat.PRONOUN] = value
-        self.features[internal.HEAD] = value
+        self.head = value
 
     @property
     def specifier(self):
-        return self.features[internal.SPECIFIER]
+        return self._specifier
 
     @specifier.setter
     def specifier(self, value):
         if value is None:
-            self.features[internal.SPECIFIER] = None
+            self._specifier = None
             return
 
         if isinstance(value, str):
@@ -483,13 +464,13 @@ class NounPhraseElement(PhraseElement):
         if specifier.number:
             self.features[NUMBER] = specifier.number
 
-        self.features[internal.SPECIFIER] = specifier
+        self._specifier = specifier
 
     def add_modifier(self, modifier):
         self.helper.add_modifier(phrase=self, modifier=modifier)
 
     def check_if_ne_only_negation(self):
-        return self.specifier.ne_only_negation or self.head.ne_only_negation
+        return self.specifier and (self.specifier.ne_only_negation or self.head.ne_only_negation)
 
 
 class PrepositionPhraseElement(PhraseElement):
@@ -506,24 +487,14 @@ class PrepositionPhraseElement(PhraseElement):
             category=cat.PREPOSITIONAL_PHRASE, lexicon=lexicon)
 
     @property
-    def head(self):
-        return self.features.get(internal.HEAD)
-
-    @head.setter
-    def head(self, value):
-        self.preposition = value
-
-    @property
     def preposition(self):
         return self.head
 
     @preposition.setter
     def preposition(self, preposition):
         if isinstance(preposition, str):
-            # Create a word, if not found in lexicon
             preposition = self.lexicon.first(preposition, category=cat.PREPOSITION)
-        preposition.parent = self
-        self.features[internal.HEAD] = preposition
+        self.head = preposition
 
 
 class VerbPhraseElement(PhraseElement):
@@ -595,14 +566,6 @@ class VerbPhraseElement(PhraseElement):
         self.features[internal.REALISE_AUXILIARY] = True
 
     @property
-    def head(self):
-        return self.features.get(internal.HEAD)
-
-    @head.setter
-    def head(self, value):
-        self.verb = value
-
-    @property
     def verb(self):
         return self.head
 
@@ -620,8 +583,7 @@ class VerbPhraseElement(PhraseElement):
             raise ValueError('Unknown verb type')
         else:  # Object is not a String
             verb_element = verb
-
-        self.features[internal.HEAD] = verb_element
+        self.head = verb_element
 
     @property
     def object(self):

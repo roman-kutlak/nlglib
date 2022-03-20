@@ -60,7 +60,10 @@ class PhraseHelper(object):
         """
         element_list = element_list or []
         for element in element_list:
-            element = element.realise_syntax()
+            if hasattr(element, 'realise_syntax'):
+                element = element.realise_syntax()
+            elif hasattr(element, 'realise'):
+                element = element.realise()
             if not element:
                 continue
             if discourse_function:

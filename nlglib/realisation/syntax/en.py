@@ -100,23 +100,23 @@ class EnglishNounPhraseHelper(NounPhraseHelper):
         # if no modifier element was found, it must be a complex string,
         # add it as postModifier
         if not modifier_element:
-            phrase.add_post_modifier(StringElement(string=modifier))
+            phrase.add_postmodifier(StringElement(string=modifier))
             return
         #  adjective phrase is a premodifer
         elif isinstance(modifier_element, AdjectivePhraseElement):
             head = modifier_element.head
             if head.preposed and not modifier_element.complements:
-                phrase.add_pre_modifier(modifier_element)
+                phrase.add_premodifier(modifier_element)
                 return
         # Extract WordElement if modifier is a single word
         else:
             modifier_word = modifier_element
             #  check if modifier is an adjective
             if modifier_word and modifier_word.category == category.ADJECTIVE:
-                phrase.add_pre_modifier(modifier_word)
+                phrase.add_premodifier(modifier_word)
                 return
         #  default case
-        phrase.add_post_modifier(modifier_element)
+        phrase.add_postmodifier(modifier_element)
 
     def create_pronoun(self, phrase):
         """Return an InflectedWordElement wrapping a personal pronoun
@@ -339,7 +339,7 @@ class VerbPhraseHelper(PhraseHelper):
             tense_value = tense.PRESENT
 
         if form_value == f.form.INFINITIVE:
-            actual_modal = "to"
+            actual_modal = phrase.lexicon.first("to", category=category.PARTICLE)
         elif form_value is None or form_value == f.form.NORMAL:
             if (
                 tense_value == tense.FUTURE
@@ -352,7 +352,7 @@ class VerbPhraseHelper(PhraseHelper):
                     )
                 )
             ):
-                actual_modal = "will"
+                actual_modal = phrase.lexicon.first("will", category=category.MODAL)
             elif modal is not None:
                 actual_modal = modal
 
@@ -511,7 +511,7 @@ class VerbPhraseHelper(PhraseHelper):
             front_vg.form = f.form.PRESENT_PARTICIPLE
         elif (
             (f.form.NORMAL != form_value or interrogative)
-            and not self.is_copular(phrase.getHead())
+            and not self.is_copular(phrase.head)
             and not vg_components
         ):
             if phrase.interrogative_type in (
@@ -1037,13 +1037,13 @@ class ClauseHelper(PhraseHelper):
             verb_post_modifiers = verb_element.postmodifiers or []
             for modifier in phrase_post_modifiers:
                 if modifier not in verb_post_modifiers:
-                    verb_element.add_post_modifier(modifier)
+                    verb_element.add_postmodifier(modifier)
 
         if clause_form == f.form.INFINITIVE:
             phrase.suppressed_complementiser = True
             for modifier in front_modifiers:
                 if isinstance(verb_element, PhraseElement):
-                    verb_element.add_post_modifier(modifier)
+                    verb_element.add_postmodifier(modifier)
             del phrase['front_modifiers']
             verb_element.non_morph = True
 

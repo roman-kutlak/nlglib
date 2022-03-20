@@ -11,11 +11,17 @@ from nlglib.realisation.realiser.base import Realiser
 from nlglib.language.en import English
 from nlglib.realisation.syntax.en import SyntaxProcessor
 from nlglib.realisation.morphology.en import MorphologyProcessor
+from nlglib.realisation.ortography.en import OrtographyProcessor
 
 
 @pytest.fixture
 def en(lexicon_en):
-    return English(lexicon=lexicon_en, syntax=SyntaxProcessor(), morphology=MorphologyProcessor())
+    return English(
+        lexicon=lexicon_en,
+        syntax=SyntaxProcessor(),
+        morphology=MorphologyProcessor(),
+        ortography=OrtographyProcessor(),
+    )
 
 
 @pytest.fixture
@@ -50,17 +56,105 @@ class TestElementRealisation:
         assert actual == expected
 
 
-class TestPhraseRealisation:
+class TestAdjectivePhraseRealisation:
 
-    def test_singular_np(self, en, realiser):
+    def test_adjective_phrase_head(self, en, realiser):
+        expected = 'happy'
+        phrase = en.adjective_phrase("happy")
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adjective_phrase_premodified(self, en, realiser):
+        expected = 'very happy'
+        phrase = en.adjective_phrase("happy")
+        phrase.add_premodifier(en.adverb('very'))
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adjective_phrase_postmodified(self, en, realiser):
+        expected = 'happy enough'
+        phrase = en.adjective_phrase("happy")
+        phrase.add_postmodifier(en.adverb('enough'))
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adjective_phrase_postmodified_by_phrase(self, en, realiser):
+        expected = 'advanced for her age'
+        phrase = en.adjective_phrase("advanced")
+        phrase.add_postmodifier(en.preposition_phrase('for', en.noun_phrase("her", "age")))
+        actual = realiser(phrase)
+        assert actual == expected
+
+    @pytest.mark.xfail(reason='verb phrases not tested yet and boviously missing something ther')
+    def test_adjective_phrase_complemented_by_phrase(self, en, realiser):
+        expected = 'willing to volunteer'
+        phrase = en.adjective_phrase("willing")
+        phrase.add_complement(en.verb_phrase('volunteer', form='infinitive'))
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adjective_phrase_complemented_by_phrase_canned(self, en, realiser):
+        expected = 'willing to volunteer'
+        phrase = en.adjective_phrase("willing")
+        phrase.add_complement(en.text('to volunteer'))
+        actual = realiser(phrase)
+        assert actual == expected
+
+
+class TestAdverbPhraseRealisation:
+
+    def test_adverb_phrase_head(self, en, realiser):
+        expected = 'rarely'
+        phrase = en.adverb_phrase("rarely")
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adverb_phrase_premodified(self, en, realiser):
+        expected = 'very quickly'
+        phrase = en.adverb_phrase("quickly")
+        phrase.add_premodifier(en.adverb('very'))
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adverb_phrase_postmodified(self, en, realiser):
+        expected = 'happily enough'
+        phrase = en.adverb_phrase("happily")
+        phrase.add_postmodifier(en.adverb('enough'))
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_adverb_phrase_complemented_by_phrase(self, en, realiser):
+        expected = 'unfortunately for me'
+        phrase = en.adverb_phrase("unfortunately")
+        phrase.add_postmodifier(en.preposition_phrase('for', en.pronoun('me')))
+        actual = realiser(phrase)
+        assert actual == expected
+
+
+class TestNounPhraseRealisation:
+
+    def test_singular_np_definite(self, en, realiser):
         expected = 'the house'
         phrase = en.noun_phrase("the", "house")
         actual = realiser(phrase)
         assert actual == expected
 
-    def test_plural_np(self, en, realiser):
+    def test_plural_np_definite(self, en, realiser):
         expected = 'the houses'
         phrase = en.noun_phrase("the", "house", number=f.number.PLURAL)
+        actual = realiser(phrase)
+        assert actual == expected
+
+    def test_singular_np_indefinite(self, en, realiser):
+        expected = 'a house'
+        phrase = en.noun_phrase("a", "house")
+        actual = realiser(phrase)
+        assert actual == expected
+
+    @pytest.mark.xfail(reason="Logic current in determiner morphology but incorrectly called")
+    def test_plural_np_indefinite(self, en, realiser):
+        expected = 'some houses'
+        phrase = en.noun_phrase("a", "house", number=f.number.PLURAL)
         actual = realiser(phrase)
         assert actual == expected
 
@@ -76,10 +170,6 @@ class TestPhraseRealisation:
 #         actual = realiser(monkey)
 #         assert actual == expected
 #
-
-
-
-
 
 
 # class TestRealiser:

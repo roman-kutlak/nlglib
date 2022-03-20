@@ -5,7 +5,6 @@
 from .base import NLGElement
 from .string import StringElement
 from nlglib.lexicon.feature import category
-from nlglib.lexicon.feature.internal import COMPONENTS
 
 
 class ListElement(NLGElement):
@@ -32,7 +31,7 @@ class ListElement(NLGElement):
 
         """
         super(ListElement, self).__init__(category=category.LIST_ELEMENT)
-        self.features = {COMPONENTS: []}
+        self.components = []
         if element:
             if isinstance(element, list):
                 self.extend(element)
@@ -45,48 +44,48 @@ class ListElement(NLGElement):
         return bool(len(self))
 
     def __len__(self):
-        return len(self.features[COMPONENTS])
+        return len(self.components)
 
     def __getitem__(self, key):
-        return self.features[COMPONENTS][key]
+        return self.components[key]
 
     def __setitem__(self, key, value):
-        self.features[COMPONENTS][key] = value
+        self.components[key] = value
         value.parent = self
 
     def __delitem__(self, key):
-        self.features[COMPONENTS][key].parent = None
-        del self.features[COMPONENTS][key]
+        self.components[key].parent = None
+        del self.components[key]
 
     def __iter__(self):
-        return iter(self.features[COMPONENTS])
+        return iter(self.components)
 
     def append(self, element):
         if not isinstance(element, NLGElement):
             element = StringElement(str(element))
         element.parent = self
-        self.features[COMPONENTS].append(element)
+        self.components.append(element)
 
     def extend(self, elements):
         for element in elements:
             if not isinstance(element, NLGElement):
                 element = StringElement(str(element))
             element.parent = self
-            self.features[COMPONENTS].append(element)
+            self.components.append(element)
 
     def insert(self, index, element):
         if not isinstance(element, NLGElement):
             element = StringElement(str(element))
         element.parent = self
-        self.features[COMPONENTS].insert(index, element)
+        self.components.insert(index, element)
 
     @property
     def children(self):
-        return self.features[COMPONENTS]
+        return self.components
 
     @children.setter
     def children(self, value):
-        self.features[COMPONENTS] = value
+        self.components = value
         for child in value:
             child.parent = self
 
